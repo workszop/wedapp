@@ -16,7 +16,7 @@
 //   GET    /ws                  WebSocket (token in Sec-WebSocket-Protocol: "tt, <token>")
 //   GET    /admin   PUT /admin   DELETE /admin   DELETE /admin/guests/:id     couple only (Bearer admin code)
 // Operator route:
-//   POST   /api/admin/events    {names, dateLine} with Bearer MASTER_KEY -> {slug, adminCode}
+//   POST   /api/admin/events    {names, dateLine, adminCode?} with Bearer MASTER_KEY -> {slug, adminCode}   (adminCode lets the operator reuse a couple's code)
 import { DurableObject } from 'cloudflare:workers';
 
 const OPT_COUNTS = [3, 2, 5, 4, 6, 4, 4, 6, 6, 6];   // number of options per question, same order as Q in index.html
@@ -352,7 +352,9 @@ async function route(request, env, url) {
     if (!key || await sha256(key) !== await sha256(env.MASTER_KEY)) return err(403, 'bad_key');
     const b = await readJson(request), names = cleanText(b && b.names, 60), dateLine = cleanText(b && b.dateLine, 80);
     if (!names) return err(400, 'bad_request');
-    const slug = randomString(20, SLUG_ABC), adminCode = randomString(12, CODE_ABC);
+    const wanted = b && b.adminCode != null ? String(b.adminCode).toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+    if (wanted && !/^[A-Z0-9]{10,32}$/.test(wanted)) return err(400, 'bad_code_format');
+    const slug = randomString(20, SLUG_ABC), adminCode = wanted || randomString(12, CODE_ABC);
     const created = await env.ROOM.get(env.ROOM.idFromName(slug)).init({ slug, names, dateLine, adminHash: await sha256(adminCode) });
     if (!created) return err(409, 'exists');
     return json({ slug, adminCode, url: `${appFor(request, env)}?e=${slug}` }, 201);
