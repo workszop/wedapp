@@ -59,9 +59,10 @@
   .btn.ghost{background:transparent;color:var(--mute);font-weight:600;font-size:14px;padding:10px}
   /* welcome */
   .welcome{justify-content:space-between;text-align:center;background:#fff}
-  .mono{width:128px;height:128px;margin:30px auto 0;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;font:italic 44px var(--serif);color:var(--ink);position:relative;background:var(--paper)}
+  .mono{width:112px;height:112px;margin:14px auto 0;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;font:italic 44px var(--serif);color:var(--ink);position:relative;background:var(--paper)}
   .mono::after{content:"";position:absolute;inset:7px;border-radius:50%;border:1px solid var(--blush)}
-  .welcome h2{font:400 34px/1.1 var(--serif);margin:22px 0 6px}
+  .welcome h2{font:400 32px/1.1 var(--serif);margin:16px 0 6px}
+  .welcome>div:first-child{margin-bottom:14px}
   .welcome .sub{color:var(--mute);font-size:14px;letter-spacing:.04em}
   .welcome .pitch{font:italic 19px/1.45 var(--serif);margin:26px 8px 0}
   .mini-graph{height:92px;margin:14px 0 0}
@@ -162,6 +163,25 @@
   .cta{display:flex;gap:10px;margin-top:14px;flex:none}
   .cta .btn{padding:13px}
   .btn.alt{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+  /* welcome-screen message from the couple */
+  .wn{margin:12px 0 0;text-align:left;background:#fff;border:1px solid var(--line);border-radius:20px;padding:12px 12px 10px;box-shadow:0 14px 30px -22px rgba(80,60,60,.55)}
+  .wn-h{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .wn-h b{font-size:14px}.wn-h small{margin-left:auto;color:var(--mute);font-size:11px}
+  .wn-av{position:relative;width:52px;height:30px;flex:none}
+  .wn-av i{position:absolute;top:0;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:italic 700 14px Georgia,serif;color:#fff;border:2px solid #fff;box-shadow:0 0 0 1.5px #c9a35b}
+  .wn-av .a{left:0;background:#e8a3ab;z-index:1}.wn-av .m{left:22px;background:#86a8d0}
+  .wn-thread{display:flex;flex-direction:column;gap:6px}
+  .wn .bub{font-size:14px;padding:8px 12px;max-width:88%;animation:pop .25s ease-out}
+  .wn .typing{padding:11px 13px}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
+  .wn-sugg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:8px 0 6px}.wn-sugg::-webkit-scrollbar{display:none}
+  .wn-sugg button{flex:none;font:600 12.5px var(--sans);background:#fff7f7;border:1px solid #efd3d6;color:var(--ink);border-radius:999px;padding:8px 12px;cursor:pointer;min-height:36px}
+  .wn-form{display:flex;gap:8px;align-items:center}
+  .wn-form input{flex:1;min-width:0;font:16px var(--sans);padding:9px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--ink);outline:none;min-height:42px}
+  .wn-form input:focus{border-color:var(--rose)}
+  .wn-form .send{width:42px;height:42px}
+  .wn-done{font-size:12px;color:var(--mute);text-align:center;margin-top:8px}
+  @media (max-height:720px){.mini-graph{display:none}}
   /* messaging */
   .seg .bdg{min-width:16px;height:16px;border-radius:8px;background:var(--rose);color:#fff;font:700 10px/16px var(--sans);text-align:center;padding:0 4px;margin-left:2px}
   @media (max-width:380px){.seg button svg{display:none}}
@@ -328,7 +348,12 @@
             <h2>Ania &amp; Marek</h2>
             <div class="sub">SATURDAY 14 JUNE · VILLA RÓŻANA</div>
             <svg class="mini-graph" id="mini" viewBox="0 0 320 92"></svg>
-            <div class="pitch">“Answer a couple of quick questions and see who you’ll click with tonight.”</div>
+            <div class="wn" id="wn" aria-live="polite">
+              <div class="wn-h"><span class="wn-av"><i class="a">A</i><i class="m">M</i></span><b>Ania &amp; Marek</b><small>Messages</small></div>
+              <div class="wn-thread" id="wn-thread"></div>
+              <div class="wn-sugg" id="wn-sugg"></div>
+              <form class="wn-form" id="wn-form"><input id="wn-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Reply to Ania &amp; Marek…" maxlength="200" aria-label="Reply"><button class="send" id="wn-send" type="submit" aria-label="Send reply" disabled></button></form>
+            </div>
           </div>
           <div>
             <button class="btn" id="start">Find my people</button>
@@ -2778,7 +2803,7 @@ document.querySelectorAll('#steps button').forEach(b => b.onclick = () => {
 });
 function ensureAnswers() { if (!myName) myName = 'Alex'; me = me.map(a => a === null ? 0 : a); }
 $('start').onclick = () => { me = blank(); si = 0; renderQ(); go('quiz'); };
-$('sample').onclick = () => { myName = 'Alex'; me = Q.map(() => 0); go('loading'); setTimeout(() => showView('summary'), 1500); };
+$('sample').onclick = () => { myName = 'Alex'; me = Q.map(() => 0); flushWelcomeReply(); go('loading'); setTimeout(() => showView('summary'), 1500); };
 
 /* ======================= quiz =======================
    Required: name, bride-or-groom, friend-or-family. Everything else is optional (skip, or tap a chosen card again to clear it). */
@@ -2805,7 +2830,7 @@ function renderLive() {
   if (lastCount !== st.count) { num.classList.add('bump'); setTimeout(() => num.classList.remove('bump'), 250); }
   lastCount = st.count;
 }
-function finishQuiz() { go('loading'); setTimeout(() => showView('summary'), 1900); }
+function finishQuiz() { flushWelcomeReply(); go('loading'); setTimeout(() => showView('summary'), 1900); }
 function nextStep() { if (si < steps.length - 1) { si++; renderQ(); } else finishQuiz(); }
 function renderQ() {
   const st = steps[si], act = $('qact');
@@ -3056,7 +3081,7 @@ function MockBackend({ getGuest }) {
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ msgs, settings })); } catch (e) {} };
   if (!msgs) {   // first run: a welcome note from the bride so the unread badge has something to show
     const bride = guests.find(g => g.couple === 'bride');
-    msgs = [{ id: 'm0', from: String(bride.id), to: 'me', body: 'Welcome to our wedding! Find your people tonight – and say hi to someone new. Ania & Marek', at: new Date().toISOString(), readAt: null }]; persist();
+    msgs = [{ id: 'm0', from: String(bride.id), to: 'me', body: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight – and tell us, how do you know us? – Ania & Marek', at: new Date().toISOString(), readAt: null }]; persist();
   }
   seq = msgs.length + 1;
   const subs = new Set(), emit = e => subs.forEach(f => { try { f(clone(e)); } catch (_) {} }), wait = (v, ms = 80) => new Promise(r => setTimeout(() => r(clone(v)), ms));
@@ -3212,6 +3237,39 @@ $('share-x').innerHTML = ic('x', 22); $('share-link').innerHTML = ic('share-2', 
 $('share-open').onclick = openShare; $('share-x').onclick = closeShare; $('share-bd').onclick = closeShare; $('share-link').onclick = shareApp; $('share-copy').onclick = copyLink;
 addEventListener('keydown', e => { if (e.key === 'Escape') closeShare(); });
 renderQR();
+
+/* ======================= welcome-screen message from the couple (showcases Messages) =======================
+   Edit WELCOME_NOTE to change the copy. The visitor's reply is local until they finish the quiz; then flushWelcomeReply()
+   sends it through `backend.sendMessage` so it shows up in the Chats thread with Ania (and, with a real backend, is stored). */
+const WELCOME_NOTE = {
+  body: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight – and tell us, how do you know us? – Ania & Marek',
+  quick: ['College friends', 'Family', 'Work', 'Through friends'],
+  answer: t => /family/i.test(t) ? 'Family – we’re so glad you’re here! Save us a dance later.' : /college|school|uni/i.test(t) ? 'College days! Those were the best stories – find us after the cake.' : /work|colleague/i.test(t) ? 'Thank you for coming! Don’t talk shop tonight – dance!' : 'Thank you! We can’t wait to dance with you tonight.',
+};
+let welcomeReply = null, welcomeFlushed = false;
+(function welcomeNote() {
+  const thread = $('wn-thread'), sugg = $('wn-sugg'), form = $('wn-form'), input = $('wn-input'), send = $('wn-send');
+  send.innerHTML = ic('send', 18);
+  const bub = (cls, text) => `<div class="bub ${cls}">${esc(text)}</div>`, typing = '<div class="typing"><i></i><i></i><i></i></div>';
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+  // 1. the couple "types" and the message arrives
+  thread.innerHTML = typing;
+  wait(1100).then(() => { thread.innerHTML = bub('them', WELCOME_NOTE.body); sugg.innerHTML = WELCOME_NOTE.quick.map(q => `<button type="button">${esc(q)}</button>`).join(''); sugg.querySelectorAll('button').forEach(b => b.onclick = () => reply(b.textContent)); });
+  input.oninput = () => { send.disabled = !input.value.trim(); };
+  form.onsubmit = e => { e.preventDefault(); const v = input.value.trim(); if (v) reply(v); };
+  // 2. the visitor answers, the couple answers back
+  async function reply(text) {
+    if (welcomeReply) return; welcomeReply = text;
+    sugg.innerHTML = ''; form.style.display = 'none'; thread.insertAdjacentHTML('beforeend', bub('me', text));
+    thread.insertAdjacentHTML('beforeend', typing); await wait(1300); thread.lastElementChild.remove();
+    thread.insertAdjacentHTML('beforeend', bub('them', WELCOME_NOTE.answer(text)));
+    thread.insertAdjacentHTML('beforeend', `<div class="wn-done">Your chat continues in Messages once you join.</div>`);
+  }
+})();
+async function flushWelcomeReply() {   // called when the guest finishes the quiz: this is the point where, with a real backend, the guest exists
+  if (!welcomeReply || welcomeFlushed) return; welcomeFlushed = true;
+  try { await backend.sendMessage(String(guests.find(g => g.couple === 'bride').id), welcomeReply); refreshUnread(); } catch (e) {}
+}
 
 /* ======================= welcome mini-graph (decorative) ======================= */
 (function () {
