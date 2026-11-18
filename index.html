@@ -339,6 +339,19 @@
     :root{--tab-h:calc(44px + env(safe-area-inset-bottom,0px))}
     .tabbar{padding-top:3px}.tabbar button{flex-direction:row;gap:7px;font-size:12px}.tabbar .bdg{position:static;margin-left:2px}
   }
+  /* install banner + guide */
+  .ibanner{position:absolute;left:12px;right:12px;top:calc(var(--pt) - 4px);z-index:16;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 10px;box-shadow:0 14px 34px -14px rgba(60,40,50,.5);transform:translateY(-160%);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+  .ibanner.show{transform:none}
+  .ib-ic{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#eeb0b7,#d4808c);color:#fff;display:grid;place-items:center;flex:none}
+  .ib-t{flex:1;min-width:0}.ib-t b{display:block;font-size:14px}.ib-t small{color:var(--mute);font-size:12px}
+  .ib-go{font:700 13px var(--sans);background:var(--ink);color:#fff;border:0;border-radius:999px;padding:9px 14px;cursor:pointer;min-height:36px}
+  .ib-x{width:36px;height:36px;border:0;background:none;color:var(--mute);display:grid;place-items:center;cursor:pointer;flex:none}
+  .gsteps{list-style:none;margin:0 0 16px;padding:0;text-align:left;display:grid;gap:10px}
+  .gsteps li{display:flex;gap:12px;align-items:center;background:#faf6f1;border-radius:14px;padding:11px 12px;font-size:14px;line-height:1.35}
+  .gsteps li .n{width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font:700 12px var(--sans);flex:none}
+  .gsteps li .ic{color:var(--rose);flex:none}
+  .gsteps li small{display:block;color:var(--mute);font-size:12px}
+  #guide .share-card{max-height:92dvh;overflow-y:auto}
 </style>
 </head>
 <body>
@@ -365,8 +378,22 @@
         <div class="notch"></div>
         <div class="status"><span>9:41</span><span>●●● ▮</span></div>
         <div class="toast" id="toast"></div>
+        <div class="ibanner" id="ibanner"><span class="ib-ic" id="ib-ic"></span><div class="ib-t"><b>Get the full-screen app</b><small>No address bar · works offline</small></div><button class="ib-go" id="ib-go">How</button><button class="ib-x" id="ib-x" aria-label="Dismiss"></button></div>
         <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
         <div class="scrim" id="scrim"></div>
+
+        <!-- install guide -->
+        <div class="share" id="guide" aria-hidden="true">
+          <div class="share-bd" id="guide-bd"></div>
+          <div class="share-card" role="dialog" aria-label="Install the app">
+            <div class="grab"></div>
+            <button class="share-x" id="guide-x" aria-label="Close"></button>
+            <h4 id="guide-t">Install Table Talk</h4>
+            <p id="guide-p"></p>
+            <ol class="gsteps" id="guide-steps"></ol>
+            <div class="sh-btns"><button class="btn" id="guide-copy"></button><button class="btn alt" id="guide-ok">Got it</button></div>
+          </div>
+        </div>
 
         <!-- share the app -->
         <div class="share" id="share" aria-hidden="true">
@@ -2782,6 +2809,7 @@ const ICONS = {"arrow-right":"<path d=\"M5 12h14\" /> <path d=\"m12 5 7 7-7 7\" 
 Object.assign(ICONS, {"share-2":"<circle cx=\"18\" cy=\"5\" r=\"3\" /> <circle cx=\"6\" cy=\"12\" r=\"3\" /> <circle cx=\"18\" cy=\"19\" r=\"3\" /> <line x1=\"8.59\" x2=\"15.42\" y1=\"13.51\" y2=\"17.49\" /> <line x1=\"15.41\" x2=\"8.59\" y1=\"6.51\" y2=\"10.49\" />","copy":"<rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\" /> <path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\" />","qr-code":"<rect width=\"5\" height=\"5\" x=\"3\" y=\"3\" rx=\"1\" /> <rect width=\"5\" height=\"5\" x=\"16\" y=\"3\" rx=\"1\" /> <rect width=\"5\" height=\"5\" x=\"3\" y=\"16\" rx=\"1\" /> <path d=\"M21 16h-3a2 2 0 0 0-2 2v3\" /> <path d=\"M21 21v.01\" /> <path d=\"M12 7v3a2 2 0 0 1-2 2H7\" /> <path d=\"M3 12h.01\" /> <path d=\"M12 3h.01\" /> <path d=\"M12 16v.01\" /> <path d=\"M16 12h1\" /> <path d=\"M21 12v.01\" /> <path d=\"M12 21v-1\" />","x":"<path d=\"M18 6 6 18\" /> <path d=\"m6 6 12 12\" />"});
 Object.assign(ICONS, {"send": "<path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\" /> <path d=\"m21.854 2.147-10.94 10.939\" />"});
 Object.assign(ICONS, {"download": "<path d=\"M12 15V3\" /> <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" /> <path d=\"m7 10 5 5 5-5\" />"});
+Object.assign(ICONS, {"share":"<path d=\"M12 2v13\" /> <path d=\"m16 6-4-4-4 4\" /> <path d=\"M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8\" />","square-plus":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"M8 12h8\" /> <path d=\"M12 8v8\" />","ellipsis":"<circle cx=\"12\" cy=\"12\" r=\"1\" /> <circle cx=\"19\" cy=\"12\" r=\"1\" /> <circle cx=\"5\" cy=\"12\" r=\"1\" />","compass":"<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z\" />","smartphone":"<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\" /> <path d=\"M12 18h.01\" />"});
 const ic = (n, s = 20, w = 2) => `<svg class="ic" xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
 
 const Q = [
@@ -2832,7 +2860,7 @@ function go(name) {
   if (name === 'summary') renderSummary();
   if (name === 'inbox') renderInbox();
   if (name !== 'graph') closeSheet();
-  syncTabbar();
+  syncTabbar(); if (typeof syncBanner === 'function') syncBanner();
 }
 document.querySelectorAll('#steps button').forEach(b => b.onclick = () => {
   const t = b.dataset.go;
@@ -3338,14 +3366,37 @@ function sheetDrag(el, close) {   // swipe a sheet down to dismiss it
 }
 sheetDrag($('sheet'), closeSheet); sheetDrag(document.querySelector('.share-card'), closeShare);
 document.addEventListener('click', e => { if (e.target.closest('button, .opt, .prow')) { try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} } }, true);   // light haptic tick where supported (Android)
+// --- install guide: Safari on iPhone cannot hide its address bar in a normal tab, only the installed app can ---
+const inApp = /FBAN|FBAV|Instagram|Line\/|WhatsApp|Snapchat|Twitter|MicroMessenger|LinkedInApp|GSA\//i.test(navigator.userAgent);
+const dismissedKey = 'tt_install_dismissed';
+const getDismissed = () => { try { return localStorage.getItem(dismissedKey) === '1'; } catch (e) { return false; } };
+function guideSteps() {
+  const step = (i, icon, t, sm) => `<li><span class="n">${i}</span><span class="ic">${ic(icon, 22)}</span><span>${t}${sm ? `<small>${sm}</small>` : ''}</span></li>`;
+  if (inApp) return { title: 'Open in Safari first', p: 'This app’s built-in browser can’t install apps. Open the link in Safari, then add it to your Home Screen.',
+    html: step(1, 'ellipsis', 'Tap the <b>⋯</b> or <b>Share</b> button in this app') + step(2, 'compass', 'Choose <b>Open in Safari</b>') + step(3, 'share', 'In Safari tap <b>Share</b> → <b>Add to Home Screen</b>') };
+  if (isIOS) return { title: 'Add to Home Screen', p: 'Open Table Talk from your Home Screen and the Safari address bar is gone – it runs full screen like a normal app.',
+    html: step(1, 'share', 'Tap the <b>Share</b> button in Safari', 'the square with an arrow, at the bottom of the screen') + step(2, 'square-plus', 'Scroll and tap <b>Add to Home Screen</b>') + step(3, 'smartphone', 'Keep <b>Open as Web App</b> switched on, then tap <b>Add</b>') + step(4, 'check', 'Open <b>Table Talk</b> from your Home Screen', 'not from Safari') };
+  return { title: 'Install Table Talk', p: 'Install it for a full-screen app that works offline.', html: step(1, 'ellipsis', 'Open your browser menu <b>⋮</b>') + step(2, 'download', 'Tap <b>Install app</b> or <b>Add to Home screen</b>') };
+}
+function openGuide() {
+  const g = guideSteps(); $('guide-t').textContent = g.title; $('guide-p').textContent = g.p; $('guide-steps').innerHTML = g.html;
+  $('guide-copy').style.display = inApp ? '' : 'none'; $('guide').classList.add('open'); $('guide').setAttribute('aria-hidden', 'false');
+}
+const closeGuide = () => { $('guide').classList.remove('open'); $('guide').setAttribute('aria-hidden', 'true'); };
+$('guide-x').innerHTML = ic('x', 22); $('guide-copy').innerHTML = ic('copy', 18) + 'Copy link'; $('ib-ic').innerHTML = ic('smartphone', 20); $('ib-x').innerHTML = ic('x', 18);
+$('guide-bd').onclick = closeGuide; $('guide-x').onclick = closeGuide; $('guide-ok').onclick = closeGuide; $('guide-copy').onclick = () => { copyLink(); };
+sheetDrag(document.querySelector('#guide .share-card'), closeGuide);
+$('ib-go').onclick = openGuide; $('ib-x').onclick = () => { try { localStorage.setItem(dismissedKey, '1'); } catch (e) {} syncBanner(); };
+function syncBanner() { const ok = (isIOS || inApp) && !standalone() && !framed() && !getDismissed() && $('s-welcome').classList.contains('active'); $('ibanner').classList.toggle('show', ok); }
+setTimeout(syncBanner, 1400);
 // installable app: Android shows the real prompt, iOS gets instructions
 let deferredPrompt = null;
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-function updateInstall() { const b = $('install-btn'), can = !standalone() && (deferredPrompt || isIOS) && !framed(); b.hidden = !can; if (can) b.innerHTML = ic('download', 18) + 'Install on your phone'; }
+function updateInstall() { const b = $('install-btn'), can = !standalone() && (deferredPrompt || isIOS || inApp) && !framed(); b.hidden = !can; if (can) b.innerHTML = ic('download', 18) + 'Install on your phone'; }
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; updateInstall(); });
 addEventListener('appinstalled', () => { deferredPrompt = null; updateInstall(); });
-$('install-btn').onclick = async () => { if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; updateInstall(); } else toast('Tap Share, then “Add to Home Screen”', null, 5000); };
+$('install-btn').onclick = async () => { if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; updateInstall(); } else openGuide(); };
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
 /* ======================= welcome mini-graph (decorative) ======================= */
