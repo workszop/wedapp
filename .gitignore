@@ -1,0 +1,13 @@
+mockups/
+plans/
+superpowers/
+progress.md
+review*.md
+*.plan.md
+*.draft.*
+scratch/
+ux-audit/
+node_modules/
+.wrangler/
+.dev.vars
+*.secret

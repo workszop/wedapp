@@ -1,8 +1,9 @@
 {
   "id": "./",
-  "name": "Table Talk – Ania & Marek's reception",
+  "lang": "pl",
+  "name": "Table Talk – wesele Ani i Marka",
   "short_name": "Table Talk",
-  "description": "Find the guests you'll click with at the wedding reception.",
+  "description": "Znajdź na weselu gości, z którymi znajdziesz wspólny język.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

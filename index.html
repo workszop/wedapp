@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -14,8 +14,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Table Talk">
-<title>Table Talk · Wedding reception app mockup</title>
-<meta name="description" content="Mockup of a wedding reception app: answer ten questions, see a graph connecting you to guests with similar answers.">
+<title>Table Talk · Aplikacja na wesele (makieta)</title>
+<meta name="description" content="Makieta aplikacji weselnej: odpowiedz na dziesięć pytań i zobacz graf, który łączy Cię z gośćmi o podobnych odpowiedziach.">
 <style>
   :root{
     --ivory:#ffffff;--paper:#fffdf9;--ink:#2b2a33;--mute:#7b7a85;--line:#e8e0d4;
@@ -352,24 +352,31 @@
   .gsteps li .ic{color:var(--rose);flex:none}
   .gsteps li small{display:block;color:var(--mute);font-size:12px}
   #guide .share-card{max-height:92dvh;overflow-y:auto}
+  /* ---------- language switch ---------- */
+  .lang{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--paper);border:1px solid var(--line)}
+  .lang button{border:0;background:transparent;color:var(--mute);font:700 12px var(--sans);letter-spacing:.06em;border-radius:999px;min-width:40px;min-height:34px;padding:0 10px;cursor:pointer}
+  .lang button.on{background:var(--ink);color:#fff}
+  .welcome>div:first-child{position:relative}
+  .welcome .lang{position:absolute;top:0;right:0;z-index:2}
+  .intro .lang{float:right}
 </style>
 </head>
 <body>
 <div class="stage">
   <section class="intro">
-    <span class="tag">Product mockup · sample data</span>
-    <h1>Find your people at the <em>reception</em></h1>
-    <p>Guests give their name, bride-or-groom and friend-or-family – everything else is optional. The app draws a live graph with <b>you in the middle</b> and every other guest placed by how much your answers overlap – so you know who to sit next to, dance with, or wave at.</p>
+    <div class="lang" data-lang-switch></div><span class="tag" data-i18n="tag">Product mockup · sample data</span>
+    <h1 data-i18n="h1">Find your people at the <em>reception</em></h1>
+    <p data-i18n="introP">Guests give their name, bride-or-groom and friend-or-family – everything else is optional. The app draws a live graph with <b>you in the middle</b> and every other guest placed by how much your answers overlap – so you know who to sit next to, dance with, or wave at.</p>
     <ul class="steps" id="steps">
-      <li><button data-go="welcome"><b>1</b><span>Welcome<small>Scan the QR on your table card</small></span></button></li>
-      <li><button data-go="quiz"><b>2</b><span>Name + 2 required, 7 optional<small>Skip anything you like</small></span></button></li>
-      <li><button data-go="summary"><b>3</b><span>Your summary<small>How many matches, how many people – see names or graph</small></span></button></li>
-      <li><button data-go="graph"><b>4</b><span>Your connection graph<small>Drag nodes, filter by question</small></span></button></li>
-      <li><button data-go="profile"><b>5</b><span>Guest profile<small>Shared answers, table number, icebreaker</small></span></button></li>
-      <li><button data-go="chats"><b>6</b><span>Messages<small>Chat with a guest – mock now, real backend later</small></span></button></li>
+      <li><button data-go="welcome"><b>1</b><span data-i18n="st1">Welcome<small>Scan the QR on your table card</small></span></button></li>
+      <li><button data-go="quiz"><b>2</b><span data-i18n="st2">Name + 2 required, 7 optional<small>Skip anything you like</small></span></button></li>
+      <li><button data-go="summary"><b>3</b><span data-i18n="st3">Your summary<small>How many matches, how many people – see names or graph</small></span></button></li>
+      <li><button data-go="graph"><b>4</b><span data-i18n="st4">Your connection graph<small>Drag nodes, filter by question</small></span></button></li>
+      <li><button data-go="profile"><b>5</b><span data-i18n="st5">Guest profile<small>Shared answers, table number, icebreaker</small></span></button></li>
+      <li><button data-go="chats"><b>6</b><span data-i18n="st6">Messages<small>Chat with a guest – mock now, real backend later</small></span></button></li>
     </ul>
-    <div class="qr-card"><div class="qr sm" id="qr-side"></div><div><b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span></div></div>
-    <div class="note">Interactive prototype – answers are real inputs, the guests are fictional (the couple use the app too). Open on a phone for the full-screen view.</div>
+    <div class="qr-card"><div class="qr sm" id="qr-side"></div><div data-i18n="qrCard"><b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span></div></div>
+    <div class="note" data-i18n="note">Interactive prototype – answers are real inputs, the guests are fictional (the couple use the app too). Open on a phone for the full-screen view.</div>
   </section>
 
   <div class="phone-wrap" id="wrap">
@@ -378,31 +385,31 @@
         <div class="notch"></div>
         <div class="status"><span>9:41</span><span>●●● ▮</span></div>
         <div class="toast" id="toast"></div>
-        <div class="ibanner" id="ibanner"><span class="ib-ic" id="ib-ic"></span><div class="ib-t"><b>Get the full-screen app</b><small>No address bar · works offline</small></div><button class="ib-go" id="ib-go">How</button><button class="ib-x" id="ib-x" aria-label="Dismiss"></button></div>
-        <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+        <div class="ibanner" id="ibanner"><span class="ib-ic" id="ib-ic"></span><div class="ib-t" data-i18n="banner"><b>Get the full-screen app</b><small>No address bar · works offline</small></div><button class="ib-go" id="ib-go">How</button><button class="ib-x" id="ib-x" aria-label="Dismiss" data-i18n-attr="aria-label:close"></button></div>
+        <nav class="tabbar" id="tabbar" aria-label="Main" data-i18n-attr="aria-label:navMain"></nav>
         <div class="scrim" id="scrim"></div>
 
         <!-- install guide -->
         <div class="share" id="guide" aria-hidden="true">
           <div class="share-bd" id="guide-bd"></div>
-          <div class="share-card" role="dialog" aria-label="Install the app">
+          <div class="share-card" role="dialog" aria-label="Install the app" data-i18n-attr="aria-label:guideAria">
             <div class="grab"></div>
-            <button class="share-x" id="guide-x" aria-label="Close"></button>
+            <button class="share-x" id="guide-x" aria-label="Close" data-i18n-attr="aria-label:close"></button>
             <h4 id="guide-t">Install Table Talk</h4>
             <p id="guide-p"></p>
             <ol class="gsteps" id="guide-steps"></ol>
-            <div class="sh-btns"><button class="btn" id="guide-copy"></button><button class="btn alt" id="guide-ok">Got it</button></div>
+            <div class="sh-btns"><button class="btn" id="guide-copy"></button><button class="btn alt" id="guide-ok" data-i18n="gotIt">Got it</button></div>
           </div>
         </div>
 
         <!-- share the app -->
         <div class="share" id="share" aria-hidden="true">
           <div class="share-bd" id="share-bd"></div>
-          <div class="share-card" role="dialog" aria-label="Share the app">
+          <div class="share-card" role="dialog" aria-label="Share the app" data-i18n-attr="aria-label:shareOpen">
             <div class="grab"></div>
-            <button class="share-x" id="share-x" aria-label="Close"></button>
-            <h4>Share Table Talk</h4>
-            <p>Scan with a phone camera to open the app</p>
+            <button class="share-x" id="share-x" aria-label="Close" data-i18n-attr="aria-label:close"></button>
+            <h4 data-i18n="shareT">Share Table Talk</h4>
+            <p data-i18n="shareP">Scan with a phone camera to open the app</p>
             <div class="qr" id="qr"></div>
             <div class="share-url" id="share-url"></div>
             <div class="sh-btns"><button class="btn" id="share-link"></button><button class="btn alt" id="share-copy"></button></div>
@@ -412,14 +419,15 @@
         <!-- 1 welcome -->
         <div class="screen welcome active" id="s-welcome">
           <div>
+            <div class="lang" data-lang-switch></div>
             <div class="mono">A&amp;M</div>
             <h2>Ania &amp; Marek</h2>
-            <div class="sub">SATURDAY 14 JUNE · VILLA RÓŻANA</div>
+            <div class="sub" data-i18n="date">SATURDAY 14 JUNE · VILLA RÓŻANA</div>
             <svg class="mini-graph" id="mini" viewBox="0 0 320 92"></svg>
             <div class="wn" id="wn" aria-live="polite">
-              <div class="wn-h"><span class="wn-av"><i class="a">A</i><i class="m">M</i></span><b>Ania &amp; Marek</b><small>Messages</small></div>
+              <div class="wn-h"><span class="wn-av"><i class="a">A</i><i class="m">M</i></span><b>Ania &amp; Marek</b><small data-i18n="messages">Messages</small></div>
               <div class="wn-thread" id="wn-thread"></div>
-              <form class="wn-form" id="wn-form"><input id="wn-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Reply to Ania &amp; Marek…" maxlength="200" aria-label="Reply"><button class="send" id="wn-send" type="submit" aria-label="Send reply" disabled></button></form>
+              <form class="wn-form" id="wn-form"><input id="wn-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Reply to Ania &amp; Marek…" maxlength="200" aria-label="Reply" data-i18n-attr="placeholder:wnPh,aria-label:wnAria"><button class="send" id="wn-send" type="submit" aria-label="Send reply" data-i18n-attr="aria-label:wnSend" disabled></button></form>
             </div>
           </div>
           <div>
@@ -431,7 +439,7 @@
 
         <!-- 2 quiz -->
         <div class="screen quiz" id="s-quiz">
-          <div class="top"><button class="back" id="qback" aria-label="Back"></button><div class="dots" id="dots"></div><span style="width:30px"></span></div>
+          <div class="top"><button class="back" id="qback" aria-label="Back" data-i18n-attr="aria-label:back"></button><div class="dots" id="dots"></div><span style="width:30px"></span></div>
           <div class="qn" id="qn"></div>
           <h3 id="qt"></h3>
           <div class="opts" id="opts"></div>
@@ -440,14 +448,14 @@
             <div class="lv-num" id="lv-num">22</div>
             <div class="lv-txt" id="lv-txt"></div>
           </div>
-          <div class="foot">Your answers are only used to draw tonight’s graph.</div>
+          <div class="foot" data-i18n="foot">Your answers are only used to draw tonight’s graph.</div>
         </div>
 
         <!-- loader -->
         <div class="screen loading" id="s-loading">
-          <div class="rings"><i></i><i></i><i></i><b>You</b></div>
-          <h3>Weaving your connections…</h3>
-          <p>Comparing answers with every guest – the couple included</p>
+          <div class="rings"><i></i><i></i><i></i><b data-i18n="you">You</b></div>
+          <h3 data-i18n="loadT">Weaving your connections…</h3>
+          <p data-i18n="loadP">Comparing answers with every guest – the couple included</p>
         </div>
 
         <!-- 3 summary / names -->
@@ -460,17 +468,17 @@
 
         <!-- inbox -->
         <div class="screen inbox" id="s-inbox">
-          <div class="ghead"><h3>Messages</h3><p>Chat with guests you’d like to meet</p></div>
+          <div class="ghead"><h3 data-i18n="messages">Messages</h3><p data-i18n="inboxP">Chat with guests you’d like to meet</p></div>
           <div class="seg" id="seg-inbox"></div>
           <div class="panel on" id="pn-inbox"></div>
         </div>
 
         <!-- chat -->
         <div class="screen chat" id="s-chat">
-          <div class="chat-h"><button class="back" id="chat-back" aria-label="Back"></button><div class="av" id="chat-av"></div><div class="chat-t"><b id="chat-name"></b><small id="chat-sub"></small></div></div>
+          <div class="chat-h"><button class="back" id="chat-back" aria-label="Back" data-i18n-attr="aria-label:back"></button><div class="av" id="chat-av"></div><div class="chat-t"><b id="chat-name"></b><small id="chat-sub"></small></div></div>
           <div class="chat-msgs" id="chat-msgs"></div>
           <div class="chat-sugg" id="chat-sugg"></div>
-          <form class="chat-in" id="chat-form"><input id="chat-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Write a message…" maxlength="500" aria-label="Message"><button class="send" id="chat-send" type="submit" aria-label="Send" disabled></button></form>
+          <form class="chat-in" id="chat-form"><input id="chat-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Write a message…" maxlength="500" aria-label="Message" data-i18n-attr="placeholder:chatPh,aria-label:chatAria"><button class="send" id="chat-send" type="submit" aria-label="Send" data-i18n-attr="aria-label:send" disabled></button></form>
         </div>
 
         <!-- 4 graph -->
@@ -481,14 +489,14 @@
             <div class="chips" id="chips"></div>
           </div>
           <div class="g-bottom" id="gbot">
-            <div class="legend"><span><i style="background:#e58fa8"></i>Bride · friends</span><span><i style="background:#9b7fd1"></i>Bride · family</span><span><i style="background:#6fbf8a"></i>Groom · friends</span><span><i style="background:#5b8fd6"></i>Groom · family</span><span><i style="background:#b9a57d"></i>Mutual</span><span><i class="cpl"></i>Couple</span><span class="hnt">bigger &amp; glowing = stronger match</span></div>
+            <div class="legend" id="legend"></div>
           </div>
         </div>
 
         <!-- profile sheet -->
         <div class="sheet" id="sheet">
           <div class="grab"></div>
-          <button class="sheet-x" id="p-close" aria-label="Close"></button>
+          <button class="sheet-x" id="p-close" aria-label="Close" data-i18n-attr="aria-label:close"></button>
           <div class="sh-top"><div class="av" id="p-av"></div><div><h4 id="p-name"></h4><p id="p-meta"></p></div></div>
           <div class="score"><b id="p-score"></b><span id="p-tier"></span></div>
           <div class="meter" id="p-meter"></div>
@@ -2813,18 +2821,214 @@ Object.assign(ICONS, {"share":"<path d=\"M12 2v13\" /> <path d=\"m16 6-4-4-4 4\"
 Object.assign(ICONS, {"ellipsis-vertical": "<circle cx=\"12\" cy=\"12\" r=\"1\" /> <circle cx=\"12\" cy=\"5\" r=\"1\" /> <circle cx=\"12\" cy=\"19\" r=\"1\" />"});
 const ic = (n, s = 20, w = 2) => `<svg class="ic" xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
 
-const Q = [
-  { label: 'Bride or groom', q: 'Whose guest are you?', opts: [['flower-2', 'Bride’s side'], ['shirt', 'Groom’s side'], ['handshake', 'Both – we’re mutual']], starter: 'the best story about the bride or groom' },
-  { label: 'Friend or family', q: 'Friend or family?', opts: [['smile', 'Friend'], ['house', 'Family']], starter: 'how long they have known the couple' },
-  { label: 'Where we met', q: 'Where did you meet the couple?', opts: [['graduation-cap', 'College days'], ['briefcase', 'Work'], ['blocks', 'Childhood'], ['party-popper', 'Through friends'], ['message-circle', 'Online / other']], starter: 'the story of how they met the couple' },
-  { label: 'Dance floor', q: 'What’s your dance-floor style?', opts: [['disc-3', 'First on the floor'], ['heart', 'Slow dances only'], ['martini', 'Bar-side swayer'], ['camera', 'Photo-booth regular']], starter: 'their signature dance move' },
-  { label: 'Karaoke', q: 'Your karaoke go-to?', opts: [['mic', 'Pop anthems'], ['guitar', '80s rock'], ['music', 'Polish classics'], ['headphones', 'Hip-hop'], ['volume-x', 'I don’t sing']], starter: 'the song that always gets them to the mic' },
-  { label: 'Honeymoon', q: 'Dream honeymoon?', opts: [['umbrella', 'Beach'], ['building-2', 'City break'], ['mountain', 'Mountains'], ['car', 'Road trip']], starter: 'the best trip they have ever taken' },
-  { label: 'Dessert', q: 'Dessert table verdict?', opts: [['cake', 'Wedding cake'], ['donut', 'Donuts'], ['cheese', 'Cheese board'], ['wine', 'Dessert wine']], starter: 'the dessert they are going back for' },
-  { label: 'Talk about', q: 'What do you love talking about?', opts: [['plane', 'Travel'], ['utensils', 'Food & wine'], ['music', 'Music'], ['trophy', 'Sports'], ['laptop', 'Tech & gadgets'], ['clapperboard', 'Books & films']], starter: a => `${a.toLowerCase()} – a safe topic for the whole evening` },
-  { label: 'Profession', q: 'What do you do professionally?', opts: [['code', 'Tech & IT'], ['stethoscope', 'Healthcare'], ['palette', 'Creative & media'], ['scale', 'Finance & law'], ['school', 'Education'], ['rocket', 'Own business']], starter: a => `a typical week in ${a.toLowerCase()}` },
-  { label: 'Hobby', q: 'Your favourite hobby?', opts: [['dumbbell', 'Sports & fitness'], ['brush', 'Music & art'], ['gamepad-2', 'Gaming'], ['chef-hat', 'Cooking'], ['mountain-snow', 'Hiking & outdoors'], ['scissors', 'Crafts & DIY']], starter: a => `how they got into ${a.toLowerCase()}` },
-];
+/* ======================= i18n (Polish is the default; English via the PL/EN switch) =======================
+   Flat dictionary per language. Values are strings, arrays or functions; tr(key, ...args) resolves them.
+   The chosen language is kept in localStorage('tt_lang'); ?lang=en|pl in the URL overrides it for one visit. */
+const LANG_KEY = 'tt_lang', LANGS = ['pl', 'en'];
+let LANG = (() => { let s = null; try { s = new URLSearchParams(location.search).get('lang') || localStorage.getItem(LANG_KEY); } catch (e) {} return LANGS.includes(s) ? s : 'pl'; })();
+const plForm = (n, one, few, many) => n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? few : many;   // Polish plural forms: 1 gość · 2 goście · 5 gości
+const T = {
+  pl: {
+    title: 'Table Talk · Aplikacja na wesele (makieta)',
+    desc: 'Makieta aplikacji weselnej: odpowiedz na dziesięć pytań i zobacz graf, który łączy Cię z gośćmi o podobnych odpowiedziach.',
+    langAria: 'Język',
+    tag: 'Makieta produktu · przykładowe dane',
+    h1: 'Znajdź swoich ludzi na <em>weselu</em>',
+    introP: 'Goście podają imię, wybierają stronę panny albo pana młodego oraz znajomych albo rodzinę. Reszta pytań jest opcjonalna. Aplikacja rysuje na żywo graf z <b>Tobą pośrodku</b> i ustawia pozostałych gości według tego, jak bardzo pokrywają się wasze odpowiedzi, więc wiesz, obok kogo usiąść, z kim zatańczyć i komu pomachać.',
+    st1: 'Powitanie<small>Zeskanuj kod QR z wizytówki na stole</small>',
+    st2: 'Imię + 2 wymagane, 7 opcjonalnych<small>Pomiń, co chcesz</small>',
+    st3: 'Twoje podsumowanie<small>Ile dopasowań i ile osób, potem imiona albo graf</small>',
+    st4: 'Twój graf połączeń<small>Przeciągaj węzły, filtruj według pytań</small>',
+    st5: 'Profil gościa<small>Wspólne odpowiedzi, numer stołu, temat na początek</small>',
+    st6: 'Wiadomości<small>Czat z gościem: na razie symulowany, prawdziwy backend później</small>',
+    qrCard: '<b>Otwórz na telefonie</b><span>Zeskanuj kod aparatem. Aplikacja jest zrobiona pod telefony.</span>',
+    note: 'Interaktywny prototyp: odpowiedzi wpisujesz naprawdę, goście są fikcyjni (para młoda też korzysta z aplikacji). Otwórz na telefonie, żeby zobaczyć widok pełnoekranowy.',
+    banner: '<b>Aplikacja na pełnym ekranie</b><small>Bez paska adresu · działa offline</small>',
+    how: 'Jak?', install: 'Zainstaluj', installPhone: 'Zainstaluj na telefonie', gotIt: 'Jasne',
+    close: 'Zamknij', back: 'Wstecz', navMain: 'Główna nawigacja', guideAria: 'Instalacja aplikacji',
+    shareOpen: 'Udostępnij aplikację', shareT: 'Udostępnij Table Talk', shareP: 'Zeskanuj aparatem telefonu, aby otworzyć aplikację',
+    shareLink: 'Udostępnij link', copyLink: 'Kopiuj link', linkCopied: 'Skopiowano link', shareText: 'Znajdź swoich ludzi na weselu Ani i Marka',
+    date: 'SOBOTA, 14 CZERWCA · VILLA RÓŻANA',
+    messages: 'Wiadomości', wnPh: 'Odpowiedz Ani i Markowi…', wnAria: 'Odpowiedź', wnSend: 'Wyślij odpowiedź',
+    wnDone: 'Rozmowa będzie czekać w Wiadomościach, gdy dołączysz.',
+    start: 'Znajdź moich ludzi', sample: 'Pomiń – podgląd z przykładowymi odpowiedziami',
+    backMatches: 'Wróć do moich dopasowań', startOver: 'Zacznij od nowa z nowymi odpowiedziami',
+    foot: 'Twoje odpowiedzi służą tylko do narysowania dzisiejszego grafu.',
+    you: 'Ty', youCap: 'TY',
+    loadT: 'Rysujemy Twoje połączenia…', loadP: 'Porównujemy odpowiedzi ze wszystkimi gośćmi, także z parą młodą',
+    inboxP: 'Napisz do gości, których chcesz poznać',
+    chatPh: 'Napisz wiadomość…', chatAria: 'Wiadomość', send: 'Wyślij',
+    lgBf: 'Panna młoda · znajomi', lgBfam: 'Panna młoda · rodzina', lgGf: 'Pan młody · znajomi', lgGfam: 'Pan młody · rodzina', lgMutual: 'Wspólni', lgCouple: 'Para młoda', lgHint: 'większe i świecące = lepsze dopasowanie',
+    tier: { 5: 'Bratnie dusze', 4: 'Prawie bliźniaki', 3: 'Będzie o czym gadać', 2: 'Trochę wspólnego', 1: 'Inne klimaty', 0: 'Zupełne przeciwieństwa, podejdź się przywitać!' },
+    headTable: 'Stół główny', tableN: n => `Stół ${n}`, tableInline: n => `stole nr ${n}`,
+    liveStart: n => `${plForm(n, 'gość bawi się', 'goście bawią się', 'gości bawi się')} dziś na weselu<small>Odpowiedz, a zobaczysz, kto jest do Ciebie podobny</small>`,
+    liveShare: (c, k, d) => `${plForm(c, 'gość odpowiedział', 'goście odpowiedzieli', 'gości odpowiedziało')} tak jak Ty na co najmniej <b>${k}</b> z ${d} ${plForm(d, 'pytania', 'pytań', 'pytań')}`,
+    liveBest: (top, d) => `Najlepsze dopasowanie na razie: ${top} z ${d}`,
+    welcome: 'Witaj', required: 'WYMAGANE', optional: 'OPCJONALNE',
+    nameQ: 'Jak masz na imię?', namePh: 'Imię', nameHint: 'Widoczne dla innych gości na grafie.', continue: 'Dalej',
+    qOf: (i, n) => `Pytanie ${i} z ${n}`, reqHint: 'Potrzebne, żeby posadzić Cię przy właściwym stole.',
+    skip: 'Pomiń', next: 'Dalej', graphNow: 'Pokaż mój graf',
+    tab_home: 'Start', tab_summary: 'Podsumowanie', tab_names: 'Osoby', tab_graph: 'Graf', tab_chats: 'Rozmowy',
+    smTitle: 'Twoje dopasowania', smTitleName: n => `${n}, oto Twoje dopasowania`,
+    smSub: (d, n) => `Na podstawie ${d} odpowiedzi · ${n} ${plForm(n, 'gość', 'goście', 'gości')} na weselu`,
+    smTop: (top, d, any) => `Najlepsze dopasowanie: <b>${top}</b> z ${d} · ${any} ${plForm(any, 'gość ma', 'goście mają', 'gości ma')} z Tobą coś wspólnego`,
+    byCount: 'Dopasowania według liczby wspólnych odpowiedzi',
+    inCommonN: (c, d) => `Wspólne odpowiedzi: ${c} z ${d}`,
+    peopleTap: n => `${plForm(n, 'osoba', 'osoby', 'osób')} · dotknij, aby zobaczyć imiona`,
+    noOverlap: 'Na razie brak wspólnych odpowiedzi', noOverlapP: 'Odpowiedz na kilka pytań opcjonalnych, żeby znaleźć swoich ludzi',
+    showNames: 'Pokaż imiona', seeGraph: 'Zobacz graf', all: 'Wszyscy',
+    brideCap: 'PANNA MŁODA', groomCap: 'PAN MŁODY', role_bride: 'Panna młoda', role_groom: 'Pan młody',
+    sideRel: (a0, a1) => a0 === 2 ? (a1 === 1 ? 'Rodzina obojga' : 'Wspólni znajomi') : ['Od panny młodej', 'Od pana młodego'][a0] + ' · ' + (a1 === 0 ? 'znajomi' : 'rodzina'),
+    youBoth: 'Was łączy', nothingCommon: 'Na razie nic wspólnego', different: 'Różnice', youSkipped: 'Pominięte',
+    ask: (first, st) => `${first} – dobry początek rozmowy: ${st}.`,
+    askNone: first => `Na razie nic was nie łączy. ${first} – zapytaj, jaki deser poleca.`,
+    message: 'Napisz', messagesOff: 'Wiadomości wyłączone', wave: 'Pomachaj', waveSent: 'Pomachano',
+    waveToast: g => `${g.first} zobaczy, że machasz (${g.couple ? 'stół główny' : 'stół ' + g.table})`,
+    welcomeNote: 'Cześć! Bardzo się cieszymy, że jesteś z nami. Poszukaj dziś ludzi, z którymi znajdziesz wspólny język, i napisz nam, skąd nas znasz. – Ania i Marek',
+    coupleAuto: 'Jesteśmy właśnie na własnym weselu, ale odpiszemy, gdy tylko wrócimy z podróży poślubnej i ogarniemy dzieci, psy, kredyt i całą resztę. – Ania i Marek',
+    replies: ['Haha, tak! Miło Cię poznać. Siedzisz gdzieś przy parkiecie?', 'U mnie tak samo! Co pijesz? Znajdę Cię przy barze.', 'Super. Zatańczymy później?', 'Wypatruję Cię po pierwszym tańcu!', 'Jaki ten świat mały! Szukaj mnie przy {t}, poznam Cię ze wszystkimi.', 'Tak! Opowiesz mi więcej, jak wjedzie tort.'],
+    msgOff: 'Ten gość ma wyłączone wiadomości',
+    now: 'teraz', minAgo: n => `${n} min`, hAgo: n => `${n} godz.`,
+    allowMsg: 'Pozwól gościom pisać do mnie<small>Wyłącz, aby ukryć przycisk „Napisz” w Twoim profilu</small>',
+    youPrefix: 'Ty: ', inboxEmpty: 'Nie masz jeszcze rozmów.<br>Otwórz gościa z grafu lub listy osób i dotknij „Napisz”.',
+    canMsgOn: 'Goście mogą do Ciebie pisać', canMsgOff: 'Wiadomości są wyłączone', autoReply: 'Odpowiedź automatyczna',
+    suggShared: (first, opt, label) => `Cześć ${first}! U mnie też „${opt}” (${label.toLowerCase()}). Jaka jest Twoja historia?`,
+    suggHi: (first, me) => `Cześć ${first}, tu ${me || 'gość z wesela'}. Miło Cię poznać!`,
+    nInCommon: (s, n) => `${s}/${n} wspólnych`,
+    chatNote: 'Wiadomości zostają w aplikacji. Nie udostępniamy numerów telefonów.', sendFail: 'Nie udało się wysłać',
+    guide: {
+      inAndroid: { title: 'Najpierw otwórz w Chrome', p: 'Wbudowana przeglądarka tej aplikacji nie umie instalować. Otwórz link w Chrome i zainstaluj stamtąd.',
+        s: [['Dotknij menu <b>⋮</b> w tej aplikacji'], ['Wybierz <b>Otwórz w Chrome</b> (lub <b>Otwórz w przeglądarce</b>)'], ['W Chrome dotknij <b>⋮</b> → <b>Zainstaluj aplikację</b>']] },
+      inIOS: { title: 'Najpierw otwórz w Safari', p: 'Wbudowana przeglądarka tej aplikacji nie umie instalować. Otwórz link w Safari i dodaj go do ekranu początkowego.',
+        s: [['Dotknij przycisku <b>⋯</b> lub <b>Udostępnij</b> w tej aplikacji'], ['Wybierz <b>Otwórz w Safari</b>'], ['W Safari dotknij <b>Udostępnij</b> → <b>Do ekranu początkowego</b>']] },
+      ios: { title: 'Dodaj do ekranu początkowego', p: 'Otwórz Table Talk z ekranu początkowego, a pasek adresu Safari zniknie. Aplikacja działa wtedy na pełnym ekranie jak każda inna.',
+        s: [['Dotknij przycisku <b>Udostępnij</b> w Safari', 'kwadrat ze strzałką na dole ekranu'], ['Przewiń i dotknij <b>Do ekranu początkowego</b>'], ['Zostaw włączone <b>Otwórz jako aplikację internetową</b> i dotknij <b>Dodaj</b>'], ['Otwórz <b>Table Talk</b> z ekranu początkowego', 'nie z Safari']] },
+      android: { title: 'Zainstaluj na Androidzie', p: 'Po instalacji Table Talk działa na pełnym ekranie, bez paska adresu, także offline.' },
+      open: ['Otwórz <b>Table Talk</b> z ekranu głównego lub listy aplikacji', 'działa teraz na pełnym ekranie, bez paska adresu'],
+      chrome: [['Dotknij menu <b>⋮</b> w prawym górnym rogu Chrome'], ['Dotknij <b>Zainstaluj aplikację</b>', 'jeśli widzisz <b>Dodaj do ekranu głównego</b>, wybierz to, a potem <b>Zainstaluj</b>'], ['Potwierdź przyciskiem <b>Zainstaluj</b>']],
+      samsung: [['Dotknij menu <b>≡</b> w prawym dolnym rogu'], ['Dotknij <b>Dodaj stronę do</b> → <b>Ekran startowy</b>', 'lub <b>Zainstaluj aplikację</b>, jeśli jest widoczne'], ['Potwierdź przyciskiem <b>Dodaj</b>']],
+      firefox: [['Dotknij menu <b>⋮</b>'], ['Dotknij <b>Zainstaluj</b>', 'lub <b>Dodaj aplikację do ekranu głównego</b>'], ['Potwierdź przyciskiem <b>Dodaj</b>']],
+      edge: [['Dotknij menu <b>⋯</b> na dole'], ['Dotknij <b>Dodaj do telefonu</b>', 'lub <b>Dodaj do ekranu głównego</b>'], ['Potwierdź przyciskiem <b>Dodaj</b>']],
+      generic: { title: 'Zainstaluj Table Talk', p: 'Po instalacji aplikacja działa na pełnym ekranie, także offline.', s: [['Otwórz menu przeglądarki'], ['Wybierz <b>Zainstaluj aplikację</b> lub <b>Dodaj do ekranu głównego</b>']] },
+    },
+    q: [
+      { label: 'Panna czy pan młody', q: 'Czyim gościem jesteś?', opts: ['Panny młodej', 'Pana młodego', 'Obojga'], starter: 'najlepsza historia o pannie młodej albo panu młodym' },
+      { label: 'Znajomi czy rodzina', q: 'Znajomi czy rodzina?', opts: ['Znajomi', 'Rodzina'], starter: 'od jak dawna znacie parę młodą' },
+      { label: 'Skąd się znamy', q: 'Skąd znasz parę młodą?', opts: ['Ze studiów', 'Z pracy', 'Z dzieciństwa', 'Przez znajomych', 'Z internetu / inaczej'], starter: 'jak poznaliście parę młodą' },
+      { label: 'Parkiet', q: 'Jaki masz styl na parkiecie?', opts: ['Od pierwszej piosenki', 'Tylko wolne tańce', 'Bujam się przy barze', 'Wiecznie w fotobudce'], starter: 'popisowy ruch na parkiecie' },
+      { label: 'Karaoke', q: 'Co śpiewasz na karaoke?', opts: ['Popowe hity', 'Rock lat 80.', 'Polskie klasyki', 'Hip-hop', 'Nie śpiewam'], starter: 'piosenka, przy której zawsze sięga się po mikrofon' },
+      { label: 'Podróż poślubna', q: 'Wymarzona podróż poślubna?', opts: ['Plaża', 'City break', 'Góry', 'Podróż autem'], starter: 'najlepsza podróż w życiu' },
+      { label: 'Deser', q: 'Co wybierasz ze słodkiego stołu?', opts: ['Tort weselny', 'Pączki', 'Deska serów', 'Wino deserowe'], starter: 'deser, po który warto wrócić' },
+      { label: 'Tematy', q: 'O czym lubisz rozmawiać?', opts: ['Podróże', 'Jedzenie i wino', 'Muzyka', 'Sport', 'Technologie i gadżety', 'Książki i filmy'], starter: a => `${a.toLowerCase()}, bezpieczny temat na cały wieczór` },
+      { label: 'Zawód', q: 'Czym zajmujesz się zawodowo?', opts: ['IT i technologie', 'Ochrona zdrowia', 'Branża kreatywna i media', 'Finanse i prawo', 'Edukacja', 'Własna firma'], starter: a => `typowy tydzień w pracy (${a})` },
+      { label: 'Hobby', q: 'Jakie jest Twoje ulubione hobby?', opts: ['Sport i fitness', 'Muzyka i sztuka', 'Gry', 'Gotowanie', 'Góry i wędrówki', 'Rękodzieło i majsterkowanie'], starter: a => `skąd wzięło się to hobby: ${a.toLowerCase()}` },
+    ],
+  },
+  en: {
+    title: 'Table Talk · Wedding reception app mockup',
+    desc: 'Mockup of a wedding reception app: answer ten questions, see a graph connecting you to guests with similar answers.',
+    langAria: 'Language',
+    tag: 'Product mockup · sample data',
+    h1: 'Find your people at the <em>reception</em>',
+    introP: 'Guests give their name, bride-or-groom and friend-or-family – everything else is optional. The app draws a live graph with <b>you in the middle</b> and every other guest placed by how much your answers overlap – so you know who to sit next to, dance with, or wave at.',
+    st1: 'Welcome<small>Scan the QR on your table card</small>',
+    st2: 'Name + 2 required, 7 optional<small>Skip anything you like</small>',
+    st3: 'Your summary<small>How many matches, how many people – see names or graph</small>',
+    st4: 'Your connection graph<small>Drag nodes, filter by question</small>',
+    st5: 'Guest profile<small>Shared answers, table number, icebreaker</small>',
+    st6: 'Messages<small>Chat with a guest – mock now, real backend later</small>',
+    qrCard: '<b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span>',
+    note: 'Interactive prototype – answers are real inputs, the guests are fictional (the couple use the app too). Open on a phone for the full-screen view.',
+    banner: '<b>Get the full-screen app</b><small>No address bar · works offline</small>',
+    how: 'How', install: 'Install', installPhone: 'Install on your phone', gotIt: 'Got it',
+    close: 'Close', back: 'Back', navMain: 'Main', guideAria: 'Install the app',
+    shareOpen: 'Share the app', shareT: 'Share Table Talk', shareP: 'Scan with a phone camera to open the app',
+    shareLink: 'Share link', copyLink: 'Copy link', linkCopied: 'Link copied', shareText: 'Find your people at Ania & Marek’s reception',
+    date: 'SATURDAY 14 JUNE · VILLA RÓŻANA',
+    messages: 'Messages', wnPh: 'Reply to Ania & Marek…', wnAria: 'Reply', wnSend: 'Send reply',
+    wnDone: 'Your chat continues in Messages once you join.',
+    start: 'Find my people', sample: 'Skip – preview with sample answers',
+    backMatches: 'Back to my matches', startOver: 'Start over with new answers',
+    foot: 'Your answers are only used to draw tonight’s graph.',
+    you: 'You', youCap: 'YOU',
+    loadT: 'Weaving your connections…', loadP: 'Comparing answers with every guest – the couple included',
+    inboxP: 'Chat with guests you’d like to meet',
+    chatPh: 'Write a message…', chatAria: 'Message', send: 'Send',
+    lgBf: 'Bride · friends', lgBfam: 'Bride · family', lgGf: 'Groom · friends', lgGfam: 'Groom · family', lgMutual: 'Mutual', lgCouple: 'Couple', lgHint: 'bigger &amp; glowing = stronger match',
+    tier: { 5: 'Kindred spirits', 4: 'Practically twins', 3: 'Great chat ahead', 2: 'Some common ground', 1: 'Different flavours', 0: 'Total opposites – go say hi!' },
+    headTable: 'Head table', tableN: n => `Table ${n}`, tableInline: n => `table ${n}`,
+    liveStart: () => 'guests are here tonight<small>Answer to see who’s like you</small>',
+    liveShare: (c, k, d) => `${c === 1 ? 'guest shares' : 'guests share'} at least <b>${k}</b> of your ${d} answer${d > 1 ? 's' : ''}`,
+    liveBest: (top, d) => `Best match so far: ${top} of ${d}`,
+    welcome: 'Welcome', required: 'REQUIRED', optional: 'OPTIONAL',
+    nameQ: 'What’s your name?', namePh: 'First name', nameHint: 'Shown to other guests on the graph.', continue: 'Continue',
+    qOf: (i, n) => `Question ${i} of ${n}`, reqHint: 'Needed to place you at the right table.',
+    skip: 'Skip', next: 'Next', graphNow: 'See my graph now',
+    tab_home: 'Home', tab_summary: 'Summary', tab_names: 'Names', tab_graph: 'Graph', tab_chats: 'Chats',
+    smTitle: 'Your matches', smTitleName: n => `${n}, here are your matches`,
+    smSub: (d, n) => `Based on ${d} answer${d === 1 ? '' : 's'} · ${n} guests tonight`,
+    smTop: (top, d, any) => `Top match: <b>${top}</b> of ${d} in common · ${any} guests share something with you`,
+    byCount: 'Matches by answers in common',
+    inCommonN: (c, d) => `${c} of ${d} answers in common`,
+    peopleTap: n => `${n === 1 ? 'person' : 'people'} · tap to see names`,
+    noOverlap: 'No overlap yet', noOverlapP: 'Answer a few optional questions to find your people',
+    showNames: 'Show names', seeGraph: 'See the graph', all: 'All',
+    brideCap: 'BRIDE', groomCap: 'GROOM', role_bride: 'The bride', role_groom: 'The groom',
+    sideRel: (a0, a1) => a0 === 2 && a1 === 1 ? 'Family of both' : ['Bride’s', 'Groom’s', 'Mutual'][a0] + ' ' + (a1 === 0 ? 'friend' : 'family'),
+    youBoth: 'You both', nothingCommon: 'Nothing in common yet', different: 'Different', youSkipped: 'You skipped',
+    ask: (first, st) => `Ask ${first} about ${st}.`,
+    askNone: first => `You two have nothing in common yet – ask ${first} what’s on their dessert plate.`,
+    message: 'Message', messagesOff: 'Messages off', wave: 'Wave', waveSent: 'Wave sent',
+    waveToast: g => `${g.first} will get your wave ${g.couple ? 'at the head table' : 'at table ' + g.table}`,
+    welcomeNote: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight – and tell us, how do you know us? – Ania & Marek',
+    coupleAuto: 'We’re currently at our own wedding, but we’ll get back to you as soon as we’re back from the honeymoon, kids, dogs, mortgages and the like. – Ania & Marek',
+    replies: ['Haha, yes! Great to meet you – are you sitting near the dance floor?', 'Same here! What are you drinking? I’ll find you at the bar.', 'Love that. Save me a dance later?', 'I’ll look out for you after the first dance!', 'Small world – find me at {t}, I’ll introduce you to everyone.', 'Yes! Tell me more once the cake is out.'],
+    msgOff: 'Messages are turned off for this guest',
+    now: 'now', minAgo: n => `${n}m`, hAgo: n => `${n}h`,
+    allowMsg: 'Let guests message me<small>Turn off to hide the Message button on your profile</small>',
+    youPrefix: 'You: ', inboxEmpty: 'No conversations yet.<br>Open a guest from the graph or names list and tap Message.',
+    canMsgOn: 'Guests can message you', canMsgOff: 'Messages are off', autoReply: 'Automatic reply',
+    suggShared: (first, opt, label) => `Hi ${first}! We both picked “${opt}” (${label.toLowerCase()}) – what’s your story?`,
+    suggHi: (first, me) => `Hi ${first}, I’m ${me || 'a guest'} – nice to meet you!`,
+    nInCommon: (s, n) => `${s}/${n} in common`,
+    chatNote: 'Messages stay in the app – no phone numbers are shared.', sendFail: 'Could not send',
+    guide: {
+      inAndroid: { title: 'Open in Chrome first', p: 'This app’s built-in browser can’t install apps. Open the link in Chrome, then install it.',
+        s: [['Tap the <b>⋮</b> menu in this app'], ['Choose <b>Open in Chrome</b> (or <b>Open in browser</b>)'], ['In Chrome tap <b>⋮</b> → <b>Install app</b>']] },
+      inIOS: { title: 'Open in Safari first', p: 'This app’s built-in browser can’t install apps. Open the link in Safari, then add it to your Home Screen.',
+        s: [['Tap the <b>⋯</b> or <b>Share</b> button in this app'], ['Choose <b>Open in Safari</b>'], ['In Safari tap <b>Share</b> → <b>Add to Home Screen</b>']] },
+      ios: { title: 'Add to Home Screen', p: 'Open Table Talk from your Home Screen and the Safari address bar is gone – it runs full screen like a normal app.',
+        s: [['Tap the <b>Share</b> button in Safari', 'the square with an arrow, at the bottom of the screen'], ['Scroll and tap <b>Add to Home Screen</b>'], ['Keep <b>Open as Web App</b> switched on, then tap <b>Add</b>'], ['Open <b>Table Talk</b> from your Home Screen', 'not from Safari']] },
+      android: { title: 'Install on Android', p: 'Install Table Talk for a full-screen app with no address bar that also works offline.' },
+      open: ['Open <b>Table Talk</b> from your home screen or app drawer', 'it now runs full screen, with no address bar'],
+      chrome: [['Tap the <b>⋮</b> menu at the top right of Chrome'], ['Tap <b>Install app</b>', 'if you see <b>Add to Home screen</b> instead, tap that, then <b>Install</b>'], ['Confirm with <b>Install</b>']],
+      samsung: [['Tap the <b>≡</b> menu at the bottom right'], ['Tap <b>Add page to</b> → <b>Home screen</b>', 'or <b>Install app</b> if it is shown'], ['Confirm with <b>Add</b>']],
+      firefox: [['Tap the <b>⋮</b> menu'], ['Tap <b>Install</b>', 'or <b>Add app to Home screen</b>'], ['Confirm with <b>Add</b>']],
+      edge: [['Tap the <b>⋯</b> menu at the bottom'], ['Tap <b>Add to phone</b>', 'or <b>Add to Home screen</b>'], ['Confirm with <b>Add</b>']],
+      generic: { title: 'Install Table Talk', p: 'Install it for a full-screen app that works offline.', s: [['Open your browser menu'], ['Choose <b>Install app</b> or <b>Add to Home screen</b>']] },
+    },
+    q: [
+      { label: 'Bride or groom', q: 'Whose guest are you?', opts: ['Bride’s side', 'Groom’s side', 'Both – we’re mutual'], starter: 'the best story about the bride or groom' },
+      { label: 'Friend or family', q: 'Friend or family?', opts: ['Friend', 'Family'], starter: 'how long they have known the couple' },
+      { label: 'Where we met', q: 'Where did you meet the couple?', opts: ['College days', 'Work', 'Childhood', 'Through friends', 'Online / other'], starter: 'the story of how they met the couple' },
+      { label: 'Dance floor', q: 'What’s your dance-floor style?', opts: ['First on the floor', 'Slow dances only', 'Bar-side swayer', 'Photo-booth regular'], starter: 'their signature dance move' },
+      { label: 'Karaoke', q: 'Your karaoke go-to?', opts: ['Pop anthems', '80s rock', 'Polish classics', 'Hip-hop', 'I don’t sing'], starter: 'the song that always gets them to the mic' },
+      { label: 'Honeymoon', q: 'Dream honeymoon?', opts: ['Beach', 'City break', 'Mountains', 'Road trip'], starter: 'the best trip they have ever taken' },
+      { label: 'Dessert', q: 'Dessert table verdict?', opts: ['Wedding cake', 'Donuts', 'Cheese board', 'Dessert wine'], starter: 'the dessert they are going back for' },
+      { label: 'Talk about', q: 'What do you love talking about?', opts: ['Travel', 'Food & wine', 'Music', 'Sports', 'Tech & gadgets', 'Books & films'], starter: a => `${a.toLowerCase()} – a safe topic for the whole evening` },
+      { label: 'Profession', q: 'What do you do professionally?', opts: ['Tech & IT', 'Healthcare', 'Creative & media', 'Finance & law', 'Education', 'Own business'], starter: a => `a typical week in ${a.toLowerCase()}` },
+      { label: 'Hobby', q: 'Your favourite hobby?', opts: ['Sports & fitness', 'Music & art', 'Gaming', 'Cooking', 'Hiking & outdoors', 'Crafts & DIY'], starter: a => `how they got into ${a.toLowerCase()}` },
+    ],
+  },
+};
+const tr = (key, ...a) => { const v = key in T[LANG] ? T[LANG][key] : T.en[key]; return typeof v === 'function' ? v(...a) : v; };
+
+/* questions: icons are language-independent, the texts come from T[LANG].q (getters, so a language switch needs no rebuild) */
+const Q_ICONS = [['flower-2', 'shirt', 'handshake'], ['smile', 'house'], ['graduation-cap', 'briefcase', 'blocks', 'party-popper', 'message-circle'], ['disc-3', 'heart', 'martini', 'camera'], ['mic', 'guitar', 'music', 'headphones', 'volume-x'], ['umbrella', 'building-2', 'mountain', 'car'], ['cake', 'donut', 'cheese', 'wine'], ['plane', 'utensils', 'music', 'trophy', 'laptop', 'clapperboard'], ['code', 'stethoscope', 'palette', 'scale', 'school', 'rocket'], ['dumbbell', 'brush', 'gamepad-2', 'chef-hat', 'mountain-snow', 'scissors']];
+const Q = Q_ICONS.map((icons, i) => ({
+  get label() { return T[LANG].q[i].label; }, get q() { return T[LANG].q[i].q; }, get starter() { return T[LANG].q[i].starter; },
+  get opts() { return icons.map((n, j) => [n, T[LANG].q[i].opts[j]]); },
+}));
 const N = Q.length;
 const NAMES = ['Zosia W.', 'Piotr K.', 'Kasia M.', 'Tomek B.', 'Magda L.', 'Bartek N.', 'Ewa R.', 'Jakub S.', 'Natalia P.', 'Michał D.', 'Agnieszka T.', 'Paweł G.', 'Ida F.', 'Kuba Z.', 'Marta C.', 'Szymon H.', 'Julia O.', 'Adam V.', 'Karolina J.', 'Filip A.', 'Basia E.', 'Olek Y.'];
 // the couple use the app too: Ania & Marek answer like any other guest (side = their own side, relation = family)
@@ -2843,14 +3047,13 @@ const COL = { 5: '#c9a35b', 4: '#d98a93', 3: '#7a8f7a', 2: '#b9c4b4', 1: '#d9d3c
 const CAT = { bf: '#e58fa8', bfam: '#9b7fd1', gf: '#6fbf8a', gfam: '#5b8fd6', mutual: '#b9a57d' };
 const catColor = g => g.couple ? (g.couple === 'bride' ? CAT.bf : CAT.gfam) : g.answers[0] === 2 ? CAT.mutual : g.answers[0] === 0 ? (g.answers[1] === 0 ? CAT.bf : CAT.bfam) : (g.answers[1] === 0 ? CAT.gf : CAT.gfam);
 const hexA = (hex, a) => hex + Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, '0');
-const TIER = { 5: 'Kindred spirits', 4: 'Practically twins', 3: 'Great chat ahead', 2: 'Some common ground', 1: 'Different flavours', 0: 'Total opposites – go say hi!' };
 const blank = () => Q.map(() => null);
 let me = blank();
 const lvl = s => { const r = s / Math.max(4, me.filter(a => a !== null).length); return r >= 0.7 ? 5 : r >= 0.5 ? 4 : r >= 0.35 ? 3 : r >= 0.2 ? 2 : s > 0 ? 1 : 0; };   // 0–5 visual tier from the share of matching answers
 const $ = id => document.getElementById(id);
 const initials = n => n.split(' ').map(w => w[0]).join('').replace('.', '');
 const avatarColor = g => g.couple ? (g.couple === 'bride' ? '#e8a3ab' : '#86a8d0') : PAL[g.id % PAL.length];
-const tableOf = g => g.couple ? 'Head table' : `Table ${g.table}`;
+const tableOf = g => g.couple ? tr('headTable') : tr('tableN', g.table);
 
 /* ======================= navigation ======================= */
 const screens = ['welcome', 'quiz', 'loading', 'summary', 'inbox', 'chat', 'graph'];
@@ -2896,9 +3099,9 @@ function liveStats() {
 let lastCount = null;
 function renderLive() {
   const st = liveStats(), num = $('lv-num'), txt = $('lv-txt');
-  if (!st.done) { num.textContent = guests.length; txt.innerHTML = 'guests are here tonight<small>Answer to see who’s like you</small>'; lastCount = null; return; }
+  if (!st.done) { num.textContent = guests.length; txt.innerHTML = tr('liveStart', guests.length); lastCount = null; return; }
   num.textContent = st.count;
-  txt.innerHTML = `${st.count === 1 ? 'guest shares' : 'guests share'} at least <b>${st.k}</b> of your ${st.done} answer${st.done > 1 ? 's' : ''}<small>Best match so far: ${st.top} of ${st.done}</small>`;
+  txt.innerHTML = tr('liveShare', st.count, st.k, st.done) + `<small>${tr('liveBest', st.top, st.done)}</small>`;
   if (lastCount !== st.count) { num.classList.add('bump'); setTimeout(() => num.classList.remove('bump'), 250); }
   lastCount = st.count;
 }
@@ -2909,21 +3112,21 @@ function renderQ() {
   $('dots').innerHTML = steps.map((_, i) => `<i class="${i < si ? 'done' : i === si ? 'cur' : ''}"></i>`).join('');
   $('live').style.display = st.type === 'name' ? 'none' : 'flex';
   if (st.type === 'name') {
-    $('qn').innerHTML = `Welcome <span class="req r">REQUIRED</span>`; $('qt').textContent = 'What’s your name?';
+    $('qn').innerHTML = `${tr('welcome')} <span class="req r">${tr('required')}</span>`; $('qt').textContent = tr('nameQ');
     $('opts').style.display = 'block';
-    $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="First name" autocomplete="off" value="${myName.replace(/"/g, '&quot;')}"><div class="name-hint">Shown to other guests on the graph.</div>`;
+    $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="${tr('namePh')}" autocomplete="off" value="${myName.replace(/"/g, '&quot;')}"><div class="name-hint">${tr('nameHint')}</div>`;
     const inp = $('name-in'), upd = () => { myName = inp.value.trim(); $('name-next').disabled = !myName; };
-    act.innerHTML = `<span></span><button class="btn" id="name-next">Continue</button>`; $('name-next').disabled = !myName; $('name-next').onclick = nextStep;
+    act.innerHTML = `<span></span><button class="btn" id="name-next">${tr('continue')}</button>`; $('name-next').disabled = !myName; $('name-next').onclick = nextStep;
     inp.oninput = upd; inp.onkeydown = e => { if (e.key === 'Enter' && myName) nextStep(); };
     return;
   }
   renderLive();
   const qi = st.i, q = Q[qi], req = qi < REQUIRED_Q;
-  $('qn').innerHTML = `Question ${qi + 1} of ${Q.length} <span class="req ${req ? 'r' : 'o'}">${req ? 'REQUIRED' : 'OPTIONAL'}</span>`; $('qt').textContent = q.q;
+  $('qn').innerHTML = `${tr('qOf', qi + 1, Q.length)} <span class="req ${req ? 'r' : 'o'}">${tr(req ? 'required' : 'optional')}</span>`; $('qt').textContent = q.q;
   $('opts').style.display = '';
   $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${me[qi] === i ? 'sel' : ''}" data-i="${i}"><span>${ic(o[0], 30, 1.75)}</span>${o[1]}</button>`).join('');
-  act.innerHTML = req ? '<span class="name-hint" style="margin:0">Needed to place you at the right table.</span>'
-    : `<button class="btn ghost" id="skip">${me[qi] === null ? 'Skip' : 'Next'}</button>` + (mandatoryDone() ? `<button class="btn alt" id="done-now">See my graph now ${ic('arrow-right', 18)}</button>` : '');
+  act.innerHTML = req ? `<span class="name-hint" style="margin:0">${tr('reqHint')}</span>`
+    : `<button class="btn ghost" id="skip">${tr(me[qi] === null ? 'skip' : 'next')}</button>` + (mandatoryDone() ? `<button class="btn alt" id="done-now">${tr('graphNow')} ${ic('arrow-right', 18)}</button>` : '');
   if (!req) { $('skip').onclick = nextStep; $('done-now').onclick = finishQuiz; }
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => {
     const i = +b.dataset.i;
@@ -2948,16 +3151,16 @@ function showView(v) {
   if (v === 'chats') { go('inbox'); return; }
   if (!$('s-summary').classList.contains('active')) go('summary'); else renderSummary();
 }
-function segHTML(active) { return [['summary', 'Summary', 'layout-list'], ['names', 'Names', 'users'], ['graph', 'Graph', 'network'], ['chats', 'Chats', 'message-circle']].map(([k, l, i]) => `<button data-v="${k}" class="${k === active ? 'on' : ''}">${ic(i, 16)}${l}${k === 'chats' ? '<span class="bdg" style="display:none"></span>' : ''}</button>`).join(''); }
+function segHTML(active) { return TABS.slice(1).map(([k, i]) => `<button data-v="${k}" class="${k === active ? 'on' : ''}">${ic(i, 16)}${tr('tab_' + k)}${k === 'chats' ? '<span class="bdg" style="display:none"></span>' : ''}</button>`).join(''); }
 /* native-style bottom tab bar (replaces the segmented control on every results screen) */
-const TABS = [['home', 'Home', 'house'], ['summary', 'Summary', 'layout-list'], ['names', 'Names', 'users'], ['graph', 'Graph', 'network'], ['chats', 'Chats', 'message-circle']];
+const TABS = [['home', 'house'], ['summary', 'layout-list'], ['names', 'users'], ['graph', 'network'], ['chats', 'message-circle']];
 function syncWelcome() {   // returning from the results: keep their answers unless they choose to start over
   const back = !!mandatoryDone();
-  $('start').textContent = back ? 'Back to my matches' : 'Find my people';
-  $('sample').textContent = back ? 'Start over with new answers' : 'Skip – preview with sample answers';
+  $('start').textContent = tr(back ? 'backMatches' : 'start');
+  $('sample').textContent = tr(back ? 'startOver' : 'sample');
 }
 function mountTabbar() {
-  $('tabbar').innerHTML = TABS.map(([k, l, i]) => `<button data-v="${k}" aria-label="${l}">${ic(i, 24, 1.8)}<span>${l}</span>${k === 'chats' ? '<i class="bdg" style="display:none"></i>' : ''}</button>`).join('');
+  $('tabbar').innerHTML = TABS.map(([k, i]) => [k, tr('tab_' + k), i]).map(([k, l, i]) => `<button data-v="${k}" aria-label="${l}">${ic(i, 24, 1.8)}<span>${l}</span>${k === 'chats' ? '<i class="bdg" style="display:none"></i>' : ''}</button>`).join('');
   $('tabbar').querySelectorAll('button').forEach(b => b.onclick = () => showView(b.dataset.v));
 }
 function syncTabbar() {
@@ -2972,22 +3175,22 @@ function renderSummary() {
   const done = answeredCount(), sc = guests.map(g => ({ g, s: score(g) })), top = Math.max(0, ...sc.map(x => x.s)), k = Math.max(1, top - 1);
   const close = sc.filter(x => x.s >= k && x.s > 0).length, any = sc.filter(x => x.s > 0).length;
   mountSeg('seg-summary', view === 'names' ? 'names' : 'summary');
-  $('sm-title').textContent = myName ? `${myName}, here are your matches` : 'Your matches';
-  $('sm-sub').textContent = `Based on ${done} answer${done === 1 ? '' : 's'} · ${guests.length} guests tonight`;
+  $('sm-title').textContent = myName ? tr('smTitleName', myName) : tr('smTitle');
+  $('sm-sub').textContent = tr('smSub', done, guests.length);
   // grouped: how many answers in common -> how many people
   const byCount = {}; sc.forEach(x => { if (x.s > 0) (byCount[x.s] ||= []).push(x.g); });
   const counts = Object.keys(byCount).map(Number).sort((a, b) => b - a), maxPeople = Math.max(1, ...counts.map(c => byCount[c].length));
   $('pn-summary').innerHTML = `
     <div class="hero"><div class="big">${close}</div>
-      <p>${close === 1 ? 'guest shares' : 'guests share'} at least <b>${k}</b> of your ${done} answers</p>
-      <small>Top match: <b>${top}</b> of ${done} in common · ${any} guests share something with you</small></div>
-    <div class="grp-t">Matches by answers in common</div>
+      <p>${tr('liveShare', close, k, done)}</p>
+      <small>${tr('smTop', top, done, any)}</small></div>
+    <div class="grp-t">${tr('byCount')}</div>
     ${counts.length ? counts.map((c, i) => `<div class="grp ${c >= k ? 'close' : ''} ${i === 0 ? 'open' : ''}">
-      <button class="grp-h"><b>${c} of ${done} answers in common</b><span>${byCount[c].length}</span><small>${byCount[c].length === 1 ? 'person' : 'people'} · tap to see names</small><div class="bar"><i style="width:${byCount[c].length / maxPeople * 100}%;--c:${COL[lvl(c)]}"></i></div></button>
-      <div class="grp-b">${byCount[c].map(personChip).join('')}</div></div>`).join('') : '<div class="grp"><div class="grp-h"><b>No overlap yet</b><small>Answer a few optional questions to find your people</small></div></div>'}
-    <div class="cta"><button class="btn alt" id="cta-names">${ic('users', 18)}Show names</button><button class="btn" id="cta-graph">${ic('network', 18)}See the graph</button></div>`;
-  $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><div>${g.name}<small>${tableOf(g)} · ${TIER[lvl(score(g))]}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
-    + `<div class="cta"><button class="btn" id="cta-graph2">${ic('network', 18)}See the graph</button></div>`;
+      <button class="grp-h"><b>${tr('inCommonN', c, done)}</b><span>${byCount[c].length}</span><small>${tr('peopleTap', byCount[c].length)}</small><div class="bar"><i style="width:${byCount[c].length / maxPeople * 100}%;--c:${COL[lvl(c)]}"></i></div></button>
+      <div class="grp-b">${byCount[c].map(personChip).join('')}</div></div>`).join('') : `<div class="grp"><div class="grp-h"><b>${tr('noOverlap')}</b><small>${tr('noOverlapP')}</small></div></div>`}
+    <div class="cta"><button class="btn alt" id="cta-names">${ic('users', 18)}${tr('showNames')}</button><button class="btn" id="cta-graph">${ic('network', 18)}${tr('seeGraph')}</button></div>`;
+  $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><div>${g.name}<small>${tableOf(g)} · ${tr('tier')[lvl(score(g))]}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
+    + `<div class="cta"><button class="btn" id="cta-graph2">${ic('network', 18)}${tr('seeGraph')}</button></div>`;
   $('pn-summary').classList.toggle('on', view !== 'names'); $('pn-names').classList.toggle('on', view === 'names'); syncTabbar();
   $('pn-summary').querySelectorAll('.grp-h').forEach(h => h.onclick = () => h.parentElement.classList.toggle('open'));
   document.querySelectorAll('#s-summary .person, #s-summary .prow').forEach(b => b.onclick = () => select(guests[+b.dataset.id]));
@@ -3006,9 +3209,13 @@ function layoutRect() {
 }
 function fitCanvas() { const r = $('cbox').getBoundingClientRect(), k = $('phone')._scale || 1; W = r.width / k; H = r.height / k; dpr = Math.min(2, (window.devicePixelRatio || 1) * k); cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); layoutRect(); }
 function targetR(s) { const max = Math.min(W, H) / 2 - 26; return Math.min(max, 52 + (5 - s) * 29); }
+function mountChips() {   // question filters above the graph; keeps the active filter when re-rendered
+  $('chips').innerHTML = `<button class="chip ${filter === null ? 'on' : ''}" data-f="-1">${tr('all')}</button>` + Q.map((q, i) => me[i] === null ? '' : `<button class="chip ${filter === i ? 'on' : ''}" data-f="${i}">${ic(q.opts[me[i]][0], 15)}${q.label}</button>`).join('');
+  $('chips').querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = +c.dataset.f < 0 ? null : +c.dataset.f; $('chips').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c)); });
+}
 function startGraph() {
   fitCanvas();
-  const you = { id: -1, you: true, x: W / 2, y: H / 2, vx: 0, vy: 0, r: 25, s: 5, first: myName || 'You' };
+  const you = { id: -1, you: true, x: W / 2, y: H / 2, vx: 0, vy: 0, r: 25, s: 5, first: myName || tr('you') };
   nodes = [you, ...guests.map((g, i) => { const s = lvl(score(g)), a = i * 2.399 + .3, R = targetR(s); return { ...g, s, x: W / 2 + Math.cos(a) * R * .6, y: H / 2 + Math.sin(a) * R * .6, vx: 0, vy: 0, r: g.couple ? Math.max(19, 9 + s * 2.3) : 9 + s * 2.3, raw: score(g), cat: catColor(g), born: (5 - s) * .35 + i * .035 }; })];
   links = [];
   for (let i = 1; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
@@ -3023,9 +3230,7 @@ function startGraph() {
     grp[2].sort((a, b) => b.raw - a.raw || a.id - b.id).forEach((n, i) => { const up = i % 2 === 0, f = ((Math.floor(i / 2) + .5) * 0.618034) % 1, [a0, a1] = up ? [262, 278] : [82, 98]; n.ang = (a0 + f * (a1 - a0)) * Math.PI / 180; }); }
   rank().slice(0, 3).forEach(g => { const nd = nodes.find(x => x.id === g.id); if (nd && nd.s >= 4) nd.top = true; });   // only the top three get a score badge
   mountSeg('seg-graph', 'graph');
-  $('chips').innerHTML = `<button class="chip on" data-f="-1">All</button>` + Q.map((q, i) => me[i] === null ? '' : `<button class="chip" data-f="${i}">${ic(q.opts[me[i]][0], 15)}${q.label}</button>`).join('');
-  $('chips').querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = +c.dataset.f < 0 ? null : +c.dataset.f; $('chips').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c)); });
-  selected = null; filter = null; t0 = performance.now();
+  selected = null; filter = null; mountChips(); t0 = performance.now();
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
 }
 function step(dt) {
@@ -3062,7 +3267,7 @@ function drawCouple(n, t, sc) {
   ctx.fillStyle = '#fff'; ctx.font = 'italic 700 17px Georgia,serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(n.first[0], n.x, n.y + 1);
   ctx.fillStyle = '#2b2a33'; ctx.font = '800 11.5px system-ui'; ctx.fillText(n.first, n.x, n.y + r + 13);
   if (n.s >= 4) { const pu = .5 + .5 * Math.sin(t * 2.6 + n.id); ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 + pu * 6, 0, 7); ctx.strokeStyle = 'rgba(201,163,91,' + (.55 - pu * .3) + ')'; ctx.lineWidth = 2; ctx.stroke(); }
-  ctx.fillStyle = '#b08a3e'; ctx.font = '800 8px system-ui'; if ('letterSpacing' in ctx) ctx.letterSpacing = '1.5px'; ctx.fillText(bride ? 'BRIDE' : 'GROOM', n.x, n.y + r + 24); if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  ctx.fillStyle = '#b08a3e'; ctx.font = '800 8px system-ui'; if ('letterSpacing' in ctx) ctx.letterSpacing = '1.5px'; ctx.fillText(tr(bride ? 'brideCap' : 'groomCap'), n.x, n.y + r + 24); if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   if (n.raw > 0) { const txt = `${n.raw}/${answeredCount()}`; ctx.font = '800 10px system-ui'; const w = ctx.measureText(txt).width + 12; ctx.fillStyle = '#c9a35b'; ctx.beginPath(); ctx.roundRect(n.x - w / 2, n.y + r + 29, w, 15, 7.5); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(txt, n.x, n.y + r + 37); }
 }
 function loop() {
@@ -3105,8 +3310,8 @@ function loop() {
     if (n.you || n === selected) { ctx.beginPath(); ctx.arc(n.x, n.y, n.r * sc + 7 + Math.sin(t * 2.2) * 2, 0, 7); ctx.fillStyle = n.you ? 'rgba(217,138,147,.18)' : n.cat + '33'; ctx.fill(); }
     ctx.beginPath(); ctx.arc(n.x, n.y, n.r * sc, 0, 7); ctx.fillStyle = n.you ? '#2b2a33' : n.cat; ctx.fill(); ctx.shadowBlur = 0; ctx.lineWidth = 2.5; ctx.strokeStyle = '#fffdf9'; ctx.stroke();
     ctx.fillStyle = n.you ? '#fff' : '#fff'; ctx.font = `700 ${n.you ? 13 : Math.max(9, n.r * .75)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(n.you ? (myName || 'You').slice(0, 1).toUpperCase() : initials(n.name), n.x, n.y + .5);
-    if (n.you) { ctx.fillStyle = '#2b2a33'; ctx.font = '700 11px system-ui'; ctx.fillText(myName || 'You', n.x, n.y + n.r + 12); }
+    ctx.fillText(n.you ? (myName || tr('you')).slice(0, 1).toUpperCase() : initials(n.name), n.x, n.y + .5);
+    if (n.you) { ctx.fillStyle = '#2b2a33'; ctx.font = '700 11px system-ui'; ctx.fillText(myName || tr('you'), n.x, n.y + n.r + 12); }
     if (!n.you && (n.s >= 3 || n === selected || (filter !== null && !faded(n)))) { ctx.fillStyle = '#2b2a33'; ctx.font = (n.s >= 4 ? '800 12px' : '600 10.5px') + ' system-ui'; ctx.fillText(n.first, n.x, n.y + n.r * sc + (n.s >= 4 ? 13 : 11));
       if (n.top) { const txt = `${n.raw}/${answeredCount()}`, y = n.y + n.r * sc + 28, w = ctx.measureText(txt).width + 12; ctx.fillStyle = n.cat; ctx.beginPath(); ctx.roundRect(n.x - w / 2, y - 8, w, 15, 7.5); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '800 10px system-ui'; ctx.fillText(txt, n.x, y); } }
     ctx.globalAlpha = 1;
@@ -3123,25 +3328,26 @@ const up = () => { if (down && down.n && !down.moved) select(down.n); drag = nul
 cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () => { drag = null; down = null; });
 
 /* ======================= profile sheet ======================= */
+let sheetGuest = null;   // guest shown in the profile sheet (re-rendered on a language switch)
 function select(g) {
+  sheetGuest = g;
   const n = nodes.find(x => x.id === g.id); selected = n || null;
   const s = score(g), L = lvl(s), sh = shared(g), c = COL[L];
   const av = $('p-av'); av.textContent = initials(g.name); av.style.background = avatarColor(g);
-  const side = ['Bride’s', 'Groom’s', 'Mutual'][g.answers[0]], rel = g.answers[1] === 0 ? 'friend' : 'family';
-  $('p-name').textContent = g.name; $('p-meta').textContent = g.couple ? `The ${g.couple} · Head table` : `Table ${g.table} · ${g.answers[0] === 2 && g.answers[1] === 1 ? 'Family of both' : side + ' ' + rel}`;
-  $('p-score').textContent = `${s}/${answeredCount()}`; $('p-score').style.color = c === '#d9d3c9' ? '#8b8794' : c; $('p-tier').textContent = TIER[L];
+  $('p-name').textContent = g.name; $('p-meta').textContent = g.couple ? `${tr('role_' + g.couple)} · ${tr('headTable')}` : `${tr('tableN', g.table)} · ${tr('sideRel', g.answers[0], g.answers[1])}`;
+  $('p-score').textContent = `${s}/${answeredCount()}`; $('p-score').style.color = c === '#d9d3c9' ? '#8b8794' : c; $('p-tier').textContent = tr('tier')[L];
   $('p-meter').style.setProperty('--c', c); $('p-meter').innerHTML = Array.from({ length: Math.max(1, answeredCount()) }, (_, i) => `<i class="${i < s ? 'f' : ''}"></i>`).join('');
   const diff = Q.map((q, i) => i).filter(i => me[i] !== null && !sh.includes(i)), skipped = Q.map((q, i) => i).filter(i => me[i] === null);
-  $('p-shared').innerHTML = (sh.length ? `<div class="lbl">You both</div><div class="pills">${sh.map(i => `<span class="pill" title="${Q[i].label}">${ic(Q[i].opts[g.answers[i]][0], 16)}${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '<div class="lbl">Nothing in common yet</div>')
-    + (diff.length ? `<div class="lbl">Different</div><div class="pills dim">${diff.map(i => `<span class="pill" title="${Q[i].label}">${ic(Q[i].opts[g.answers[i]][0], 16)}${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '')
-    + (skipped.length ? `<div class="lbl">You skipped</div><div class="skipnote">${skipped.map(i => Q[i].label).join(' · ')}</div>` : '');
+  $('p-shared').innerHTML = (sh.length ? `<div class="lbl">${tr('youBoth')}</div><div class="pills">${sh.map(i => `<span class="pill" title="${Q[i].label}">${ic(Q[i].opts[g.answers[i]][0], 16)}${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : `<div class="lbl">${tr('nothingCommon')}</div>`)
+    + (diff.length ? `<div class="lbl">${tr('different')}</div><div class="pills dim">${diff.map(i => `<span class="pill" title="${Q[i].label}">${ic(Q[i].opts[g.answers[i]][0], 16)}${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '')
+    + (skipped.length ? `<div class="lbl">${tr('youSkipped')}</div><div class="skipnote">${skipped.map(i => Q[i].label).join(' · ')}</div>` : '');
   const st = sh.length ? (typeof Q[sh[0]].starter === 'function' ? Q[sh[0]].starter(Q[sh[0]].opts[g.answers[sh[0]]][1]) : Q[sh[0]].starter) : null;
-  $('p-start').innerHTML = ic('message-square-quote', 18) + '<span>' + (st ? `Ask ${g.first} about ${st}.` : `You two have nothing in common yet – ask ${g.first} what’s on their dessert plate.`) + '</span>';
-  const mb = $('p-msg'), canMsg = g.msg !== false; mb.innerHTML = ic('message-circle', 18) + (canMsg ? 'Message' : 'Messages off'); mb.disabled = !canMsg; mb.onclick = () => openChat(g, view);
-  const w = $('p-wave'); w.innerHTML = ic('hand', 18) + 'Wave'; w.classList.remove('done'); w.onclick = () => { w.innerHTML = ic('check', 18) + 'Wave sent'; w.classList.add('done'); toast(`${g.first} will get your wave ${g.couple ? 'at the head table' : 'at table ' + g.table}`); };
+  $('p-start').innerHTML = ic('message-square-quote', 18) + '<span>' + (st ? tr('ask', g.first, st) : tr('askNone', g.first)) + '</span>';
+  const mb = $('p-msg'), canMsg = g.msg !== false; mb.innerHTML = ic('message-circle', 18) + tr(canMsg ? 'message' : 'messagesOff'); mb.disabled = !canMsg; mb.onclick = () => openChat(g, view);
+  const w = $('p-wave'); w.innerHTML = ic('hand', 18) + tr('wave'); w.classList.remove('done'); w.onclick = () => { w.innerHTML = ic('check', 18) + tr('waveSent'); w.classList.add('done'); toast(tr('waveToast', g)); };
   $('sheet').classList.add('open'); $('scrim').classList.add('on');
 }
-function closeSheet() { $('sheet').classList.remove('open'); $('scrim').classList.remove('on'); selected = null; }
+function closeSheet() { $('sheet').classList.remove('open'); $('scrim').classList.remove('on'); selected = null; sheetGuest = null; }
 $('p-close').innerHTML = ic('x', 22); $('p-close').onclick = closeSheet;
 function toast(t, onTap, ms = 2200) { const e = $('toast'); e.textContent = t; e.onclick = onTap || null; e.style.cursor = onTap ? 'pointer' : ''; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('show'), ms); }
 
@@ -3161,8 +3367,8 @@ function toast(t, onTap, ms = 2200) { const e = $('toast'); e.textContent = t; e
    Matching Cloudflare routes (Workers + D1) are in HttpBackend below. Enable it by putting the API origin in
    <meta name="tt-api" content="https://…">; leave it empty to keep the in-browser MockBackend. */
 
-/* The couple's standard auto-reply – used for the welcome-screen note and for any message sent to Ania or Marek. */
-const COUPLE_AUTO_REPLY = 'We’re currently at our own wedding, but we’ll get back to you as soon as we’re back from the honeymoon, kids, dogs, mortgages and the like. – Ania & Marek';
+/* Seeded and automatic messages carry a dictionary key (k) so they follow the language switch; everything else shows its stored body. */
+const bodyOf = m => m.k && typeof T[LANG][m.k] === 'string' ? tr(m.k) : m.body;
 const clone = v => JSON.parse(JSON.stringify(v));
 
 /* ---- MockBackend: in-memory + localStorage, simulated typing and replies. No network. ---- */
@@ -3173,19 +3379,19 @@ function MockBackend({ getGuest }) {
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ msgs, settings })); } catch (e) {} };
   if (!msgs) {   // first run: a welcome note from the bride so the unread badge has something to show
     const bride = guests.find(g => g.couple === 'bride');
-    msgs = [{ id: 'm0', from: String(bride.id), to: 'me', body: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight – and tell us, how do you know us? – Ania & Marek', at: new Date().toISOString(), readAt: null }]; persist();
+    msgs = [{ id: 'm0', from: String(bride.id), to: 'me', k: 'welcomeNote', body: tr('welcomeNote'), at: new Date().toISOString(), readAt: null }]; persist();
   }
+  msgs.forEach(m => { if (!m.k) { if (m.id === 'm0' && m.from !== 'me') m.k = 'welcomeNote'; else if (m.auto) m.k = 'coupleAuto'; } });   // messages saved before the language switch existed
   seq = msgs.length + 1;
   const subs = new Set(), emit = e => subs.forEach(f => { try { f(clone(e)); } catch (_) {} }), wait = (v, ms = 80) => new Promise(r => setTimeout(() => r(clone(v)), ms));
-  const REPLIES = ['Haha, yes! Great to meet you – are you sitting near the dance floor?', 'Same here! What are you drinking? I’ll find you at the bar.', 'Love that. Save me a dance later?', 'I’ll look out for you after the first dance!', 'Small world – find me at {t}, I’ll introduce you to everyone.', 'Yes! Tell me more once the cake is out.'];
   const other = m => m.from === 'me' ? m.to : m.from;
   function scheduleReply(toId) {
     const g = getGuest(toId); if (!g) return;
     setTimeout(() => emit({ type: 'typing', from: toId, on: true }), 700);
     setTimeout(() => {
       emit({ type: 'typing', from: toId, on: false });
-      const text = g.couple ? COUPLE_AUTO_REPLY : REPLIES[(+toId * 7 + msgs.length) % REPLIES.length].replace('{t}', 'table ' + g.table);
-      const m = { id: 'm' + seq++, from: toId, to: 'me', body: text, at: new Date().toISOString(), readAt: null, ...(g.couple ? { auto: true } : {}) };
+      const R = tr('replies'), text = g.couple ? tr('coupleAuto') : R[(+toId * 7 + msgs.length) % R.length].replace('{t}', tr('tableInline', g.table));
+      const m = { id: 'm' + seq++, from: toId, to: 'me', body: text, at: new Date().toISOString(), readAt: null, ...(g.couple ? { auto: true, k: 'coupleAuto' } : {}) };
       msgs.push(m); persist(); emit({ type: 'message', message: m });
     }, 2000 + (+toId * 137) % 1500);
   }
@@ -3198,7 +3404,7 @@ function MockBackend({ getGuest }) {
     getMessages(withId) { return wait(msgs.filter(m => other(m) === String(withId))); },
     sendMessage(toId, body) {
       const g = getGuest(toId);
-      if (!g || g.msg === false) return Promise.reject(new Error('Messages are turned off for this guest'));
+      if (!g || g.msg === false) return Promise.reject(new Error(tr('msgOff')));
       const m = { id: 'm' + seq++, from: 'me', to: String(toId), body: String(body).slice(0, 500), at: new Date().toISOString(), readAt: null };
       msgs.push(m); persist(); scheduleReply(String(toId)); return wait(m, 120);
     },
@@ -3244,8 +3450,8 @@ const backend = apiOrigin.trim() ? HttpBackend({ baseUrl: apiOrigin.trim(), toke
 /* ---- UI ---- */
 let chat = { id: null, from: 'chats' }, shown = new Set();
 const guestOf = id => guests[+id];
-const clockOf = iso => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-const agoOf = iso => { const s = (Date.now() - new Date(iso)) / 1000; return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + 'm' : s < 86400 ? Math.floor(s / 3600) + 'h' : clockOf(iso); };
+const clockOf = iso => new Date(iso).toLocaleTimeString(LANG, { hour: '2-digit', minute: '2-digit' });
+const agoOf = iso => { const s = (Date.now() - new Date(iso)) / 1000; return s < 60 ? tr('now') : s < 3600 ? tr('minAgo', Math.floor(s / 60)) : s < 86400 ? tr('hAgo', Math.floor(s / 3600)) : clockOf(iso); };
 const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const chatActive = () => $('s-chat').classList.contains('active');
 
@@ -3257,26 +3463,26 @@ async function refreshUnread() {
 async function renderInbox() {
   mountSeg('seg-inbox', 'chats');
   const [th, st] = await Promise.all([backend.getThreads(), backend.getSettings()]);
-  $('pn-inbox').innerHTML = `<label class="toggle"><input type="checkbox" id="allow-msg" ${st.allowMessages ? 'checked' : ''}><span>Let guests message me<small>Turn off to hide the Message button on your profile</small></span></label>`
-    + (th.length ? `<div class="plist">${th.map(t => { const g = guestOf(t.withId); return `<button class="prow ${t.unread ? 'unread' : ''}" data-id="${t.withId}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><div>${g.name}<small class="pv">${t.last.from === 'me' ? 'You: ' : ''}${esc(t.last.body)}</small></div><span class="meta">${agoOf(t.last.at)}${t.unread ? '<i class="dot"></i>' : ''}</span></button>`; }).join('')}</div>`
-      : `<div class="empty">No conversations yet.<br>Open a guest from the graph or names list and tap Message.<br><button class="btn" id="ib-graph">${ic('network', 18)}See the graph</button></div>`);
-  $('allow-msg').onchange = e => backend.setSettings({ allowMessages: e.target.checked }).then(() => toast(e.target.checked ? 'Guests can message you' : 'Messages are off'));
+  $('pn-inbox').innerHTML = `<label class="toggle"><input type="checkbox" id="allow-msg" ${st.allowMessages ? 'checked' : ''}><span>${tr('allowMsg')}</span></label>`
+    + (th.length ? `<div class="plist">${th.map(t => { const g = guestOf(t.withId); return `<button class="prow ${t.unread ? 'unread' : ''}" data-id="${t.withId}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><div>${g.name}<small class="pv">${t.last.from === 'me' ? tr('youPrefix') : ''}${esc(bodyOf(t.last))}</small></div><span class="meta">${agoOf(t.last.at)}${t.unread ? '<i class="dot"></i>' : ''}</span></button>`; }).join('')}</div>`
+      : `<div class="empty">${tr('inboxEmpty')}<br><button class="btn" id="ib-graph">${ic('network', 18)}${tr('seeGraph')}</button></div>`);
+  $('allow-msg').onchange = e => backend.setSettings({ allowMessages: e.target.checked }).then(() => toast(tr(e.target.checked ? 'canMsgOn' : 'canMsgOff')));
   $('pn-inbox').querySelectorAll('.prow').forEach(b => b.onclick = () => openChat(guestOf(b.dataset.id), 'chats'));
   const gbtn = $('ib-graph'); if (gbtn) gbtn.onclick = () => showView('graph');
 }
-function bubble(m) { return `<div class="bub ${m.from === 'me' ? 'me' : 'them'}" data-id="${m.id}">${m.auto ? '<em class="auto">Automatic reply</em>' : ''}${esc(m.body)}<small>${clockOf(m.at)}</small></div>`; }
+function bubble(m) { return `<div class="bub ${m.from === 'me' ? 'me' : 'them'}" data-id="${m.id}">${m.auto ? `<em class="auto">${tr('autoReply')}</em>` : ''}${esc(bodyOf(m))}<small>${clockOf(m.at)}</small></div>`; }
 function scrollChat() { const b = $('chat-msgs'); b.scrollTop = b.scrollHeight; }
 function appendMsg(m) { if (shown.has(m.id)) return; shown.add(m.id); const t = $('typing'); if (t) t.remove(); $('chat-msgs').insertAdjacentHTML('beforeend', bubble(m)); $('chat-sugg').innerHTML = ''; scrollChat(); }
 function suggestionsFor(g) {
   const sh = shared(g).filter(i => i >= 2).slice(0, 2);
-  return [...sh.map(i => `Hi ${g.first}! We both picked “${Q[i].opts[g.answers[i]][1]}” (${Q[i].label.toLowerCase()}) – what’s your story?`), `Hi ${g.first}, I’m ${myName || 'a guest'} – nice to meet you!`];
+  return [...sh.map(i => tr('suggShared', g.first, Q[i].opts[g.answers[i]][1], Q[i].label)), tr('suggHi', g.first, myName)];
 }
 async function openChat(g, from) {
   chat = { id: String(g.id), from: from || 'chats' }; shown = new Set();
   const av = $('chat-av'); av.textContent = initials(g.name); av.style.background = avatarColor(g);
-  $('chat-name').textContent = g.name; $('chat-sub').textContent = g.couple ? `The ${g.couple} · Head table` : `Table ${g.table} · ${score(g)}/${answeredCount()} in common`;
+  $('chat-name').textContent = g.name; $('chat-sub').textContent = g.couple ? `${tr('role_' + g.couple)} · ${tr('headTable')}` : `${tr('tableN', g.table)} · ${tr('nInCommon', score(g), answeredCount())}`;
   const list = await backend.getMessages(chat.id);
-  $('chat-msgs').innerHTML = `<div class="chat-note">Messages stay in the app – no phone numbers are shared.</div>` + list.map(m => { shown.add(m.id); return bubble(m); }).join('');
+  $('chat-msgs').innerHTML = `<div class="chat-note">${tr('chatNote')}</div>` + list.map(m => { shown.add(m.id); return bubble(m); }).join('');
   $('chat-sugg').innerHTML = list.length ? '' : suggestionsFor(g).map(t => `<button class="sugg" type="button">${esc(t)}</button>`).join('');
   $('chat-sugg').querySelectorAll('.sugg').forEach(b => b.onclick = () => { $('chat-input').value = b.textContent; $('chat-input').focus(); updateSend(); });
   $('chat-input').value = ''; updateSend(); go('chat'); scrollChat();
@@ -3289,7 +3495,7 @@ $('chat-back').onclick = () => showView(chat.from === 'chats' ? 'chats' : chat.f
 $('chat-form').onsubmit = async e => {
   e.preventDefault(); const v = $('chat-input').value.trim(); if (!v) return;
   $('chat-input').value = ''; updateSend();
-  try { appendMsg(await backend.sendMessage(chat.id, v)); } catch (err) { toast(err.message || 'Could not send'); }
+  try { appendMsg(await backend.sendMessage(chat.id, v)); } catch (err) { toast(err.message || tr('sendFail')); }
 };
 backend.subscribe(ev => {
   if (ev.type === 'typing') { if (chatActive() && ev.from === chat.id) { const t = $('typing'); if (ev.on && !t) { $('chat-msgs').insertAdjacentHTML('beforeend', '<div class="typing" id="typing"><i></i><i></i><i></i></div>'); scrollChat(); } else if (!ev.on && t) t.remove(); } return; }
@@ -3297,7 +3503,7 @@ backend.subscribe(ev => {
   if (ev.type === 'message') {
     const m = ev.message, mine = m.from === 'me', peer = mine ? m.to : m.from;
     if (chatActive() && peer === chat.id) { appendMsg(m); if (!mine) backend.markRead(peer); return; }
-    if (!mine) { const g = guestOf(peer); toast(`${g.first}: ${m.body.length > 38 ? m.body.slice(0, 38) + '…' : m.body}`, () => openChat(g, 'chats')); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }
+    if (!mine) { const g = guestOf(peer); toast(`${g.first}: ${(b => b.length > 38 ? b.slice(0, 38) + '…' : b)(bodyOf(m))}`, () => openChat(g, 'chats')); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }
     refreshUnread(); if ($('s-inbox').classList.contains('active')) renderInbox();
   }
 });
@@ -3317,15 +3523,20 @@ function renderQR() { const u = shareURL(); $('qr').innerHTML = qrSVG(u); $('qr-
 async function copyLink() {
   const u = shareURL();
   try { await navigator.clipboard.writeText(u); } catch (e) { const t = document.createElement('textarea'); t.value = u; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (_) {} t.remove(); }
-  toast('Link copied');
+  toast(tr('linkCopied'));
 }
 async function shareApp() {
-  if (navigator.share) { try { await navigator.share({ title: 'Table Talk', text: 'Find your people at Ania & Marek’s reception', url: shareURL() }); } catch (e) {} } else copyLink();
+  if (navigator.share) { try { await navigator.share({ title: 'Table Talk', text: tr('shareText'), url: shareURL() }); } catch (e) {} } else copyLink();
 }
 const openShare = () => { renderQR(); $('share').classList.add('open'); $('share').setAttribute('aria-hidden', 'false'); };
 const closeShare = () => { $('share').classList.remove('open'); $('share').setAttribute('aria-hidden', 'true'); };
-$('share-open').innerHTML = ic('qr-code', 18) + 'Share the app';
-$('share-x').innerHTML = ic('x', 22); $('share-link').innerHTML = ic('share-2', 18) + 'Share link'; $('share-copy').innerHTML = ic('copy', 18) + 'Copy link';
+function renderChrome() {   // labels set from JS (icon + text); called again on every language switch
+  $('share-open').innerHTML = ic('qr-code', 18) + tr('shareOpen'); $('share-link').innerHTML = ic('share-2', 18) + tr('shareLink');
+  $('share-copy').innerHTML = ic('copy', 18) + tr('copyLink'); $('guide-copy').innerHTML = ic('copy', 18) + tr('copyLink');
+  $('legend').innerHTML = [[CAT.bf, 'lgBf'], [CAT.bfam, 'lgBfam'], [CAT.gf, 'lgGf'], [CAT.gfam, 'lgGfam'], [CAT.mutual, 'lgMutual']].map(([c, k]) => `<span><i style="background:${c}"></i>${tr(k)}</span>`).join('')
+    + `<span><i class="cpl"></i>${tr('lgCouple')}</span><span class="hnt">${tr('lgHint')}</span>`;
+}
+$('share-x').innerHTML = ic('x', 22);
 $('share-open').onclick = openShare; $('share-x').onclick = closeShare; $('share-bd').onclick = closeShare; $('share-link').onclick = shareApp; $('share-copy').onclick = copyLink;
 addEventListener('keydown', e => { if (e.key === 'Escape') closeShare(); });
 renderQR();
@@ -3334,27 +3545,32 @@ renderQR();
    Edit WELCOME_NOTE to change the copy. The visitor's reply is local until they finish the quiz; then flushWelcomeReply()
    sends it through `backend.sendMessage` so it shows up in the Chats thread with Ania (and, with a real backend, is stored). */
 const WELCOME_NOTE = {
-  body: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight – and tell us, how do you know us? – Ania & Marek',
-  answer: () => COUPLE_AUTO_REPLY,   // the couple are busy: same automatic reply as in Messages
+  get body() { return tr('welcomeNote'); },
+  answer: () => tr('coupleAuto'),   // the couple are busy: same automatic reply as in Messages
 };
-let welcomeReply = null, welcomeFlushed = false;
+let welcomeReply = null, welcomeFlushed = false, rerenderWelcome = () => {};
 (function welcomeNote() {
   const thread = $('wn-thread'), form = $('wn-form'), input = $('wn-input'), send = $('wn-send');
   send.innerHTML = ic('send', 18);
-  const bub = (cls, text, auto) => `<div class="bub ${cls}">${auto ? '<em class="auto">Automatic reply</em>' : ''}${esc(text)}</div>`, typing = '<div class="typing"><i></i><i></i><i></i></div>';
+  const bub = (cls, text, auto) => `<div class="bub ${cls}">${auto ? `<em class="auto">${tr('autoReply')}</em>` : ''}${esc(text)}</div>`, typing = '<div class="typing"><i></i><i></i><i></i></div>';
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+  let stage = 0;   // 0 the couple is typing · 1 note shown · 2 the couple is typing a reply · 3 answered
+  rerenderWelcome = () => {   // rebuild the settled thread in the current language
+    if (stage === 1) thread.innerHTML = bub('them', WELCOME_NOTE.body);
+    if (stage === 3) thread.innerHTML = bub('them', WELCOME_NOTE.body) + bub('me', welcomeReply) + bub('them', WELCOME_NOTE.answer(welcomeReply), true) + `<div class="wn-done">${tr('wnDone')}</div>`;
+  };
   // 1. the couple "types" and the message arrives
   thread.innerHTML = typing;
-  wait(1100).then(() => { thread.innerHTML = bub('them', WELCOME_NOTE.body); });
+  wait(1100).then(() => { if (stage === 0) { stage = 1; rerenderWelcome(); } });
   input.oninput = () => { send.disabled = !input.value.trim(); };
   form.onsubmit = e => { e.preventDefault(); const v = input.value.trim(); if (v) reply(v); };
   // 2. the visitor answers, the couple answers back
   async function reply(text) {
     if (welcomeReply) return; welcomeReply = text;
-    form.style.display = 'none'; thread.insertAdjacentHTML('beforeend', bub('me', text));
-    thread.insertAdjacentHTML('beforeend', typing); await wait(1300); thread.lastElementChild.remove();
-    thread.insertAdjacentHTML('beforeend', bub('them', WELCOME_NOTE.answer(text), true));
-    thread.insertAdjacentHTML('beforeend', `<div class="wn-done">Your chat continues in Messages once you join.</div>`);
+    if (stage === 0) thread.innerHTML = bub('them', WELCOME_NOTE.body);
+    form.style.display = 'none'; stage = 2; thread.insertAdjacentHTML('beforeend', bub('me', text));
+    thread.insertAdjacentHTML('beforeend', typing); await wait(1300);
+    stage = 3; rerenderWelcome();
   }
 })();
 async function flushWelcomeReply() {   // called when the guest finishes the quiz: this is the point where, with a real backend, the guest exists
@@ -3380,44 +3596,33 @@ const isAndroid = /android/i.test(navigator.userAgent);
 const droid = /SamsungBrowser/i.test(navigator.userAgent) ? 'samsung' : /Firefox|FxiOS/i.test(navigator.userAgent) ? 'firefox' : /EdgA/i.test(navigator.userAgent) ? 'edge' : 'chrome';
 const dismissedKey = 'tt_install_dismissed';
 const getDismissed = () => { try { return localStorage.getItem(dismissedKey) === '1'; } catch (e) { return false; } };
-function guideSteps() {
-  const step = (i, icon, t, sm) => `<li><span class="n">${i}</span><span class="ic">${ic(icon, 22)}</span><span>${t}${sm ? `<small>${sm}</small>` : ''}</span></li>`;
-  if (inApp) return isAndroid
-    ? { title: 'Open in Chrome first', p: 'This app’s built-in browser can’t install apps. Open the link in Chrome, then install it.',
-        html: step(1, 'ellipsis-vertical', 'Tap the <b>⋮</b> menu in this app') + step(2, 'compass', 'Choose <b>Open in Chrome</b> (or <b>Open in browser</b>)') + step(3, 'download', 'In Chrome tap <b>⋮</b> → <b>Install app</b>') }
-    : { title: 'Open in Safari first', p: 'This app’s built-in browser can’t install apps. Open the link in Safari, then add it to your Home Screen.',
-        html: step(1, 'ellipsis', 'Tap the <b>⋯</b> or <b>Share</b> button in this app') + step(2, 'compass', 'Choose <b>Open in Safari</b>') + step(3, 'share', 'In Safari tap <b>Share</b> → <b>Add to Home Screen</b>') };
-  if (isIOS) return { title: 'Add to Home Screen', p: 'Open Table Talk from your Home Screen and the Safari address bar is gone – it runs full screen like a normal app.',
-    html: step(1, 'share', 'Tap the <b>Share</b> button in Safari', 'the square with an arrow, at the bottom of the screen') + step(2, 'square-plus', 'Scroll and tap <b>Add to Home Screen</b>') + step(3, 'smartphone', 'Keep <b>Open as Web App</b> switched on, then tap <b>Add</b>') + step(4, 'check', 'Open <b>Table Talk</b> from your Home Screen', 'not from Safari') };
-  if (isAndroid) {
-    const open = step(4, 'check', 'Open <b>Table Talk</b> from your home screen or app drawer', 'it now runs full screen, with no address bar');
-    const by = {
-      chrome: step(1, 'ellipsis-vertical', 'Tap the <b>⋮</b> menu at the top right of Chrome') + step(2, 'download', 'Tap <b>Install app</b>', 'if you see <b>Add to Home screen</b> instead, tap that, then <b>Install</b>') + step(3, 'smartphone', 'Confirm with <b>Install</b>') + open,
-      samsung: step(1, 'ellipsis', 'Tap the <b>≡</b> menu at the bottom right') + step(2, 'square-plus', 'Tap <b>Add page to</b> → <b>Home screen</b>', 'or <b>Install app</b> if it is shown') + step(3, 'smartphone', 'Confirm with <b>Add</b>') + open,
-      firefox: step(1, 'ellipsis-vertical', 'Tap the <b>⋮</b> menu') + step(2, 'download', 'Tap <b>Install</b>', 'or <b>Add app to Home screen</b>') + step(3, 'smartphone', 'Confirm with <b>Add</b>') + open,
-      edge: step(1, 'ellipsis', 'Tap the <b>⋯</b> menu at the bottom') + step(2, 'square-plus', 'Tap <b>Add to phone</b>', 'or <b>Add to Home screen</b>') + step(3, 'smartphone', 'Confirm with <b>Add</b>') + open,
-    };
-    return { title: 'Install on Android', p: 'Install Table Talk for a full-screen app with no address bar that also works offline.', html: by[droid] };
-  }
-  return { title: 'Install Table Talk', p: 'Install it for a full-screen app that works offline.', html: step(1, 'ellipsis-vertical', 'Open your browser menu') + step(2, 'download', 'Choose <b>Install app</b> or <b>Add to Home screen</b>') };
+const GUIDE_ICONS = { inAndroid: ['ellipsis-vertical', 'compass', 'download'], inIOS: ['ellipsis', 'compass', 'share'], ios: ['share', 'square-plus', 'smartphone', 'check'], chrome: ['ellipsis-vertical', 'download', 'smartphone'], samsung: ['ellipsis', 'square-plus', 'smartphone'], firefox: ['ellipsis-vertical', 'download', 'smartphone'], edge: ['ellipsis', 'square-plus', 'smartphone'], generic: ['ellipsis-vertical', 'download'] };
+function guideSteps() {   // texts live in T[LANG].guide, icons in GUIDE_ICONS
+  const G = tr('guide'), step = (i, icon, [tx, sm]) => `<li><span class="n">${i}</span><span class="ic">${ic(icon, 22)}</span><span>${tx}${sm ? `<small>${sm}</small>` : ''}</span></li>`;
+  const list = (key, arr) => arr.map((s, i) => step(i + 1, GUIDE_ICONS[key][i], s)).join('');
+  const whole = key => ({ title: G[key].title, p: G[key].p, html: list(key, G[key].s) });
+  if (inApp) return whole(isAndroid ? 'inAndroid' : 'inIOS');
+  if (isIOS) return whole('ios');
+  if (isAndroid) return { title: G.android.title, p: G.android.p, html: list(droid, G[droid]) + step(4, 'check', G.open) };
+  return whole('generic');
 }
 function openGuide() {
   const g = guideSteps(); $('guide-t').textContent = g.title; $('guide-p').textContent = g.p; $('guide-steps').innerHTML = g.html;
   $('guide-copy').style.display = inApp ? '' : 'none'; $('guide').classList.add('open'); $('guide').setAttribute('aria-hidden', 'false');
 }
 const closeGuide = () => { $('guide').classList.remove('open'); $('guide').setAttribute('aria-hidden', 'true'); };
-$('guide-x').innerHTML = ic('x', 22); $('guide-copy').innerHTML = ic('copy', 18) + 'Copy link'; $('ib-ic').innerHTML = ic('smartphone', 20); $('ib-x').innerHTML = ic('x', 18);
+$('guide-x').innerHTML = ic('x', 22); $('ib-ic').innerHTML = ic('smartphone', 20); $('ib-x').innerHTML = ic('x', 18);
 $('guide-bd').onclick = closeGuide; $('guide-x').onclick = closeGuide; $('guide-ok').onclick = closeGuide; $('guide-copy').onclick = () => { copyLink(); };
 sheetDrag(document.querySelector('#guide .share-card'), closeGuide);
 $('ib-go').onclick = () => { if (deferredPrompt && !inApp) runInstall(); else openGuide(); }; $('ib-x').onclick = () => { try { localStorage.setItem(dismissedKey, '1'); } catch (e) {} syncBanner(); };
-function bannerCopy() { $('ib-go').textContent = deferredPrompt && !inApp ? 'Install' : 'How'; }
+function bannerCopy() { $('ib-go').textContent = tr(deferredPrompt && !inApp ? 'install' : 'how'); }
 function syncBanner() { bannerCopy(); const ok = (isIOS || isAndroid || inApp) && !standalone() && !framed() && !getDismissed() && $('s-welcome').classList.contains('active'); $('ibanner').classList.toggle('show', ok); }
 setTimeout(syncBanner, 1400);
 // installable app: Android shows the real prompt, iOS gets instructions
 let deferredPrompt = null;
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-function updateInstall() { const b = $('install-btn'), can = !standalone() && (deferredPrompt || isIOS || isAndroid || inApp) && !framed(); b.hidden = !can; if (can) b.innerHTML = ic('download', 18) + 'Install on your phone'; }
+function updateInstall() { const b = $('install-btn'), can = !standalone() && (deferredPrompt || isIOS || isAndroid || inApp) && !framed(); b.hidden = !can; if (can) b.innerHTML = ic('download', 18) + tr('installPhone'); }
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; updateInstall(); if (typeof syncBanner === 'function') syncBanner(); });
 addEventListener('appinstalled', () => { deferredPrompt = null; updateInstall(); });
 async function runInstall() { if (!deferredPrompt) return openGuide(); deferredPrompt.prompt(); const r = await deferredPrompt.userChoice.catch(() => ({})); deferredPrompt = null; updateInstall(); if (r.outcome === 'dismissed') openGuide(); }
@@ -3425,14 +3630,14 @@ $('install-btn').onclick = () => { if (deferredPrompt && !inApp) runInstall(); e
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
 /* ======================= welcome mini-graph (decorative) ======================= */
-(function () {
+function drawMini() {
   const svg = $('mini'), cols = ['#c9a35b', '#d98a93', '#7a8f7a', '#b9c4b4'];
   let h = '<g stroke-width="1.2">'; const pts = [[160, 46]]; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283, r = 40 + (i % 3) * 30; pts.push([160 + Math.cos(a) * r * 1.9, 46 + Math.sin(a) * r * .42]); }
   pts.slice(1).forEach((p, i) => h += `<line x1="160" y1="46" x2="${p[0]}" y2="${p[1]}" stroke="${cols[i % 4]}" opacity=".55"/>`);
   h += '</g>'; pts.slice(1).forEach((p, i) => h += `<circle cx="${p[0]}" cy="${p[1]}" r="${5 + (i % 3) * 2}" fill="${cols[i % 4]}" stroke="#fffdf9" stroke-width="2"/>`);
-  h += `<circle cx="160" cy="46" r="13" fill="#2b2a33" stroke="#fffdf9" stroke-width="2"/><text x="160" y="50" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui">YOU</text>`;
+  h += `<circle cx="160" cy="46" r="13" fill="#2b2a33" stroke="#fffdf9" stroke-width="2"/><text x="160" y="50" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui">${tr('youCap')}</text>`;
   svg.innerHTML = h;
-})();
+}
 
 /* ======================= scale phone to the viewport ======================= */
 const framed = () => matchMedia('(min-width: 900px) and (min-height: 600px)').matches;
@@ -3449,6 +3654,29 @@ function fit() {
 if (window.ResizeObserver) new ResizeObserver(refitGraph).observe($('cbox'));   // URL bar show/hide, rotation, split-screen
 addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 250)); fit(); renderQ();
 document.querySelector('#steps button[data-go="welcome"]').classList.add('on');
+
+/* ======================= language switch ======================= */
+function setLang(l) { if (!LANGS.includes(l) || l === LANG) return; LANG = l; try { localStorage.setItem(LANG_KEY, l); } catch (e) {} applyLang(); }
+function applyLang() {   // static texts via data-i18n / data-i18n-attr, then every dynamic view that is currently on screen
+  document.documentElement.lang = LANG; document.title = tr('title');
+  const md = document.querySelector('meta[name="description"]'); if (md) md.content = tr('desc');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-attr]').forEach(el => el.dataset.i18nAttr.split(',').forEach(p => { const [a, k] = p.split(':'); el.setAttribute(a, tr(k)); }));
+  document.querySelectorAll('[data-lang-switch]').forEach(el => {
+    el.setAttribute('role', 'group'); el.setAttribute('aria-label', tr('langAria'));
+    el.innerHTML = LANGS.map(l => `<button type="button" data-lang="${l}" lang="${l}" class="${l === LANG ? 'on' : ''}" aria-pressed="${l === LANG}">${l.toUpperCase()}</button>`).join('');
+    el.querySelectorAll('button').forEach(b => b.onclick = () => setLang(b.dataset.lang));
+  });
+  renderChrome(); drawMini(); mountTabbar(); syncTabbar(); syncWelcome(); rerenderWelcome(); renderQ(); bannerCopy(); updateInstall();
+  if ($('s-summary').classList.contains('active')) renderSummary();
+  if ($('s-inbox').classList.contains('active')) renderInbox();
+  if (nodes.length) { nodes[0].first = myName || tr('you'); mountSeg('seg-graph', 'graph'); mountChips(); }
+  if (sheetGuest) select(sheetGuest);
+  if (chatActive() && chat.id) openChat(guestOf(chat.id), chat.from);
+  if ($('guide').classList.contains('open')) openGuide();
+  refreshUnread();
+}
+applyLang();
 </script>
 </body>
 </html>
