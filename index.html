@@ -75,8 +75,6 @@
   .btn.ghost{background:transparent;color:var(--mute);font-weight:600;font-size:14px;padding:10px}
   /* welcome */
   .welcome{justify-content:space-between;text-align:center;background:#fff}
-  .mono{width:112px;height:112px;margin:14px auto 0;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;font:italic 44px var(--serif);color:var(--ink);position:relative;background:var(--paper)}
-  .mono::after{content:"";position:absolute;inset:7px;border-radius:50%;border:1px solid var(--blush)}
   .welcome h2{font:400 32px/1.1 var(--serif);margin:16px 0 6px}
   .welcome>div:first-child{margin-bottom:14px}
   .welcome .sub{color:var(--mute);font-size:14px;letter-spacing:.04em}
@@ -283,7 +281,7 @@
   @media (max-height:720px){
     .opt{padding:12px 8px}.opt span{font-size:24px;margin-bottom:4px}
     .quiz h3{font-size:24px;margin-bottom:14px}.qn{margin:14px 0 6px}
-    .mono{width:96px;height:96px;font-size:34px;margin-top:6px}.welcome h2{font-size:28px;margin-top:14px}.welcome .pitch{margin-top:14px;font-size:17px}.mini-graph{height:70px}
+    .welcome h2{font-size:28px;margin-top:14px}.welcome .pitch{margin-top:14px;font-size:17px}.mini-graph{height:70px}
     .hero .big{font-size:48px}.sh-top .av{width:48px;height:48px}.score b{font-size:30px}
   }
   /* phone on its side: only the graph uses the wide screen; every other screen stays a centred portrait column */
@@ -401,13 +399,13 @@
   .btn.ghost.danger{color:var(--pink-d)}
   .share-open{color:var(--lav-d)}
   .btn.alt.share-open{margin-top:10px;color:var(--ink)}
+  #sample{min-height:40px;margin-top:4px;padding:8px;font:700 12.5px var(--sans);color:var(--mute)}
+  .welcome>div:first-child{padding-top:46px}
+  @media (min-width:900px) and (min-height:600px){.welcome>div:first-child{padding-top:18px}}
   .btn.alt.share-open .ic{color:var(--lav-d)}
   .back{color:var(--lav-d)}
   /* welcome */
   .welcome{background:radial-gradient(120% 60% at 0% 0%,#ffe3d3 0,transparent 60%),radial-gradient(100% 60% at 100% 25%,#e5dcff 0,transparent 60%),radial-gradient(120% 50% at 30% 100%,#d6f3e6 0,transparent 60%),var(--bg)}
-  .mono{border:0;padding:5px;background:conic-gradient(from 200deg,var(--pink),var(--lav),var(--sky),var(--mint),var(--peach),var(--pink));color:var(--lav-d);font:500 40px/1 var(--serif);font-variation-settings:"SOFT" 100,"opsz" 96;box-shadow:var(--soft)}
-  .mono::after{inset:5px;border:0;background:var(--paper);z-index:-1}
-  .mono{isolation:isolate}
   .welcome h2{font:500 38px/1.08 var(--serif);font-variation-settings:"SOFT" 100,"opsz" 96;margin:18px 0 10px}
   .welcome .sub:empty{display:none}
   /* the couple's photo under their names, and the card that asks the couple to add one */
@@ -596,7 +594,6 @@
         <div class="screen welcome active" id="s-welcome">
           <div>
             <div class="lang" data-lang-switch></div>
-            <div class="mono">A&amp;M</div>
             <h2>Ania &amp; Marek</h2>
             <figure class="cphoto" id="cphoto" hidden><img id="cphoto-img" alt="" decoding="async"><figcaption class="cp-ctl" id="cp-ctl"></figcaption></figure>
             <div class="cpask-slot" id="cpask-w"></div>
@@ -612,7 +609,7 @@
           <div>
             <button class="btn" id="start">Find my people</button>
             <button class="btn alt share-open" id="share-open"></button>
-            <button class="btn ghost" id="sample">Skip – preview with sample answers</button>
+            <button class="btn ghost" id="sample">Preview</button>
           </div>
         </div>
 
@@ -3032,7 +3029,7 @@ const T = {
     date: 'SOBOTA, 14 CZERWCA · VILLA RÓŻANA',
     messages: 'Wiadomości', wnPh: 'Odpowiedz Ani i Markowi…', wnAria: 'Odpowiedź', wnSend: 'Wyślij odpowiedź',
     wnDone: 'Rozmowa będzie czekać w Wiadomościach, gdy dołączysz.',
-    start: 'Poznajmy się', sample: 'Pomiń – podgląd z przykładowymi odpowiedziami',
+    start: 'Poznajmy się', sample: 'Podgląd',
     backMatches: 'Wróć do moich dopasowań', startOver: 'Zacznij od nowa z nowymi odpowiedziami',
     foot: 'Twoje odpowiedzi służą tylko do narysowania dzisiejszego grafu.',
     you: 'Ty', youCap: 'TY',
@@ -3142,7 +3139,7 @@ const T = {
     date: 'SATURDAY 14 JUNE · VILLA RÓŻANA',
     messages: 'Messages', wnPh: 'Reply to Ania & Marek…', wnAria: 'Reply', wnSend: 'Send reply',
     wnDone: 'Your chat continues in Messages once you join.',
-    start: 'Find my people', sample: 'Skip – preview with sample answers',
+    start: 'Find my people', sample: 'Preview',
     backMatches: 'Back to my matches', startOver: 'Start over with new answers',
     foot: 'Your answers are only used to draw tonight’s graph.',
     you: 'You', youCap: 'YOU',
@@ -3715,7 +3712,7 @@ async function claimRole() {   // the couple's link opened on a phone that had a
 }
 function applyEvent() {   // couple's names and date on the welcome screen
   const names = EVT ? EVT.names : '', caps = names.split(/\s+/).filter(w => /^\p{Lu}/u.test(w)).map(w => w[0]).slice(0, 2);
-  document.querySelector('#s-welcome .mono').textContent = caps.join('&'); document.querySelector('#s-welcome h2').textContent = names;
+  document.querySelector('#s-welcome h2').textContent = names;
   document.querySelector('#s-welcome .sub').textContent = EVT ? EVT.dateLine : ''; document.querySelector('.wn-h b').textContent = names;
   document.querySelectorAll('.wn-av i').forEach((el, i) => { el.textContent = caps[i] || ''; });
   if (names) document.title = 'Bee Talk · ' + names;
