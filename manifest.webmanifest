@@ -1,9 +1,9 @@
 {
   "id": "./",
   "lang": "pl",
-  "name": "Table Talk – wesele Ani i Marka",
+  "name": "Table Talk – brunch ślubny Ani i Marka",
   "short_name": "Table Talk",
-  "description": "Znajdź na weselu gości, z którymi znajdziesz wspólny język.",
+  "description": "Znajdź na brunchu ślubnym gości, z którymi znajdziesz wspólny język.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

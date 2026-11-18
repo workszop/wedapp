@@ -19,7 +19,7 @@
 //   POST   /api/admin/events    {names, dateLine} with Bearer MASTER_KEY -> {slug, adminCode}
 import { DurableObject } from 'cloudflare:workers';
 
-const OPT_COUNTS = [3, 2, 5, 4, 5, 4, 4, 6, 6, 6];   // number of options per question, same order as Q in index.html
+const OPT_COUNTS = [3, 2, 5, 4, 6, 4, 4, 6, 6, 6];   // number of options per question, same order as Q in index.html
 const SLUG_RE = /^[a-z0-9]{12,40}$/;
 const NAME_RE = /^[\p{L}\p{M}\d .'’-]{1,24}$/u;
 const MAX_GUESTS = 200, MAX_BODY = 500, KEEP_DAYS = 60;
@@ -234,7 +234,7 @@ export class EventRoom extends DurableObject {
     const icon = (f, s, p) => ({ src: `${app}icons/${f}`, sizes: `${s}x${s}`, type: 'image/png', purpose: p });
     return json({
       id: `${app}?e=${slug}`, lang: pl ? 'pl' : 'en', name: `Table Talk – ${this.meta('names')}`, short_name: 'Table Talk',
-      description: pl ? 'Znajdź na weselu gości, z którymi znajdziesz wspólny język.' : 'Find the guests you’ll click with at the wedding reception.',
+      description: pl ? 'Znajdź na brunchu ślubnym gości, z którymi znajdziesz wspólny język.' : 'Find the guests you’ll click with at the wedding brunch.',
       start_url: start, scope: app, display: 'standalone', background_color: '#ffffff', theme_color: '#ffffff',
       icons: [icon('icon-192.png', 192, 'any'), icon('icon-512.png', 512, 'any'), icon('icon-maskable-512.png', 512, 'maskable')],
     }, 200, { 'Content-Type': 'application/manifest+json; charset=utf-8' });
