@@ -99,14 +99,22 @@
   @keyframes ring{0%{transform:scale(.3);opacity:.9}100%{transform:scale(1.15);opacity:0}}
   .loading h3{font:400 24px var(--serif);margin:0 0 6px}.loading p{color:var(--mute);font-size:14px;margin:0}
   /* graph */
-  .graph{padding-bottom:var(--pb)}
+  /* graph: the canvas IS the screen; header and matches float on top of it */
+  .screen.graph{padding:0;overflow:hidden}
+  .g-top,.g-bottom{position:absolute;left:0;right:0;z-index:3;pointer-events:none}
+  .g-top>*,.g-bottom>*{pointer-events:auto}
+  .g-top{top:0;padding:var(--pt) max(var(--px),env(safe-area-inset-right)) 14px max(var(--px),env(safe-area-inset-left));background:linear-gradient(180deg,rgba(250,246,240,.97) 0,rgba(250,246,240,.9) 72%,rgba(250,246,240,0) 100%)}
+  .g-bottom{bottom:0;padding:22px max(var(--px),env(safe-area-inset-right)) var(--pb) max(var(--px),env(safe-area-inset-left));background:linear-gradient(0deg,rgba(250,246,240,.97) 0,rgba(250,246,240,.9) 70%,rgba(250,246,240,0) 100%)}
+  .g-bottom .legend{position:static;background:none;padding:0;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:2px 10px;font-size:10.5px;line-height:1.5;color:var(--mute)}
+  .g-bottom .legend .hnt{margin-left:auto;font-style:italic}
+  .g-top .seg{margin:10px 0 2px}.g-top .chips{padding:10px 0 2px}
   .ghead h3{font:400 26px/1.1 var(--serif);margin:0}
   .ghead p{margin:4px 0 0;color:var(--mute);font-size:13px}
   .chips{display:flex;gap:7px;overflow-x:auto;padding:12px 0 6px;scrollbar-width:none;flex:none}
   .chips::-webkit-scrollbar{display:none}
   .chip{flex:none;font:600 12px var(--sans);border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:10px 14px;cursor:pointer;white-space:nowrap;min-height:40px}
   .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .canvas-box{position:relative;flex:1 0 auto;min-height:250px;border-radius:22px;background:radial-gradient(circle at 50% 50%,#fff 0,#f6efe6 100%);border:1px solid var(--line);overflow:hidden}
+  .canvas-box{position:absolute;inset:0;flex:none;min-height:0;border-radius:0 !important;border:0 !important;border-radius:22px;background:radial-gradient(circle at 50% 50%,#fff 0,#f6efe6 100%);border:1px solid var(--line);overflow:hidden}
   canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
   .legend{position:absolute;left:10px;bottom:8px;display:flex;gap:10px;font-size:10.5px;color:var(--mute);pointer-events:none;background:rgba(255,253,249,.85);padding:3px 8px;border-radius:8px}
   .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:-0.5px}
@@ -206,10 +214,25 @@
     .mono{width:96px;height:96px;font-size:34px;margin-top:6px}.welcome h2{font-size:28px;margin-top:14px}.welcome .pitch{margin-top:14px;font-size:17px}.mini-graph{height:70px}
     .hero .big{font-size:48px}.sh-top .av{width:48px;height:48px}.score b{font-size:30px}
   }
+  /* phone on its side: only the graph uses the wide screen; every other screen stays a centred portrait column */
+  @media (orientation:landscape) and (max-height:520px){
+    :root{--pt:calc(env(safe-area-inset-top,0px) + 10px);--pb:calc(env(safe-area-inset-bottom,0px) + 10px)}
+    .screen:not(.graph){padding-left:max(var(--px),calc(50% - 230px));padding-right:max(var(--px),calc(50% - 230px))}
+    .g-top{display:flex;align-items:center;gap:12px;padding-bottom:10px}
+    .g-top .ghead h3{font-size:20px;white-space:nowrap}.g-top .ghead p{display:none}
+    .g-top .seg{margin:0;width:260px;flex:none}.g-top .seg button{padding:8px 0;min-height:38px}
+    .g-top .chips{flex:1;min-width:0;padding:0}
+    .g-bottom{display:flex;align-items:center;gap:14px;padding-top:14px}
+    .g-bottom .legend{flex:0 0 38%;margin:0}.g-bottom .legend .hnt{display:none}
+    .g-bottom .tops{flex:1;min-width:0}
+    .mt{padding:4px 10px 4px 4px}.mt .av{width:26px;height:26px}
+    .sheet{max-width:560px;margin:0 auto}
+    .quiz h3,.live{} 
+  }
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
   /* ===== desktop / tablet enhancement: presenter column + phone frame ===== */
-  @media (min-width:900px){
+  @media (min-width:900px) and (min-height:600px){
     :root{--pt:56px;--px:22px;--pb:26px}
     .stage{max-width:1100px;margin:0 auto;padding:28px 20px;display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:40px;align-items:center;min-height:100vh}
     .intro{display:block}
@@ -306,16 +329,16 @@
 
         <!-- 4 graph -->
         <div class="screen graph" id="s-graph">
-          <div class="ghead"><h3>Your table talk</h3><p id="gsub"></p></div>
-          <div class="seg" id="seg-graph"></div>
-          <div class="chips" id="chips"></div>
-          <div class="canvas-box" id="cbox">
-            <canvas id="cv"></canvas>
-            <div class="hintx">bigger &amp; glowing = stronger match</div>
-            <div class="legend"><span><i style="background:#e58fa8"></i>Bride · friends</span><span><i style="background:#9b7fd1"></i>Bride · family</span><span><i style="background:#6fbf8a"></i>Groom · friends</span><span><i style="background:#5b8fd6"></i>Groom · family</span><span><i style="background:#b9a57d"></i>Mutual</span><span><i class="cpl"></i>Couple</span></div>
+          <div class="canvas-box" id="cbox"><canvas id="cv"></canvas></div>
+          <div class="g-top" id="gtop">
+            <div class="ghead"><h3>Your table talk</h3><p id="gsub"></p></div>
+            <div class="seg" id="seg-graph"></div>
+            <div class="chips" id="chips"></div>
           </div>
-          <div class="top-title">Best matches</div>
-          <div class="tops" id="tops"></div>
+          <div class="g-bottom" id="gbot">
+            <div class="legend"><span><i style="background:#e58fa8"></i>Bride · friends</span><span><i style="background:#9b7fd1"></i>Bride · family</span><span><i style="background:#6fbf8a"></i>Groom · friends</span><span><i style="background:#5b8fd6"></i>Groom · family</span><span><i style="background:#b9a57d"></i>Mutual</span><span><i class="cpl"></i>Couple</span><span class="hnt">bigger &amp; glowing = stronger match</span></div>
+            <div class="tops" id="tops"></div>
+          </div>
         </div>
 
         <!-- profile sheet -->
@@ -2802,7 +2825,14 @@ function renderSummary() {
 /* ======================= graph ======================= */
 const cv = $('cv'), ctx = cv.getContext('2d');
 let W = 340, H = 400, nodes = [], links = [], t0 = 0, selected = null, filter = null, drag = null, raf = null, dpr = 1;
-function fitCanvas() { const r = $('cbox').getBoundingClientRect(), k = $('phone')._scale || 1; W = r.width / k; H = r.height / k; dpr = Math.min(2, (window.devicePixelRatio || 1) * k); cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+let LR = { x0: 0, y0: 0, x1: 350, y1: 558 };   // area the layout fills: the whole canvas minus the floating header/footer (nodes may slide partly under their soft edges)
+function layoutRect() {
+  const k = $('phone')._scale || 1, cb = $('cbox').getBoundingClientRect(), t = $('gtop').getBoundingClientRect(), b = $('gbot').getBoundingClientRect();
+  const top = Math.max(0, (t.bottom - cb.top) / k), bot = Math.min(H, (b.top - cb.top) / k);
+  LR = { x0: 0, x1: W, y0: top * 0.7, y1: H - (H - bot) * 0.7 };
+  if (LR.y1 - LR.y0 < 150) LR = { x0: 0, x1: W, y0: 0, y1: H };
+}
+function fitCanvas() { const r = $('cbox').getBoundingClientRect(), k = $('phone')._scale || 1; W = r.width / k; H = r.height / k; dpr = Math.min(2, (window.devicePixelRatio || 1) * k); cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); layoutRect(); }
 function targetR(s) { const max = Math.min(W, H) / 2 - 26; return Math.min(max, 52 + (5 - s) * 29); }
 function startGraph() {
   fitCanvas();
@@ -2813,6 +2843,12 @@ function startGraph() {
     const n = Q.reduce((c, _, k) => c + (nodes[i].answers[k] === nodes[j].answers[k] ? 1 : 0), 0);
     if (n >= 5 && nodes[i].s >= 1 && nodes[j].s >= 1) links.push([nodes[i], nodes[j], n]);
   }
+  // radius by RANK (not by raw score): best match innermost, weakest outermost, so the whole canvas is used whatever the answers are
+  { const order = nodes.filter(n => !n.you).sort((a, b) => b.raw - a.raw || a.id - b.id); order.forEach((n, i) => { n.tn = 0.3 + 0.64 * Math.sqrt(i / Math.max(1, order.length - 1)); }); }
+  { const arcs = { 0: [95, 265], 1: [-85, 85] }, grp = { 0: [], 1: [], 2: [] };
+    nodes.forEach(n => { if (!n.you && !n.couple) grp[n.answers[0]].push(n); });
+    for (const k of [0, 1]) grp[k].sort((a, b) => b.raw - a.raw || a.id - b.id).forEach((n, i) => { const f = ((i + .5) * 0.618034) % 1; n.ang = (arcs[k][0] + f * (arcs[k][1] - arcs[k][0])) * Math.PI / 180; });
+    grp[2].sort((a, b) => b.raw - a.raw || a.id - b.id).forEach((n, i) => { const up = i % 2 === 0, f = ((Math.floor(i / 2) + .5) * 0.618034) % 1, [a0, a1] = up ? [262, 278] : [82, 98]; n.ang = (a0 + f * (a1 - a0)) * Math.PI / 180; }); }
   rank().slice(0, 3).forEach(g => { const nd = nodes.find(x => x.id === g.id); if (nd && nd.s >= 4) nd.top = true; });   // only the top three get a score badge
   mountSeg('seg-graph', 'graph');
   $('gsub').textContent = `${guests.length} guests · ${guests.filter(g => lvl(score(g)) >= 3).length} click with you`;
@@ -2824,20 +2860,25 @@ function startGraph() {
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
 }
 function step(dt) {
-  const you = nodes[0], cx = W / 2, cy = H / 2;
+  const you = nodes[0], pad = 28, cx = (LR.x0 + LR.x1) / 2, cy = (LR.y0 + LR.y1) / 2, ex = (LR.x1 - LR.x0) / 2 - pad, ey = (LR.y1 - LR.y0) / 2 - pad;
+  you.x += (cx - you.x) * 0.2; you.y += (cy - you.y) * 0.2;
   const bN = nodes.find(n => n.couple === 'bride'), gN = nodes.find(n => n.couple === 'groom');
-  { const dx = gN.x - bN.x, dy = gN.y - bN.y, d = Math.hypot(dx, dy) || 1, f = (d - 58) * 0.06, fx = dx / d * f, fy = dy / d * f;   // stay close to each other
-    if (bN !== drag) { bN.vx += fx; bN.vy += fy; } if (gN !== drag) { gN.vx -= fx; gN.vy -= fy; }
-  }
+  { const dx = gN.x - bN.x, dy = gN.y - bN.y, d = Math.hypot(dx, dy) || 1, f = (d - 58) * 0.06, fx = dx / d * f, fy = dy / d * f;   // the couple stays together
+    if (bN !== drag) { bN.vx += fx; bN.vy += fy; } if (gN !== drag) { gN.vx -= fx; gN.vy -= fy; } }
   for (const n of nodes) {
     if (n.you || n === drag) continue;
-    // spring toward an elliptical ring that fills the canvas: closer match = smaller ring
-    const ex = W / 2 - 28, ey = H / 2 - 28, nx = (n.x - cx) / ex, ny = (n.y - cy) / ey, nd = Math.hypot(nx, ny) || 1e-3, tn = Math.min(0.94, 0.56 + (5 - n.s) * 0.09), f = (tn - nd) * 0.05;
-    n.vx += nx / nd * f * ex; n.vy += ny / nd * f * ey;
-    const a0 = n.answers[0]; if (a0 === 0 && n.x > cx - 10) n.vx += (cx - 10 - n.x) * 0.03; else if (a0 === 1 && n.x < cx + 10) n.vx += (cx + 10 - n.x) * 0.03; }
+    const tn = n.tn;   // closer match = smaller radius (rank-based)
+    if (n.couple) {   // radial ring only; side keeps them on their half
+      const nx = (n.x - cx) / ex, ny = (n.y - cy) / ey, nd = Math.hypot(nx, ny) || 1e-3, f = (tn - nd) * 0.05;
+      n.vx += nx / nd * f * ex; n.vy += ny / nd * f * ey;
+      const a0 = n.answers[0]; if (a0 === 0 && n.x > cx - 10) n.vx += (cx - 10 - n.x) * 0.03; else if (a0 === 1 && n.x < cx + 10) n.vx += (cx + 10 - n.x) * 0.03;
+    } else {          // guests: spring to a personal spot – radius by match, angle by side – so the whole area is used
+      const tx = cx + Math.cos(n.ang) * tn * ex, ty = cy + Math.sin(n.ang) * tn * ey; n.vx += (tx - n.x) * 0.05; n.vy += (ty - n.y) * 0.05;
+    }
+  }
   for (const [a, b, n] of links) { const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, f = (d - 64) * 0.006 * (n - 4); const fx = dx / d * f, fy = dy / d * f;
     if (!a.you && a !== drag) { a.vx += fx; a.vy += fy; } if (!b.you && b !== drag) { b.vx -= fx; b.vy -= fy; } }
-  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const a = nodes[i], b = nodes[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || .1, strong = x => !x.you && !x.couple && x.s >= 4, min = a.r + b.r + 8 + (strong(a) && strong(b) ? 38 : 0) + ((a.couple || b.couple) && !(a.couple && b.couple) ? 24 : 0);
+  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const a = nodes[i], b = nodes[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || .1, strong = x => !x.you && !x.couple && x.s >= 4, min = a.r + b.r + 8 + (strong(a) && strong(b) ? 38 : 0) + ((a.couple || b.couple) && !(a.couple && b.couple) ? 40 : 0);
     if (d < min) { const f = (min - d) * 0.06, fx = dx / d * f, fy = dy / d * f; if (!a.you && a !== drag) { a.vx -= fx; a.vy -= fy; } if (!b.you && b !== drag) { b.vx += fx; b.vy += fy; } } }
   const t = (performance.now() - t0) / 1000;
   nodes.forEach((n, i) => { if (n.you || n === drag) return; n.vx = (n.vx + Math.sin(t * .7 + i) * .02) * .84; n.vy = (n.vy + Math.cos(t * .6 + i * 1.3) * .02) * .84; n.x += n.vx; n.y += n.vy;
@@ -2968,7 +3009,7 @@ renderQR();
 })();
 
 /* ======================= scale phone to the viewport ======================= */
-const framed = () => matchMedia('(min-width: 900px)').matches;
+const framed = () => matchMedia('(min-width: 900px) and (min-height: 600px)').matches;
 function refitGraph() {
   if (!nodes.length || !$('s-graph').classList.contains('active')) return;
   const keep = nodes.map(n => [n.x / W, n.y / H]); fitCanvas(); nodes.forEach((n, i) => { n.x = keep[i][0] * W; n.y = keep[i][1] * H; });
@@ -2980,7 +3021,7 @@ function fit() {
   refitGraph();
 }
 if (window.ResizeObserver) new ResizeObserver(refitGraph).observe($('cbox'));   // URL bar show/hide, rotation, split-screen
-addEventListener('resize', fit); fit(); renderQ();
+addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 250)); fit(); renderQ();
 document.querySelector('#steps button[data-go="welcome"]').classList.add('on');
 </script>
 </body>
