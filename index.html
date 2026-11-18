@@ -236,7 +236,7 @@
       <li><button data-go="profile"><b>5</b><span>Guest profile<small>Shared answers, table number, icebreaker</small></span></button></li>
     </ul>
     <div class="qr-card"><div class="qr sm" id="qr-side"></div><div><b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span></div></div>
-    <div class="note">Interactive prototype – answers are real inputs, the 22 guests are fictional. Open on a phone for the full-screen view.</div>
+    <div class="note">Interactive prototype – answers are real inputs, the guests are fictional (the couple use the app too). Open on a phone for the full-screen view.</div>
   </section>
 
   <div class="phone-wrap" id="wrap">
@@ -293,7 +293,7 @@
         <div class="screen loading" id="s-loading">
           <div class="rings"><i></i><i></i><i></i><b>You</b></div>
           <h3>Weaving your connections…</h3>
-          <p>Comparing answers with 22 guests</p>
+          <p>Comparing answers with every guest – the couple included</p>
         </div>
 
         <!-- 3 summary / names -->
@@ -2655,15 +2655,21 @@ const Q = [
 ];
 const N = Q.length;
 const NAMES = ['Zosia W.', 'Piotr K.', 'Kasia M.', 'Tomek B.', 'Magda L.', 'Bartek N.', 'Ewa R.', 'Jakub S.', 'Natalia P.', 'Michał D.', 'Agnieszka T.', 'Paweł G.', 'Ida F.', 'Kuba Z.', 'Marta C.', 'Szymon H.', 'Julia O.', 'Adam V.', 'Karolina J.', 'Filip A.', 'Basia E.', 'Olek Y.'];
+// the couple use the app too: Ania & Marek answer like any other guest (side = their own side, relation = family)
+const COUPLE = [
+  { couple: 'bride', name: 'Ania W.', first: 'Ania', table: 0, answers: [0, 1, 3, 0, 0, 0, 0, 0, 4, 3] },
+  { couple: 'groom', name: 'Marek W.', first: 'Marek', table: 0, answers: [1, 1, 3, 0, 2, 2, 1, 4, 0, 4] },
+];
 const ARCH = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [2, 0, 2, 2, 2, 3, 2, 2, 2, 2], [0, 1, 3, 3, 3, 2, 3, 3, 3, 3], [1, 0, 4, 0, 0, 1, 0, 4, 4, 4]];
 const rnd = (s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; })(14);
 const guests = NAMES.map((name, i) => ({ id: i, name, first: name.split(' ')[0], table: 1 + (i * 3) % 8,
   answers: Q.map((q, qi) => rnd() < 0.7 ? ARCH[i % 5][qi] % q.opts.length : Math.floor(rnd() * q.opts.length)) }));
+guests.push(...COUPLE.map((c, i) => ({ ...c, id: guests.length + i })));
 const PAL = ['#8aa0b8', '#d98a93', '#7a8f7a', '#c9a35b', '#a58bb8', '#6fa3a0'];
 const COL = { 5: '#c9a35b', 4: '#d98a93', 3: '#7a8f7a', 2: '#b9c4b4', 1: '#d9d3c9', 0: '#d9d3c9' };
 /* graph colours by side + relationship: bride's friends pink, bride's family violet, groom's friends green, groom's family blue */
 const CAT = { bf: '#e58fa8', bfam: '#9b7fd1', gf: '#6fbf8a', gfam: '#5b8fd6', mutual: '#b9a57d' };
-const catColor = g => g.answers[0] === 2 ? CAT.mutual : g.answers[0] === 0 ? (g.answers[1] === 0 ? CAT.bf : CAT.bfam) : (g.answers[1] === 0 ? CAT.gf : CAT.gfam);
+const catColor = g => g.couple ? (g.couple === 'bride' ? CAT.bf : CAT.gfam) : g.answers[0] === 2 ? CAT.mutual : g.answers[0] === 0 ? (g.answers[1] === 0 ? CAT.bf : CAT.bfam) : (g.answers[1] === 0 ? CAT.gf : CAT.gfam);
 const hexA = (hex, a) => hex + Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, '0');
 const TIER = { 5: 'Kindred spirits', 4: 'Practically twins', 3: 'Great chat ahead', 2: 'Some common ground', 1: 'Different flavours', 0: 'Total opposites – go say hi!' };
 const blank = () => Q.map(() => null);
@@ -2671,7 +2677,8 @@ let me = blank();
 const lvl = s => { const r = s / Math.max(4, me.filter(a => a !== null).length); return r >= 0.7 ? 5 : r >= 0.5 ? 4 : r >= 0.35 ? 3 : r >= 0.2 ? 2 : s > 0 ? 1 : 0; };   // 0–5 visual tier from the share of matching answers
 const $ = id => document.getElementById(id);
 const initials = n => n.split(' ').map(w => w[0]).join('').replace('.', '');
-const avatarColor = g => PAL[g.id % PAL.length];
+const avatarColor = g => g.couple ? (g.couple === 'bride' ? '#e8a3ab' : '#86a8d0') : PAL[g.id % PAL.length];
+const tableOf = g => g.couple ? 'Head table' : `Table ${g.table}`;
 
 /* ======================= navigation ======================= */
 const screens = ['welcome', 'quiz', 'loading', 'summary', 'graph'];
@@ -2784,7 +2791,7 @@ function renderSummary() {
       <button class="grp-h"><b>${c} of ${done} answers in common</b><span>${byCount[c].length}</span><small>${byCount[c].length === 1 ? 'person' : 'people'} · tap to see names</small><div class="bar"><i style="width:${byCount[c].length / maxPeople * 100}%;--c:${COL[lvl(c)]}"></i></div></button>
       <div class="grp-b">${byCount[c].map(personChip).join('')}</div></div>`).join('') : '<div class="grp"><div class="grp-h"><b>No overlap yet</b><small>Answer a few optional questions to find your people</small></div></div>'}
     <div class="cta"><button class="btn alt" id="cta-names">${ic('users', 18)}Show names</button><button class="btn" id="cta-graph">${ic('network', 18)}See the graph</button></div>`;
-  $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><div>${g.name}<small>Table ${g.table} · ${TIER[lvl(score(g))]}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
+  $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><div>${g.name}<small>${tableOf(g)} · ${TIER[lvl(score(g))]}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
     + `<div class="cta"><button class="btn" id="cta-graph2">${ic('network', 18)}See the graph</button></div>`;
   $('pn-summary').classList.toggle('on', view !== 'names'); $('pn-names').classList.toggle('on', view === 'names');
   $('pn-summary').querySelectorAll('.grp-h').forEach(h => h.onclick = () => h.parentElement.classList.toggle('open'));
@@ -2800,15 +2807,12 @@ function targetR(s) { const max = Math.min(W, H) / 2 - 26; return Math.min(max, 
 function startGraph() {
   fitCanvas();
   const you = { id: -1, you: true, x: W / 2, y: H / 2, vx: 0, vy: 0, r: 25, s: 5, first: myName || 'You' };
-  nodes = [you, ...guests.map((g, i) => { const s = lvl(score(g)), a = i * 2.399 + .3, R = targetR(s); return { ...g, s, x: W / 2 + Math.cos(a) * R * .6, y: H / 2 + Math.sin(a) * R * .6, vx: 0, vy: 0, r: 9 + s * 2.3, raw: score(g), cat: catColor(g), born: (5 - s) * .35 + i * .035 }; })];
+  nodes = [you, ...guests.map((g, i) => { const s = lvl(score(g)), a = i * 2.399 + .3, R = targetR(s); return { ...g, s, x: W / 2 + Math.cos(a) * R * .6, y: H / 2 + Math.sin(a) * R * .6, vx: 0, vy: 0, r: g.couple ? Math.max(19, 9 + s * 2.3) : 9 + s * 2.3, raw: score(g), cat: catColor(g), born: (5 - s) * .35 + i * .035 }; })];
   links = [];
   for (let i = 1; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
     const n = Q.reduce((c, _, k) => c + (nodes[i].answers[k] === nodes[j].answers[k] ? 1 : 0), 0);
     if (n >= 5 && nodes[i].s >= 1 && nodes[j].s >= 1) links.push([nodes[i], nodes[j], n]);
   }
-  // the couple: anchored top-left / top-right, linked to the guests on their side
-  nodes.push({ id: -2, couple: 'bride', first: 'Ania', x: W / 2 - 34, y: H / 2 + 46, vx: 0, vy: 0, r: 19, s: 5, born: 0 },
-             { id: -3, couple: 'groom', first: 'Marek', x: W / 2 + 34, y: H / 2 + 46, vx: 0, vy: 0, r: 19, s: 5, born: 0 });   // no anchors: the physics places them
   rank().slice(0, 3).forEach(g => { const nd = nodes.find(x => x.id === g.id); if (nd && nd.s >= 4) nd.top = true; });   // only the top three get a score badge
   mountSeg('seg-graph', 'graph');
   $('gsub').textContent = `${guests.length} guests · ${guests.filter(g => lvl(score(g)) >= 3).length} click with you`;
@@ -2822,11 +2826,10 @@ function startGraph() {
 function step(dt) {
   const you = nodes[0], cx = W / 2, cy = H / 2;
   const bN = nodes.find(n => n.couple === 'bride'), gN = nodes.find(n => n.couple === 'groom');
-  const centroid = side => { let x = 0, y = 0, c = 0; for (const n of nodes) if (!n.you && !n.couple && n.answers[0] === side) { x += n.x; y += n.y; c++; } return c ? [x / c, y / c] : [cx, cy]; };
   { const dx = gN.x - bN.x, dy = gN.y - bN.y, d = Math.hypot(dx, dy) || 1, f = (d - 58) * 0.06, fx = dx / d * f, fy = dy / d * f;   // stay close to each other
     if (bN !== drag) { bN.vx += fx; bN.vy += fy; } if (gN !== drag) { gN.vx -= fx; gN.vy -= fy; }
-    for (const [c, side] of [[bN, 0], [gN, 1]]) { if (c === drag) continue; const [tx, ty] = centroid(side); c.vx += (tx - c.x) * 0.012 + (cx - c.x) * 0.004; c.vy += (ty - c.y) * 0.012 + (cy - c.y) * 0.004; } }
-  for (const n of nodes) { if (n.couple) continue;
+  }
+  for (const n of nodes) {
     if (n.you || n === drag) continue;
     // spring toward an elliptical ring that fills the canvas: closer match = smaller ring
     const ex = W / 2 - 28, ey = H / 2 - 28, nx = (n.x - cx) / ex, ny = (n.y - cy) / ey, nd = Math.hypot(nx, ny) || 1e-3, tn = Math.min(0.94, 0.56 + (5 - n.s) * 0.09), f = (tn - nd) * 0.05;
@@ -2848,7 +2851,9 @@ function drawCouple(n, t, sc) {
   ctx.lineWidth = 3; ctx.strokeStyle = '#c9a35b'; ctx.stroke(); ctx.beginPath(); ctx.arc(n.x, n.y, r - 4.5, 0, 7); ctx.lineWidth = 1.3; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.stroke();
   ctx.fillStyle = '#fff'; ctx.font = 'italic 700 17px Georgia,serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(n.first[0], n.x, n.y + 1);
   ctx.fillStyle = '#2b2a33'; ctx.font = '800 11.5px system-ui'; ctx.fillText(n.first, n.x, n.y + r + 13);
+  if (n.s >= 4) { const pu = .5 + .5 * Math.sin(t * 2.6 + n.id); ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 + pu * 6, 0, 7); ctx.strokeStyle = 'rgba(201,163,91,' + (.55 - pu * .3) + ')'; ctx.lineWidth = 2; ctx.stroke(); }
   ctx.fillStyle = '#b08a3e'; ctx.font = '800 8px system-ui'; if ('letterSpacing' in ctx) ctx.letterSpacing = '1.5px'; ctx.fillText(bride ? 'BRIDE' : 'GROOM', n.x, n.y + r + 24); if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  if (n.raw > 0) { const txt = `${n.raw}/${answeredCount()}`; ctx.font = '800 10px system-ui'; const w = ctx.measureText(txt).width + 12; ctx.fillStyle = '#c9a35b'; ctx.beginPath(); ctx.roundRect(n.x - w / 2, n.y + r + 29, w, 15, 7.5); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(txt, n.x, n.y + r + 37); }
 }
 function loop() {
   if (!$('s-graph').classList.contains('active')) { raf = requestAnimationFrame(loop); return; }
@@ -2904,7 +2909,7 @@ function hit(x, y) { for (let i = nodes.length - 1; i > 0; i--) { const n = node
 let down = null;
 cv.addEventListener('pointerdown', e => { const [x, y] = pt(e), n = hit(x, y); down = { x, y, n, moved: false }; if (n) { drag = n; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; } });
 cv.addEventListener('pointermove', e => { const [x, y] = pt(e); if (down && drag) { if (Math.hypot(x - down.x, y - down.y) > 5) down.moved = true; drag.x = Math.max(drag.r, Math.min(W - drag.r, x)); drag.y = Math.max(drag.r, Math.min(H - drag.r, y)); drag.vx = drag.vy = 0; } else cv.style.cursor = hit(x, y) ? 'pointer' : 'grab'; });
-const up = () => { if (down && down.n && !down.moved) (down.n.couple ? selectCouple(down.n) : select(down.n)); drag = null; down = null; cv.style.cursor = 'grab'; };
+const up = () => { if (down && down.n && !down.moved) select(down.n); drag = null; down = null; cv.style.cursor = 'grab'; };
 cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () => { drag = null; down = null; });
 
 /* ======================= profile sheet ======================= */
@@ -2913,7 +2918,7 @@ function select(g) {
   const s = score(g), L = lvl(s), sh = shared(g), c = COL[L];
   const av = $('p-av'); av.textContent = initials(g.name); av.style.background = avatarColor(g);
   const side = ['Bride’s', 'Groom’s', 'Mutual'][g.answers[0]], rel = g.answers[1] === 0 ? 'friend' : 'family';
-  $('p-name').textContent = g.name; $('p-meta').textContent = `Table ${g.table} · ${g.answers[0] === 2 && g.answers[1] === 1 ? 'Family of both' : side + ' ' + rel}`;
+  $('p-name').textContent = g.name; $('p-meta').textContent = g.couple ? `The ${g.couple} · Head table` : `Table ${g.table} · ${g.answers[0] === 2 && g.answers[1] === 1 ? 'Family of both' : side + ' ' + rel}`;
   $('p-score').textContent = `${s}/${answeredCount()}`; $('p-score').style.color = c === '#d9d3c9' ? '#8b8794' : c; $('p-tier').textContent = TIER[L];
   $('p-meter').style.setProperty('--c', c); $('p-meter').innerHTML = Array.from({ length: Math.max(1, answeredCount()) }, (_, i) => `<i class="${i < s ? 'f' : ''}"></i>`).join('');
   const diff = Q.map((q, i) => i).filter(i => me[i] !== null && !sh.includes(i)), skipped = Q.map((q, i) => i).filter(i => me[i] === null);
@@ -2922,18 +2927,7 @@ function select(g) {
     + (skipped.length ? `<div class="lbl">You skipped</div><div class="skipnote">${skipped.map(i => Q[i].label).join(' · ')}</div>` : '');
   const st = sh.length ? (typeof Q[sh[0]].starter === 'function' ? Q[sh[0]].starter(Q[sh[0]].opts[g.answers[sh[0]]][1]) : Q[sh[0]].starter) : null;
   $('p-start').innerHTML = ic('message-square-quote', 18) + '<span>' + (st ? `Ask ${g.first} about ${st}.` : `You two have nothing in common yet – ask ${g.first} what’s on their dessert plate.`) + '</span>';
-  const w = $('p-wave'); w.innerHTML = ic('hand', 18) + 'Wave'; w.classList.remove('done'); w.onclick = () => { w.innerHTML = ic('check', 18) + 'Wave sent'; w.classList.add('done'); toast(`${g.first} will get your wave at table ${g.table}`); };
-  $('sheet').classList.add('open');
-}
-function selectCouple(n) {
-  selected = n; const bride = n.couple === 'bride', onSide = guests.filter(g => bride ? g.answers[0] !== 1 : g.answers[0] !== 0), mySide = me[0] !== null && (bride ? me[0] !== 1 : me[0] !== 0);
-  const av = $('p-av'); av.textContent = n.first[0]; av.style.background = bride ? '#e8a3ab' : '#86a8d0';
-  $('p-name').textContent = n.first; $('p-meta').textContent = `The ${bride ? 'bride' : 'groom'} · Head table`;
-  $('p-score').textContent = onSide.length; $('p-score').style.color = '#b08a3e'; $('p-tier').textContent = `guests on ${bride ? 'her' : 'his'} side`;
-  $('p-meter').innerHTML = '';
-  $('p-shared').innerHTML = `<div class="lbl">${mySide ? 'You are on ' + (bride ? 'her' : 'his') + ' side too' : 'On ' + (bride ? 'her' : 'his') + ' side'}</div><div class="pills">${onSide.map(g => `<span class="pill">${g.first}</span>`).join('')}</div>`;
-  $('p-start').innerHTML = ic('message-square-quote', 18) + `<span>Say congratulations to ${n.first} – and ask for the story of how they met.</span>`;
-  const w = $('p-wave'); w.innerHTML = ic('heart', 18) + 'Send love'; w.classList.remove('done'); w.onclick = () => { w.innerHTML = ic('check', 18) + 'Love sent'; w.classList.add('done'); toast(`${n.first} will see your message at the head table`); };
+  const w = $('p-wave'); w.innerHTML = ic('hand', 18) + 'Wave'; w.classList.remove('done'); w.onclick = () => { w.innerHTML = ic('check', 18) + 'Wave sent'; w.classList.add('done'); toast(`${g.first} will get your wave ${g.couple ? 'at the head table' : 'at table ' + g.table}`); };
   $('sheet').classList.add('open');
 }
 function closeSheet() { $('sheet').classList.remove('open'); selected = null; }
