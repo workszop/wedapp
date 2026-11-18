@@ -402,6 +402,8 @@
   #sample{min-height:40px;margin-top:4px;padding:8px;font:700 12.5px var(--sans);color:var(--mute)}
   .welcome>div:first-child{padding-top:46px}
   @media (min-width:900px) and (min-height:600px){.welcome>div:first-child{padding-top:18px}}
+  .welcome>div:first-child,.welcome .lang{transition:padding .3s,top .3s}
+  html.ib-on .welcome>div:first-child{padding-top:112px}html.ib-on .welcome .lang{top:66px}   /* install banner on top: keep the language switch visible below it */
   .btn.alt.share-open .ic{color:var(--lav-d)}
   .back{color:var(--lav-d)}
   /* welcome */
@@ -4003,7 +4005,7 @@ $('guide-bd').onclick = closeGuide; $('guide-x').onclick = closeGuide; $('guide-
 sheetDrag(document.querySelector('#guide .share-card'), closeGuide);
 $('ib-go').onclick = () => { if (deferredPrompt && !inApp) runInstall(); else openGuide(); }; $('ib-x').onclick = () => { try { localStorage.setItem(dismissedKey, '1'); } catch (e) {} syncBanner(); };
 function bannerCopy() { $('ib-go').textContent = tr(deferredPrompt && !inApp ? 'install' : 'how'); }
-function syncBanner() { bannerCopy(); const ok = (isIOS || isAndroid || inApp) && !standalone() && !framed() && !getDismissed() && $('s-welcome').classList.contains('active'); $('ibanner').classList.toggle('show', ok); }
+function syncBanner() { bannerCopy(); const ok = (isIOS || isAndroid || inApp) && !standalone() && !framed() && !getDismissed() && $('s-welcome').classList.contains('active'); $('ibanner').classList.toggle('show', ok); document.documentElement.classList.toggle('ib-on', ok); }
 setTimeout(syncBanner, 1400);
 // installable app: Android shows the real prompt, iOS gets instructions
 let deferredPrompt = null;
