@@ -269,7 +269,7 @@ export class EventRoom extends DurableObject {
   manifest(url, app) {
     const slug = this.meta('slug'), pl = url.searchParams.get('lang') !== 'en';
     const r = url.searchParams.get('r') || '', start = `${app}?e=${slug}` + (RESTORE_RE.test(r) ? `#r=${r}` : '');
-    const icon = (f, s, p) => ({ src: `${app}icons/${f}?v=3`, sizes: `${s}x${s}`, type: 'image/png', purpose: p });
+    const icon = (f, s, p) => ({ src: `${app}icons/${f}?v=4`, sizes: `${s}x${s}`, type: 'image/png', purpose: p });
     return json({
       id: `${app}?e=${slug}`, lang: pl ? 'pl' : 'en', name: `Bee Talk – ${this.meta('names')}`, short_name: 'Bee Talk',
       description: pl ? 'Znajdź na brunchu ślubnym gości, z którymi znajdziesz wspólny język.' : 'Find the guests you’ll click with at the wedding brunch.',

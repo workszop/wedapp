@@ -11,3 +11,4 @@ node_modules/
 .wrangler/
 .dev.vars
 *.secret
+bee-icon-concepts/
