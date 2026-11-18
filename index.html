@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Table Talk · Wedding reception app mockup</title>
-<meta name="description" content="Mockup of a wedding reception app: answer five questions, see a graph connecting you to guests with similar answers.">
+<meta name="description" content="Mockup of a wedding reception app: answer ten questions, see a graph connecting you to guests with similar answers.">
 <style>
   :root{
     --ivory:#faf6f0;--paper:#fffdf9;--ink:#2b2a33;--mute:#7b7a85;--line:#e8e0d4;
@@ -49,8 +49,8 @@
   /* quiz */
   .quiz .top{display:flex;align-items:center;justify-content:space-between;height:32px}
   .back{background:none;border:0;font-size:22px;color:var(--mute);cursor:pointer;padding:0 8px 0 0}
-  .dots{display:flex;gap:6px}
-  .dots i{width:30px;height:5px;border-radius:3px;background:var(--line);transition:background .3s}
+  .dots{display:flex;gap:5px}
+  .dots i{width:19px;height:5px;border-radius:3px;background:var(--line);transition:background .3s}
   .dots i.done{background:var(--sage)}.dots i.cur{background:var(--rose)}
   .qn{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--rose);margin:26px 0 8px;font-weight:700}
   .quiz h3{font:400 29px/1.2 var(--serif);margin:0 0 22px}
@@ -101,7 +101,12 @@
   .meter{display:flex;gap:5px;margin-bottom:14px}
   .meter i{flex:1;height:6px;border-radius:3px;background:var(--line)}
   .meter i.f{background:var(--c,var(--rose))}
-  .shared{display:grid;gap:7px;margin-bottom:14px}
+  .shared{margin-bottom:12px;max-height:210px;overflow-y:auto;scrollbar-width:none}
+  .shared .lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:700;margin:8px 0 6px}
+  .pills{display:flex;flex-wrap:wrap;gap:6px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;background:#f3ece1;border-radius:999px;padding:5px 11px 5px 8px}
+  .pill em{font-style:normal;font-size:15px}
+  .pills.dim .pill{background:transparent;border:1px dashed var(--line);color:var(--mute);font-weight:500}
   .row{display:flex;align-items:center;gap:10px;font-size:13px;background:#faf5ee;border-radius:12px;padding:8px 12px}
   .row em{font-style:normal;font-size:18px}.row small{color:var(--mute);display:block;font-size:11px}
   .row.no{opacity:.45}
@@ -123,10 +128,10 @@
   <section class="intro">
     <span class="tag">Product mockup · sample data</span>
     <h1>Find your people at the <em>reception</em></h1>
-    <p>Guests answer five light questions on their phone. The app draws a live graph with <b>you in the middle</b> and every other guest placed by how much your answers overlap – so you know who to sit next to, dance with, or wave at.</p>
+    <p>Guests answer ten light questions on their phone. The app draws a live graph with <b>you in the middle</b> and every other guest placed by how much your answers overlap – so you know who to sit next to, dance with, or wave at.</p>
     <ul class="steps" id="steps">
       <li><button data-go="welcome"><b>1</b><span>Welcome<small>Scan the QR on your table card</small></span></button></li>
-      <li><button data-go="quiz"><b>2</b><span>Five questions<small>Tap to answer – takes 20 seconds</small></span></button></li>
+      <li><button data-go="quiz"><b>2</b><span>Ten questions<small>Tap to answer – about a minute</small></span></button></li>
       <li><button data-go="graph"><b>3</b><span>Your connection graph<small>Drag nodes, filter by question</small></span></button></li>
       <li><button data-go="profile"><b>4</b><span>Guest profile<small>Shared answers, table number, icebreaker</small></span></button></li>
     </ul>
@@ -147,7 +152,7 @@
             <h2>Ania &amp; Marek</h2>
             <div class="sub">SATURDAY 14 JUNE · VILLA RÓŻANA</div>
             <svg class="mini-graph" id="mini" viewBox="0 0 320 92"></svg>
-            <div class="pitch">“Answer five quick questions and see who you’ll click with tonight.”</div>
+            <div class="pitch">“Answer ten quick questions and see who you’ll click with tonight.”</div>
           </div>
           <div>
             <button class="btn" id="start">Find my people</button>
@@ -178,7 +183,7 @@
           <div class="canvas-box" id="cbox">
             <canvas id="cv"></canvas>
             <div class="hintx">drag · tap a guest</div>
-            <div class="legend"><span><i style="background:#c9a35b"></i>5</span><span><i style="background:#d98a93"></i>4</span><span><i style="background:#7a8f7a"></i>3</span><span><i style="background:#b9c4b4"></i>2</span><span><i style="background:#d9d3c9"></i>0–1 shared</span></div>
+            <div class="legend"><span><i style="background:#c9a35b"></i>Kindred</span><span><i style="background:#d98a93"></i>Twins</span><span><i style="background:#7a8f7a"></i>Great</span><span><i style="background:#b9c4b4"></i>Some</span><span><i style="background:#d9d3c9"></i>Few</span></div>
           </div>
           <div class="top-title">Best matches</div>
           <div class="tops" id="tops"></div>
@@ -202,21 +207,29 @@
 <script>
 /* ======================= data ======================= */
 const Q = [
-  { label: 'Connection', q: 'How do you know the happy couple?', opts: [['🎓', 'College days'], ['👨‍👩‍👧', 'Family'], ['💼', 'Work'], ['🧒', 'Childhood'], ['🥂', 'Through friends']], starter: 'how they know the couple – there’s always a good story' },
+  { label: 'Bride or groom', q: 'Whose guest are you?', opts: [['👰', 'Bride’s side'], ['🤵', 'Groom’s side'], ['🤝', 'Both – we’re mutual']], starter: 'the best story about the bride or groom' },
+  { label: 'Friend or family', q: 'Friend or family?', opts: [['🫶', 'Friend'], ['👨‍👩‍👧', 'Family']], starter: 'how long they have known the couple' },
+  { label: 'Where we met', q: 'Where did you meet the couple?', opts: [['🎓', 'College days'], ['💼', 'Work'], ['🧒', 'Childhood'], ['🥂', 'Through friends'], ['💬', 'Online / other']], starter: 'the story of how they met the couple' },
   { label: 'Dance floor', q: 'What’s your dance-floor style?', opts: [['🕺', 'First on the floor'], ['💃', 'Slow dances only'], ['🍸', 'Bar-side swayer'], ['📸', 'Photo-booth regular']], starter: 'their signature dance move' },
   { label: 'Karaoke', q: 'Your karaoke go-to?', opts: [['🎤', 'Pop anthems'], ['🎸', '80s rock'], ['🇵🇱', 'Polish classics'], ['🎧', 'Hip-hop'], ['🙈', 'I don’t sing']], starter: 'the song that always gets them to the mic' },
   { label: 'Honeymoon', q: 'Dream honeymoon?', opts: [['🏖️', 'Beach'], ['🏙️', 'City break'], ['⛰️', 'Mountains'], ['🚐', 'Road trip']], starter: 'the best trip they have ever taken' },
   { label: 'Dessert', q: 'Dessert table verdict?', opts: [['🎂', 'Wedding cake'], ['🍩', 'Donuts'], ['🧀', 'Cheese board'], ['🍷', 'Dessert wine']], starter: 'the dessert they are going back for' },
+  { label: 'Talk about', q: 'What do you love talking about?', opts: [['✈️', 'Travel'], ['🍽️', 'Food & wine'], ['🎵', 'Music'], ['⚽', 'Sports'], ['💻', 'Tech & gadgets'], ['🎬', 'Books & films']], starter: a => `${a.toLowerCase()} – a safe topic for the whole evening` },
+  { label: 'Profession', q: 'What do you do professionally?', opts: [['💻', 'Tech & IT'], ['🩺', 'Healthcare'], ['🎨', 'Creative & media'], ['⚖️', 'Finance & law'], ['🎓', 'Education'], ['🚀', 'Own business']], starter: a => `a typical week in ${a.toLowerCase()}` },
+  { label: 'Hobby', q: 'Your favourite hobby?', opts: [['🏃', 'Sports & fitness'], ['🎸', 'Music & art'], ['🎮', 'Gaming'], ['🍳', 'Cooking'], ['🥾', 'Hiking & outdoors'], ['🧶', 'Crafts & DIY']], starter: a => `how they got into ${a.toLowerCase()}` },
 ];
+const N = Q.length;
 const NAMES = ['Zosia W.', 'Piotr K.', 'Kasia M.', 'Tomek B.', 'Magda L.', 'Bartek N.', 'Ewa R.', 'Jakub S.', 'Natalia P.', 'Michał D.', 'Agnieszka T.', 'Paweł G.', 'Ida F.', 'Kuba Z.', 'Marta C.', 'Szymon H.', 'Julia O.', 'Adam V.', 'Karolina J.', 'Filip A.', 'Basia E.', 'Olek Y.'];
-const ARCH = [[0, 0, 0, 0, 0], [1, 1, 2, 1, 1], [2, 3, 1, 2, 2], [3, 2, 3, 3, 3], [4, 1, 4, 0, 0]];
+const ARCH = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [2, 0, 2, 2, 2, 3, 2, 2, 2, 2], [0, 1, 3, 3, 3, 2, 3, 3, 3, 3], [1, 0, 4, 0, 0, 1, 0, 4, 4, 4]];
 const rnd = (s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; })(14);
 const guests = NAMES.map((name, i) => ({ id: i, name, first: name.split(' ')[0], table: 1 + (i * 3) % 8,
-  answers: Q.map((q, qi) => rnd() < 0.62 ? ARCH[i % 5][qi] % q.opts.length : Math.floor(rnd() * q.opts.length)) }));
+  answers: Q.map((q, qi) => rnd() < 0.7 ? ARCH[i % 5][qi] % q.opts.length : Math.floor(rnd() * q.opts.length)) }));
 const PAL = ['#8aa0b8', '#d98a93', '#7a8f7a', '#c9a35b', '#a58bb8', '#6fa3a0'];
 const COL = { 5: '#c9a35b', 4: '#d98a93', 3: '#7a8f7a', 2: '#b9c4b4', 1: '#d9d3c9', 0: '#d9d3c9' };
 const TIER = { 5: 'Kindred spirits', 4: 'Practically twins', 3: 'Great chat ahead', 2: 'Some common ground', 1: 'Different flavours', 0: 'Total opposites – go say hi!' };
-let me = [null, null, null, null, null];
+const blank = () => Q.map(() => null);
+let me = blank();
+const lvl = s => { const r = s / N; return r >= 0.7 ? 5 : r >= 0.5 ? 4 : r >= 0.35 ? 3 : r >= 0.2 ? 2 : s > 0 ? 1 : 0; };   // 0–5 visual tier from the share of matching answers
 const $ = id => document.getElementById(id);
 const initials = n => n.split(' ').map(w => w[0]).join('').replace('.', '');
 const avatarColor = g => PAL[g.id % PAL.length];
@@ -232,13 +245,13 @@ function go(name) {
 document.querySelectorAll('#steps button').forEach(b => b.onclick = () => {
   const t = b.dataset.go;
   if (t === 'welcome') go('welcome');
-  if (t === 'quiz') { me = [null, null, null, null, null]; qi = 0; renderQ(); go('quiz'); }
+  if (t === 'quiz') { me = blank(); qi = 0; renderQ(); go('quiz'); }
   if (t === 'graph') { ensureAnswers(); go('graph'); }
   if (t === 'profile') { ensureAnswers(); go('graph'); setTimeout(() => select(rank()[0]), 900); }
 });
-function ensureAnswers() { me = me.map((a, i) => a === null ? [0, 0, 0, 0, 0][i] : a); }
-$('start').onclick = () => { me = [null, null, null, null, null]; qi = 0; renderQ(); go('quiz'); };
-$('sample').onclick = () => { me = [0, 0, 0, 0, 0]; go('loading'); setTimeout(() => go('graph'), 1500); };
+function ensureAnswers() { me = me.map(a => a === null ? 0 : a); }
+$('start').onclick = () => { me = blank(); qi = 0; renderQ(); go('quiz'); };
+$('sample').onclick = () => { me = Q.map(() => 0); go('loading'); setTimeout(() => go('graph'), 1500); };
 
 /* ======================= quiz ======================= */
 let qi = 0;
@@ -267,16 +280,16 @@ function targetR(s) { const max = Math.min(W, H) / 2 - 26; return Math.min(max, 
 function startGraph() {
   fitCanvas();
   const you = { id: -1, you: true, x: W / 2, y: H / 2, vx: 0, vy: 0, r: 25, s: 5, first: 'You' };
-  nodes = [you, ...guests.map((g, i) => { const s = score(g), a = i * 2.399 + .3, R = targetR(s); return { ...g, s, x: W / 2 + Math.cos(a) * R * .6, y: H / 2 + Math.sin(a) * R * .6, vx: 0, vy: 0, r: 9 + s * 2.3, born: (5 - s) * .35 + i * .035 }; })];
+  nodes = [you, ...guests.map((g, i) => { const s = lvl(score(g)), a = i * 2.399 + .3, R = targetR(s); return { ...g, s, x: W / 2 + Math.cos(a) * R * .6, y: H / 2 + Math.sin(a) * R * .6, vx: 0, vy: 0, r: 9 + s * 2.3, born: (5 - s) * .35 + i * .035 }; })];
   links = [];
   for (let i = 1; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
     const n = Q.reduce((c, _, k) => c + (nodes[i].answers[k] === nodes[j].answers[k] ? 1 : 0), 0);
-    if (n >= 4 && nodes[i].s >= 1 && nodes[j].s >= 1) links.push([nodes[i], nodes[j], n]);
+    if (n >= 5 && nodes[i].s >= 1 && nodes[j].s >= 1) links.push([nodes[i], nodes[j], n]);
   }
-  $('gsub').textContent = `${guests.length} guests · ${guests.filter(g => score(g) >= 3).length} click with you`;
+  $('gsub').textContent = `${guests.length} guests · ${guests.filter(g => lvl(score(g)) >= 3).length} click with you`;
   $('chips').innerHTML = `<button class="chip on" data-f="-1">All</button>` + Q.map((q, i) => `<button class="chip" data-f="${i}">${q.opts[me[i]][0]} ${q.label}</button>`).join('');
   $('chips').querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = +c.dataset.f < 0 ? null : +c.dataset.f; $('chips').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c)); });
-  $('tops').innerHTML = rank().slice(0, 7).map(g => `<button class="mt" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><span>${g.first}<small>${score(g)}/5 in common</small></span></button>`).join('');
+  $('tops').innerHTML = rank().slice(0, 7).map(g => `<button class="mt" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><span>${g.first}<small>${score(g)}/${N} in common</small></span></button>`).join('');
   $('tops').querySelectorAll('.mt').forEach(b => b.onclick = () => select(guests[+b.dataset.id]));
   selected = null; filter = null; t0 = performance.now();
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
@@ -285,9 +298,9 @@ function step(dt) {
   const you = nodes[0], cx = W / 2, cy = H / 2;
   for (const n of nodes) { if (n.you || n === drag) continue;
     // spring toward an elliptical ring that fills the canvas: closer match = smaller ring
-    const ex = W / 2 - 28, ey = H / 2 - 28, nx = (n.x - cx) / ex, ny = (n.y - cy) / ey, nd = Math.hypot(nx, ny) || 1e-3, tn = Math.min(0.94, 0.26 + (5 - n.s) * 0.17), f = (tn - nd) * 0.05;
+    const ex = W / 2 - 28, ey = H / 2 - 28, nx = (n.x - cx) / ex, ny = (n.y - cy) / ey, nd = Math.hypot(nx, ny) || 1e-3, tn = Math.min(0.94, 0.4 + (5 - n.s) * 0.12), f = (tn - nd) * 0.05;
     n.vx += nx / nd * f * ex; n.vy += ny / nd * f * ey; }
-  for (const [a, b, n] of links) { const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, f = (d - 64) * 0.006 * (n - 3); const fx = dx / d * f, fy = dy / d * f;
+  for (const [a, b, n] of links) { const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, f = (d - 64) * 0.006 * (n - 4); const fx = dx / d * f, fy = dy / d * f;
     if (!a.you && a !== drag) { a.vx += fx; a.vy += fy; } if (!b.you && b !== drag) { b.vx -= fx; b.vy -= fy; } }
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const a = nodes[i], b = nodes[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || .1, min = a.r + b.r + 8;
     if (d < min) { const f = (min - d) * 0.06, fx = dx / d * f, fy = dy / d * f; if (!a.you && a !== drag) { a.vx -= fx; a.vy -= fy; } if (!b.you && b !== drag) { b.vx += fx; b.vy += fy; } } }
@@ -335,13 +348,17 @@ cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () =>
 /* ======================= profile sheet ======================= */
 function select(g) {
   const n = nodes.find(x => x.id === g.id); selected = n || null;
-  const s = score(g), sh = shared(g), c = COL[s];
+  const s = score(g), L = lvl(s), sh = shared(g), c = COL[L];
   const av = $('p-av'); av.textContent = initials(g.name); av.style.background = avatarColor(g);
-  $('p-name').textContent = g.name; $('p-meta').textContent = `Table ${g.table} · ${Q[0].opts[g.answers[0]][1]}`;
-  $('p-score').textContent = `${s}/5`; $('p-score').style.color = c === '#d9d3c9' ? '#8b8794' : c; $('p-tier').textContent = TIER[s];
+  const side = ['Bride’s', 'Groom’s', 'Mutual'][g.answers[0]], rel = g.answers[1] === 0 ? 'friend' : 'family';
+  $('p-name').textContent = g.name; $('p-meta').textContent = `Table ${g.table} · ${g.answers[0] === 2 && g.answers[1] === 1 ? 'Family of both' : side + ' ' + rel}`;
+  $('p-score').textContent = `${s}/${N}`; $('p-score').style.color = c === '#d9d3c9' ? '#8b8794' : c; $('p-tier').textContent = TIER[L];
   $('p-meter').style.setProperty('--c', c); $('p-meter').innerHTML = Q.map((_, i) => `<i class="${i < s ? 'f' : ''}"></i>`).join('');
-  $('p-shared').innerHTML = Q.map((q, i) => { const on = g.answers[i] === me[i]; return `<div class="row ${on ? '' : 'no'}"><em>${q.opts[g.answers[i]][0]}</em><div>${q.opts[g.answers[i]][1]}<small>${on ? 'You both: ' + q.label.toLowerCase() : q.label + ' – you chose ' + q.opts[me[i]][1]}</small></div></div>`; }).filter((_, i) => true).sort((a, b) => a.includes('row no') - b.includes('row no')).join('');
-  $('p-start').textContent = sh.length ? `Ask ${g.first} about ${Q[sh[0]].starter}.` : `You two have nothing in common yet – ask ${g.first} what’s on their dessert plate.`;
+  const diff = Q.map((q, i) => i).filter(i => !sh.includes(i));
+  $('p-shared').innerHTML = (sh.length ? `<div class="lbl">You both</div><div class="pills">${sh.map(i => `<span class="pill" title="${Q[i].label}"><em>${Q[i].opts[g.answers[i]][0]}</em>${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '<div class="lbl">Nothing in common yet</div>')
+    + (diff.length ? `<div class="lbl">Different</div><div class="pills dim">${diff.map(i => `<span class="pill" title="${Q[i].label}"><em>${Q[i].opts[g.answers[i]][0]}</em>${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '');
+  const st = sh.length ? (typeof Q[sh[0]].starter === 'function' ? Q[sh[0]].starter(Q[sh[0]].opts[g.answers[sh[0]]][1]) : Q[sh[0]].starter) : null;
+  $('p-start').textContent = st ? `Ask ${g.first} about ${st}.` : `You two have nothing in common yet – ask ${g.first} what’s on their dessert plate.`;
   const w = $('p-wave'); w.textContent = 'Wave 👋'; w.classList.remove('done'); w.onclick = () => { w.textContent = 'Wave sent ✓'; w.classList.add('done'); toast(`${g.first} will get your wave at table ${g.table}`); };
   $('sheet').classList.add('open');
 }
