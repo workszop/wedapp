@@ -178,9 +178,7 @@
   .wn .bub{font-size:14px;padding:8px 12px;max-width:88%;animation:pop .25s ease-out}
   .wn .typing{padding:11px 13px}
   @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
-  .wn-sugg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:8px 0 6px}.wn-sugg::-webkit-scrollbar{display:none}
-  .wn-sugg button{flex:none;font:600 12.5px var(--sans);background:#fff7f7;border:1px solid #efd3d6;color:var(--ink);border-radius:999px;padding:8px 12px;cursor:pointer;min-height:36px}
-  .wn-form{display:flex;gap:8px;align-items:center}
+  .wn-form{display:flex;gap:8px;align-items:center;margin-top:10px}
   .wn-form input{flex:1;min-width:0;font:16px var(--sans);padding:9px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--ink);outline:none;min-height:42px}
   .wn-form input:focus{border-color:var(--rose)}
   .wn-form .send{width:42px;height:42px}
@@ -325,8 +323,8 @@
   /* iOS-style large titles */
   .ghead h3{font:700 28px/1.12 var(--sans);letter-spacing:-.025em}
   /* press feedback */
-  .btn,.prow,.opt,.chip,.person,.grp-h,.sugg,.wn-sugg button,.send,.back{transition:transform .12s,opacity .12s,background .15s,border-color .15s}
-  .btn:active,.prow:active,.opt:active,.chip:active,.person:active,.grp-h:active,.sugg:active,.wn-sugg button:active,.send:active{transform:scale(.97);opacity:.8}
+  .btn,.prow,.opt,.chip,.person,.grp-h,.sugg,.send,.back{transition:transform .12s,opacity .12s,background .15s,border-color .15s}
+  .btn:active,.prow:active,.opt:active,.chip:active,.person:active,.grp-h:active,.sugg:active,.send:active{transform:scale(.97);opacity:.8}
   .tabbar button:active{opacity:.5}
   .wrow{display:flex;justify-content:center;gap:4px;flex-wrap:wrap}.wrow .btn{width:auto;padding:8px 12px;font-size:14px}
   /* sheets: dimmed backdrop + drag handle */
@@ -394,7 +392,6 @@
             <div class="wn" id="wn" aria-live="polite">
               <div class="wn-h"><span class="wn-av"><i class="a">A</i><i class="m">M</i></span><b>Ania &amp; Marek</b><small>Messages</small></div>
               <div class="wn-thread" id="wn-thread"></div>
-              <div class="wn-sugg" id="wn-sugg"></div>
               <form class="wn-form" id="wn-form"><input id="wn-input" type="text" enterkeyhint="send" autocomplete="off" placeholder="Reply to Ania &amp; Marek…" maxlength="200" aria-label="Reply"><button class="send" id="wn-send" type="submit" aria-label="Send reply" disabled></button></form>
             </div>
           </div>
@@ -3302,24 +3299,23 @@ renderQR();
    sends it through `backend.sendMessage` so it shows up in the Chats thread with Ania (and, with a real backend, is stored). */
 const WELCOME_NOTE = {
   body: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight – and tell us, how do you know us? – Ania & Marek',
-  quick: ['College friends', 'Family', 'Work', 'Through friends'],
   answer: () => COUPLE_AUTO_REPLY,   // the couple are busy: same automatic reply as in Messages
 };
 let welcomeReply = null, welcomeFlushed = false;
 (function welcomeNote() {
-  const thread = $('wn-thread'), sugg = $('wn-sugg'), form = $('wn-form'), input = $('wn-input'), send = $('wn-send');
+  const thread = $('wn-thread'), form = $('wn-form'), input = $('wn-input'), send = $('wn-send');
   send.innerHTML = ic('send', 18);
   const bub = (cls, text, auto) => `<div class="bub ${cls}">${auto ? '<em class="auto">Automatic reply</em>' : ''}${esc(text)}</div>`, typing = '<div class="typing"><i></i><i></i><i></i></div>';
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
   // 1. the couple "types" and the message arrives
   thread.innerHTML = typing;
-  wait(1100).then(() => { thread.innerHTML = bub('them', WELCOME_NOTE.body); sugg.innerHTML = WELCOME_NOTE.quick.map(q => `<button type="button">${esc(q)}</button>`).join(''); sugg.querySelectorAll('button').forEach(b => b.onclick = () => reply(b.textContent)); });
+  wait(1100).then(() => { thread.innerHTML = bub('them', WELCOME_NOTE.body); });
   input.oninput = () => { send.disabled = !input.value.trim(); };
   form.onsubmit = e => { e.preventDefault(); const v = input.value.trim(); if (v) reply(v); };
   // 2. the visitor answers, the couple answers back
   async function reply(text) {
     if (welcomeReply) return; welcomeReply = text;
-    sugg.innerHTML = ''; form.style.display = 'none'; thread.insertAdjacentHTML('beforeend', bub('me', text));
+    form.style.display = 'none'; thread.insertAdjacentHTML('beforeend', bub('me', text));
     thread.insertAdjacentHTML('beforeend', typing); await wait(1300); thread.lastElementChild.remove();
     thread.insertAdjacentHTML('beforeend', bub('them', WELCOME_NOTE.answer(text), true));
     thread.insertAdjacentHTML('beforeend', `<div class="wn-done">Your chat continues in Messages once you join.</div>`);
