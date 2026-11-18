@@ -208,6 +208,7 @@
   .bub{max-width:80%;padding:9px 13px;border-radius:18px;font-size:15px;line-height:1.4;overflow-wrap:anywhere}
   .bub.me{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:6px}
   .bub.them{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:6px}
+  .bub .auto{display:block;font:700 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--rose);margin-bottom:3px;font-style:normal}
   .bub small{display:block;font-size:10.5px;opacity:.6;margin-top:3px}
   .chat-note{align-self:center;text-align:center;color:var(--mute);font-size:12px;margin:6px 10px 10px;max-width:260px}
   .typing{align-self:flex-start;display:flex;gap:4px;padding:13px 15px;background:#fff;border:1px solid var(--line);border-radius:18px;border-bottom-left-radius:6px}
@@ -3066,11 +3067,13 @@ function toast(t, onTap) { const e = $('toast'); e.textContent = t; e.onclick = 
      getSettings()           -> { allowMessages: boolean }
      setSettings(patch)      -> { allowMessages: boolean }
      subscribe(handler)      -> unsubscribe()   handler gets { type:'message', message } | { type:'typing', from, on } | { type:'read', withId }
-   Message = { id, from, to, body, at: ISO-8601, readAt: ISO-8601 | null }
+   Message = { id, from, to, body, at: ISO-8601, readAt: ISO-8601 | null, auto?: true }   (auto = automatic reply)
 
    Matching Cloudflare routes (Workers + D1) are in HttpBackend below. Enable it by putting the API origin in
    <meta name="tt-api" content="https://…">; leave it empty to keep the in-browser MockBackend. */
 
+/* The couple's standard auto-reply – used for the welcome-screen note and for any message sent to Ania or Marek. */
+const COUPLE_AUTO_REPLY = 'We’re currently at our own wedding, but we’ll get back to you as soon as we’re back from the honeymoon, kids, dogs, mortgages and the like. – Ania & Marek';
 const clone = v => JSON.parse(JSON.stringify(v));
 
 /* ---- MockBackend: in-memory + localStorage, simulated typing and replies. No network. ---- */
@@ -3092,8 +3095,8 @@ function MockBackend({ getGuest }) {
     setTimeout(() => emit({ type: 'typing', from: toId, on: true }), 700);
     setTimeout(() => {
       emit({ type: 'typing', from: toId, on: false });
-      const text = REPLIES[(+toId * 7 + msgs.length) % REPLIES.length].replace('{t}', g.couple ? 'the head table' : 'table ' + g.table);
-      const m = { id: 'm' + seq++, from: toId, to: 'me', body: text, at: new Date().toISOString(), readAt: null };
+      const text = g.couple ? COUPLE_AUTO_REPLY : REPLIES[(+toId * 7 + msgs.length) % REPLIES.length].replace('{t}', 'table ' + g.table);
+      const m = { id: 'm' + seq++, from: toId, to: 'me', body: text, at: new Date().toISOString(), readAt: null, ...(g.couple ? { auto: true } : {}) };
       msgs.push(m); persist(); emit({ type: 'message', message: m });
     }, 2000 + (+toId * 137) % 1500);
   }
@@ -3172,7 +3175,7 @@ async function renderInbox() {
   $('pn-inbox').querySelectorAll('.prow').forEach(b => b.onclick = () => openChat(guestOf(b.dataset.id), 'chats'));
   const gbtn = $('ib-graph'); if (gbtn) gbtn.onclick = () => showView('graph');
 }
-function bubble(m) { return `<div class="bub ${m.from === 'me' ? 'me' : 'them'}" data-id="${m.id}">${esc(m.body)}<small>${clockOf(m.at)}</small></div>`; }
+function bubble(m) { return `<div class="bub ${m.from === 'me' ? 'me' : 'them'}" data-id="${m.id}">${m.auto ? '<em class="auto">Automatic reply</em>' : ''}${esc(m.body)}<small>${clockOf(m.at)}</small></div>`; }
 function scrollChat() { const b = $('chat-msgs'); b.scrollTop = b.scrollHeight; }
 function appendMsg(m) { if (shown.has(m.id)) return; shown.add(m.id); const t = $('typing'); if (t) t.remove(); $('chat-msgs').insertAdjacentHTML('beforeend', bubble(m)); $('chat-sugg').innerHTML = ''; scrollChat(); }
 function suggestionsFor(g) {
@@ -3244,13 +3247,13 @@ renderQR();
 const WELCOME_NOTE = {
   body: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight – and tell us, how do you know us? – Ania & Marek',
   quick: ['College friends', 'Family', 'Work', 'Through friends'],
-  answer: t => /family/i.test(t) ? 'Family – we’re so glad you’re here! Save us a dance later.' : /college|school|uni/i.test(t) ? 'College days! Those were the best stories – find us after the cake.' : /work|colleague/i.test(t) ? 'Thank you for coming! Don’t talk shop tonight – dance!' : 'Thank you! We can’t wait to dance with you tonight.',
+  answer: () => COUPLE_AUTO_REPLY,   // the couple are busy: same automatic reply as in Messages
 };
 let welcomeReply = null, welcomeFlushed = false;
 (function welcomeNote() {
   const thread = $('wn-thread'), sugg = $('wn-sugg'), form = $('wn-form'), input = $('wn-input'), send = $('wn-send');
   send.innerHTML = ic('send', 18);
-  const bub = (cls, text) => `<div class="bub ${cls}">${esc(text)}</div>`, typing = '<div class="typing"><i></i><i></i><i></i></div>';
+  const bub = (cls, text, auto) => `<div class="bub ${cls}">${auto ? '<em class="auto">Automatic reply</em>' : ''}${esc(text)}</div>`, typing = '<div class="typing"><i></i><i></i><i></i></div>';
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
   // 1. the couple "types" and the message arrives
   thread.innerHTML = typing;
@@ -3262,7 +3265,7 @@ let welcomeReply = null, welcomeFlushed = false;
     if (welcomeReply) return; welcomeReply = text;
     sugg.innerHTML = ''; form.style.display = 'none'; thread.insertAdjacentHTML('beforeend', bub('me', text));
     thread.insertAdjacentHTML('beforeend', typing); await wait(1300); thread.lastElementChild.remove();
-    thread.insertAdjacentHTML('beforeend', bub('them', WELCOME_NOTE.answer(text)));
+    thread.insertAdjacentHTML('beforeend', bub('them', WELCOME_NOTE.answer(text), true));
     thread.insertAdjacentHTML('beforeend', `<div class="wn-done">Your chat continues in Messages once you join.</div>`);
   }
 })();
