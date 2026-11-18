@@ -100,6 +100,38 @@
   .mt{flex:none;display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:7px 12px 7px 7px;cursor:pointer;font:600 13px var(--sans);color:var(--ink)}
   .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font:700 12px var(--sans);flex:none}
   .mt small{display:block;font-weight:500;color:var(--mute);font-size:11px}
+  /* results: summary / names */
+  .seg{display:flex;background:#efe8dc;border-radius:12px;padding:3px;gap:2px;flex:none;margin:12px 0 4px}
+  .seg button{flex:1;border:0;background:transparent;border-radius:10px;padding:8px 0;font:600 13px var(--sans);color:var(--mute);cursor:pointer}
+  .seg button.on{background:var(--paper);color:var(--ink);box-shadow:0 2px 6px -2px rgba(60,40,40,.3)}
+  .summary{padding-top:54px;padding-bottom:18px}
+  .panel{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;display:none;padding-top:10px}
+  .panel::-webkit-scrollbar{display:none}
+  .panel.on{display:block}
+  .hero{background:linear-gradient(135deg,#fdf0f0,#f1f5ee);border:1px solid var(--line);border-radius:22px;padding:18px 18px 16px;text-align:center}
+  .hero .big{font:400 64px/1 var(--serif);color:var(--rose)}
+  .hero p{margin:6px 0 0;font-size:14px;line-height:1.45}
+  .hero small{display:block;color:var(--mute);margin-top:6px;font-size:12px}
+  .grp-t{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:700;margin:16px 0 8px}
+  .grp{background:var(--paper);border:1px solid var(--line);border-radius:16px;margin-bottom:8px;overflow:hidden}
+  .grp.close{border-color:#ecc9cd}
+  .grp-h{width:100%;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;text-align:left;background:none;border:0;padding:11px 14px;cursor:pointer;font:inherit;color:inherit}
+  .grp-h b{font-size:14px}.grp-h span{font:400 24px/1 var(--serif);color:var(--rose)}
+  .grp-h small{color:var(--mute);font-size:12px}
+  .bar{grid-column:1/3;height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;border-radius:3px;background:var(--c,var(--rose))}
+  .grp-b{display:none;padding:2px 12px 12px;flex-wrap:wrap;gap:6px}
+  .grp.open .grp-b{display:flex}
+  .person{display:flex;align-items:center;gap:8px;background:#faf5ee;border:1px solid var(--line);border-radius:999px;padding:4px 12px 4px 4px;font:600 12.5px var(--sans);cursor:pointer;color:var(--ink)}
+  .person .av{width:24px;height:24px;font-size:10px}
+  .plist{display:grid;gap:8px}
+  .prow{display:flex;align-items:center;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:9px 12px;cursor:pointer;width:100%;text-align:left;font:inherit;color:inherit}
+  .prow .av{width:36px;height:36px;font-size:13px}
+  .prow div{flex:1;font-weight:600;font-size:14px}.prow small{display:block;color:var(--mute);font-weight:500;font-size:11.5px}
+  .prow em{font:400 20px var(--serif);font-style:normal}
+  .cta{display:flex;gap:10px;margin-top:14px;flex:none}
+  .cta .btn{padding:13px}
+  .btn.alt{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
   /* profile sheet */
   .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-radius:28px 28px 0 0;padding:10px 22px 26px;box-shadow:0 -20px 50px -10px rgba(40,30,30,.35);transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.8,.2,1);z-index:25}
   .sheet.open{transform:none}
@@ -146,8 +178,9 @@
     <ul class="steps" id="steps">
       <li><button data-go="welcome"><b>1</b><span>Welcome<small>Scan the QR on your table card</small></span></button></li>
       <li><button data-go="quiz"><b>2</b><span>Name + 2 required, 7 optional<small>Skip anything you like</small></span></button></li>
-      <li><button data-go="graph"><b>3</b><span>Your connection graph<small>Drag nodes, filter by question</small></span></button></li>
-      <li><button data-go="profile"><b>4</b><span>Guest profile<small>Shared answers, table number, icebreaker</small></span></button></li>
+      <li><button data-go="summary"><b>3</b><span>Your summary<small>How many matches, how many people – see names or graph</small></span></button></li>
+      <li><button data-go="graph"><b>4</b><span>Your connection graph<small>Drag nodes, filter by question</small></span></button></li>
+      <li><button data-go="profile"><b>5</b><span>Guest profile<small>Shared answers, table number, icebreaker</small></span></button></li>
     </ul>
     <div class="note">Interactive prototype – answers are real inputs, the 22 guests are fictional. Open on a phone for the full-screen view.</div>
   </section>
@@ -195,9 +228,18 @@
           <p>Comparing answers with 22 guests</p>
         </div>
 
-        <!-- 3 graph -->
+        <!-- 3 summary / names -->
+        <div class="screen summary" id="s-summary">
+          <div class="ghead"><h3 id="sm-title">Your matches</h3><p id="sm-sub"></p></div>
+          <div class="seg" id="seg-summary"></div>
+          <div class="panel on" id="pn-summary"></div>
+          <div class="panel" id="pn-names"></div>
+        </div>
+
+        <!-- 4 graph -->
         <div class="screen graph" id="s-graph">
           <div class="ghead"><h3>Your table talk</h3><p id="gsub"></p></div>
+          <div class="seg" id="seg-graph"></div>
           <div class="chips" id="chips"></div>
           <div class="canvas-box" id="cbox">
             <canvas id="cv"></canvas>
@@ -254,23 +296,25 @@ const initials = n => n.split(' ').map(w => w[0]).join('').replace('.', '');
 const avatarColor = g => PAL[g.id % PAL.length];
 
 /* ======================= navigation ======================= */
-const screens = ['welcome', 'quiz', 'loading', 'graph'];
+const screens = ['welcome', 'quiz', 'loading', 'summary', 'graph'];
 function go(name) {
   screens.forEach(s => { const el = $('s-' + s); const on = s === name; el.classList.toggle('active', on); el.classList.toggle('left', !on && screens.indexOf(s) < screens.indexOf(name)); });
   document.querySelectorAll('#steps button').forEach(b => b.classList.toggle('on', b.dataset.go === (name === 'loading' ? 'quiz' : name)));
   if (name === 'graph') startGraph();
+  if (name === 'summary') renderSummary();
   if (name !== 'graph') closeSheet();
 }
 document.querySelectorAll('#steps button').forEach(b => b.onclick = () => {
   const t = b.dataset.go;
   if (t === 'welcome') go('welcome');
   if (t === 'quiz') { me = blank(); si = 0; renderQ(); go('quiz'); }
+  if (t === 'summary') { ensureAnswers(); showView('summary'); }
   if (t === 'graph') { ensureAnswers(); go('graph'); }
-  if (t === 'profile') { ensureAnswers(); go('graph'); setTimeout(() => select(rank()[0]), 900); }
+  if (t === 'profile') { ensureAnswers(); showView('graph'); setTimeout(() => select(rank()[0]), 900); }
 });
 function ensureAnswers() { if (!myName) myName = 'Alex'; me = me.map(a => a === null ? 0 : a); }
 $('start').onclick = () => { me = blank(); si = 0; renderQ(); go('quiz'); };
-$('sample').onclick = () => { myName = 'Alex'; me = Q.map(() => 0); go('loading'); setTimeout(() => go('graph'), 1500); };
+$('sample').onclick = () => { myName = 'Alex'; me = Q.map(() => 0); go('loading'); setTimeout(() => showView('summary'), 1500); };
 
 /* ======================= quiz =======================
    Required: name, bride-or-groom, friend-or-family. Everything else is optional (skip, or tap a chosen card again to clear it). */
@@ -297,7 +341,7 @@ function renderLive() {
   if (lastCount !== st.count) { num.classList.add('bump'); setTimeout(() => num.classList.remove('bump'), 250); }
   lastCount = st.count;
 }
-function finishQuiz() { go('loading'); setTimeout(() => go('graph'), 1900); }
+function finishQuiz() { go('loading'); setTimeout(() => showView('summary'), 1900); }
 function nextStep() { if (si < steps.length - 1) { si++; renderQ(); } else finishQuiz(); }
 function renderQ() {
   const st = steps[si], act = $('qact');
@@ -333,6 +377,42 @@ const shared = g => Q.map((_, i) => g.answers[i] === me[i] ? i : -1).filter(i =>
 const score = g => shared(g).length;
 const rank = () => [...guests].sort((a, b) => score(b) - score(a) || a.id - b.id);
 
+/* ======================= results: summary · names · graph ======================= */
+let view = 'summary';
+function showView(v) {
+  view = v;
+  if (v === 'graph') { go('graph'); return; }
+  if (!$('s-summary').classList.contains('active')) go('summary'); else renderSummary();
+}
+function segHTML(active) { return [['summary', 'Summary'], ['names', 'Names'], ['graph', 'Graph']].map(([k, l]) => `<button data-v="${k}" class="${k === active ? 'on' : ''}">${l}</button>`).join(''); }
+function mountSeg(id, active) { const el = $(id); el.innerHTML = segHTML(active); el.querySelectorAll('button').forEach(b => b.onclick = () => showView(b.dataset.v)); }
+function personChip(g) { return `<button class="person" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span>${g.first}</button>`; }
+function renderSummary() {
+  const done = answeredCount(), sc = guests.map(g => ({ g, s: score(g) })), top = Math.max(0, ...sc.map(x => x.s)), k = Math.max(1, top - 1);
+  const close = sc.filter(x => x.s >= k && x.s > 0).length, any = sc.filter(x => x.s > 0).length;
+  mountSeg('seg-summary', view === 'names' ? 'names' : 'summary');
+  $('sm-title').textContent = myName ? `${myName}, here are your matches` : 'Your matches';
+  $('sm-sub').textContent = `Based on ${done} answer${done === 1 ? '' : 's'} · ${guests.length} guests tonight`;
+  // grouped: how many answers in common -> how many people
+  const byCount = {}; sc.forEach(x => { if (x.s > 0) (byCount[x.s] ||= []).push(x.g); });
+  const counts = Object.keys(byCount).map(Number).sort((a, b) => b - a), maxPeople = Math.max(1, ...counts.map(c => byCount[c].length));
+  $('pn-summary').innerHTML = `
+    <div class="hero"><div class="big">${close}</div>
+      <p>${close === 1 ? 'guest shares' : 'guests share'} at least <b>${k}</b> of your ${done} answers</p>
+      <small>Top match: <b>${top}</b> of ${done} in common · ${any} guests share something with you</small></div>
+    <div class="grp-t">Matches by answers in common</div>
+    ${counts.length ? counts.map((c, i) => `<div class="grp ${c >= k ? 'close' : ''} ${i === 0 ? 'open' : ''}">
+      <button class="grp-h"><b>${c} of ${done} answers in common</b><span>${byCount[c].length}</span><small>${byCount[c].length === 1 ? 'person' : 'people'} · tap to see names</small><div class="bar"><i style="width:${byCount[c].length / maxPeople * 100}%;--c:${COL[lvl(c)]}"></i></div></button>
+      <div class="grp-b">${byCount[c].map(personChip).join('')}</div></div>`).join('') : '<div class="grp"><div class="grp-h"><b>No overlap yet</b><small>Answer a few optional questions to find your people</small></div></div>'}
+    <div class="cta"><button class="btn alt" id="cta-names">Show names</button><button class="btn" id="cta-graph">See the graph</button></div>`;
+  $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><div>${g.name}<small>Table ${g.table} · ${TIER[lvl(score(g))]}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
+    + `<div class="cta"><button class="btn" id="cta-graph2">See the graph</button></div>`;
+  $('pn-summary').classList.toggle('on', view !== 'names'); $('pn-names').classList.toggle('on', view === 'names');
+  $('pn-summary').querySelectorAll('.grp-h').forEach(h => h.onclick = () => h.parentElement.classList.toggle('open'));
+  document.querySelectorAll('#s-summary .person, #s-summary .prow').forEach(b => b.onclick = () => select(guests[+b.dataset.id]));
+  $('cta-names').onclick = () => showView('names'); $('cta-graph').onclick = () => showView('graph'); $('cta-graph2').onclick = () => showView('graph');
+}
+
 /* ======================= graph ======================= */
 const cv = $('cv'), ctx = cv.getContext('2d');
 let W = 340, H = 400, nodes = [], links = [], t0 = 0, selected = null, filter = null, drag = null, raf = null, dpr = 1;
@@ -347,6 +427,7 @@ function startGraph() {
     const n = Q.reduce((c, _, k) => c + (nodes[i].answers[k] === nodes[j].answers[k] ? 1 : 0), 0);
     if (n >= 5 && nodes[i].s >= 1 && nodes[j].s >= 1) links.push([nodes[i], nodes[j], n]);
   }
+  mountSeg('seg-graph', 'graph');
   $('gsub').textContent = `${guests.length} guests · ${guests.filter(g => lvl(score(g)) >= 3).length} click with you`;
   $('chips').innerHTML = `<button class="chip on" data-f="-1">All</button>` + Q.map((q, i) => me[i] === null ? '' : `<button class="chip" data-f="${i}">${q.opts[me[i]][0]} ${q.label}</button>`).join('');
   $('chips').querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = +c.dataset.f < 0 ? null : +c.dataset.f; $('chips').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c)); });
