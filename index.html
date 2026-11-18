@@ -2807,8 +2807,8 @@ function startGraph() {
     if (n >= 5 && nodes[i].s >= 1 && nodes[j].s >= 1) links.push([nodes[i], nodes[j], n]);
   }
   // the couple: anchored top-left / top-right, linked to the guests on their side
-  nodes.push({ id: -2, couple: 'bride', first: 'Ania', ax: .17, ay: .09, x: W * .17, y: H * .09, vx: 0, vy: 0, r: 19, s: 5, born: 0 },
-             { id: -3, couple: 'groom', first: 'Marek', ax: .83, ay: .09, x: W * .83, y: H * .09, vx: 0, vy: 0, r: 19, s: 5, born: 0 });
+  nodes.push({ id: -2, couple: 'bride', first: 'Ania', x: W / 2 - 34, y: H / 2 + 46, vx: 0, vy: 0, r: 19, s: 5, born: 0 },
+             { id: -3, couple: 'groom', first: 'Marek', x: W / 2 + 34, y: H / 2 + 46, vx: 0, vy: 0, r: 19, s: 5, born: 0 });   // no anchors: the physics places them
   rank().slice(0, 3).forEach(g => { const nd = nodes.find(x => x.id === g.id); if (nd && nd.s >= 4) nd.top = true; });   // only the top three get a score badge
   mountSeg('seg-graph', 'graph');
   $('gsub').textContent = `${guests.length} guests · ${guests.filter(g => lvl(score(g)) >= 3).length} click with you`;
@@ -2821,7 +2821,12 @@ function startGraph() {
 }
 function step(dt) {
   const you = nodes[0], cx = W / 2, cy = H / 2;
-  for (const n of nodes) { if (n.couple && n !== drag) { n.vx += (n.ax * W - n.x) * 0.05; n.vy += (n.ay * H - n.y) * 0.05; continue; }
+  const bN = nodes.find(n => n.couple === 'bride'), gN = nodes.find(n => n.couple === 'groom');
+  const centroid = side => { let x = 0, y = 0, c = 0; for (const n of nodes) if (!n.you && !n.couple && n.answers[0] === side) { x += n.x; y += n.y; c++; } return c ? [x / c, y / c] : [cx, cy]; };
+  { const dx = gN.x - bN.x, dy = gN.y - bN.y, d = Math.hypot(dx, dy) || 1, f = (d - 58) * 0.06, fx = dx / d * f, fy = dy / d * f;   // stay close to each other
+    if (bN !== drag) { bN.vx += fx; bN.vy += fy; } if (gN !== drag) { gN.vx -= fx; gN.vy -= fy; }
+    for (const [c, side] of [[bN, 0], [gN, 1]]) { if (c === drag) continue; const [tx, ty] = centroid(side); c.vx += (tx - c.x) * 0.012 + (cx - c.x) * 0.004; c.vy += (ty - c.y) * 0.012 + (cy - c.y) * 0.004; } }
+  for (const n of nodes) { if (n.couple) continue;
     if (n.you || n === drag) continue;
     // spring toward an elliptical ring that fills the canvas: closer match = smaller ring
     const ex = W / 2 - 28, ey = H / 2 - 28, nx = (n.x - cx) / ex, ny = (n.y - cy) / ey, nd = Math.hypot(nx, ny) || 1e-3, tn = Math.min(0.94, 0.56 + (5 - n.s) * 0.09), f = (tn - nd) * 0.05;
@@ -2829,7 +2834,7 @@ function step(dt) {
     const a0 = n.answers[0]; if (a0 === 0 && n.x > cx - 10) n.vx += (cx - 10 - n.x) * 0.03; else if (a0 === 1 && n.x < cx + 10) n.vx += (cx + 10 - n.x) * 0.03; }
   for (const [a, b, n] of links) { const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, f = (d - 64) * 0.006 * (n - 4); const fx = dx / d * f, fy = dy / d * f;
     if (!a.you && a !== drag) { a.vx += fx; a.vy += fy; } if (!b.you && b !== drag) { b.vx -= fx; b.vy -= fy; } }
-  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const a = nodes[i], b = nodes[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || .1, strong = x => !x.you && !x.couple && x.s >= 4, min = a.r + b.r + 8 + (strong(a) && strong(b) ? 38 : 0);
+  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const a = nodes[i], b = nodes[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || .1, strong = x => !x.you && !x.couple && x.s >= 4, min = a.r + b.r + 8 + (strong(a) && strong(b) ? 38 : 0) + ((a.couple || b.couple) && !(a.couple && b.couple) ? 24 : 0);
     if (d < min) { const f = (min - d) * 0.06, fx = dx / d * f, fy = dy / d * f; if (!a.you && a !== drag) { a.vx -= fx; a.vy -= fy; } if (!b.you && b !== drag) { b.vx += fx; b.vy += fy; } } }
   const t = (performance.now() - t0) / 1000;
   nodes.forEach((n, i) => { if (n.you || n === drag) return; n.vx = (n.vx + Math.sin(t * .7 + i) * .02) * .84; n.vy = (n.vy + Math.cos(t * .6 + i * 1.3) * .02) * .84; n.x += n.vx; n.y += n.vy;
@@ -2862,8 +2867,9 @@ function loop() {
       ctx.strokeStyle = hexA(n.cat, (faded(n) ? .05 : .15) * al); ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(n.x, n.y); ctx.stroke(); } }
   ctx.setLineDash([]);
   // bride ♥ groom
-  { const mx = (bride.x + bride.x + groom.x - bride.x) / 2 + 0, my = (bride.y + groom.y) / 2; ctx.strokeStyle = 'rgba(201,163,91,.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bride.x + 20, bride.y); ctx.lineTo(groom.x - 20, groom.y); ctx.stroke();
-    ctx.fillStyle = '#c9a35b'; ctx.font = '700 15px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('♥', (bride.x + groom.x) / 2, (bride.y + groom.y) / 2 + 1); }
+  { const dx = groom.x - bride.x, dy = groom.y - bride.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, r = bride.r + 1;
+    if (d > 2 * r + 4) { ctx.strokeStyle = 'rgba(201,163,91,.8)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(bride.x + ux * r, bride.y + uy * r); ctx.lineTo(groom.x - ux * r, groom.y - uy * r); ctx.stroke(); }
+    ctx.fillStyle = '#c9a35b'; ctx.font = '700 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('♥', (bride.x + groom.x) / 2, (bride.y + groom.y) / 2 + 1); }
   // you ↔ the spouse on your side (gold)
   for (const cp of [bride, groom]) { if (me[0] === null || (cp === bride ? me[0] === 1 : me[0] === 0)) continue;
     ctx.strokeStyle = 'rgba(201,163,91,.55)'; ctx.lineWidth = 1.6; ctx.setLineDash([2, 5]); ctx.beginPath(); ctx.moveTo(you.x, you.y); ctx.lineTo(cp.x, cp.y); ctx.stroke(); ctx.setLineDash([]); }
