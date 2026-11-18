@@ -59,7 +59,12 @@
   .opt span{display:block;font-size:30px;margin-bottom:8px}
   .opt:hover{border-color:var(--blush)}
   .opt.sel{border-color:var(--rose);background:#fdf0f0;box-shadow:0 6px 18px -8px rgba(217,138,147,.8);transform:translateY(-2px)}
-  .quiz .foot{margin-top:auto;text-align:center;color:var(--mute);font-size:12px}
+  .quiz .foot{text-align:center;color:var(--mute);font-size:11.5px;margin-top:10px}
+  .live{margin-top:auto;display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 16px;box-shadow:0 10px 24px -16px rgba(80,60,60,.5)}
+  .lv-num{font:400 44px/1 var(--serif);color:var(--rose);min-width:54px;text-align:center;transition:transform .25s}
+  .lv-num.bump{transform:scale(1.25)}
+  .lv-txt{font-size:13px;line-height:1.4;color:var(--ink)}
+  .lv-txt small{display:block;color:var(--mute);font-size:11.5px;margin-top:2px}
   /* loader */
   .loading{align-items:center;justify-content:center;text-align:center}
   .rings{position:relative;width:150px;height:150px;margin-bottom:26px}
@@ -166,6 +171,10 @@
           <div class="qn" id="qn"></div>
           <h3 id="qt"></h3>
           <div class="opts" id="opts"></div>
+          <div class="live" id="live">
+            <div class="lv-num" id="lv-num">22</div>
+            <div class="lv-txt" id="lv-txt"></div>
+          </div>
           <div class="foot">Your answers are only used to draw tonight’s graph.</div>
         </div>
 
@@ -255,11 +264,28 @@ $('sample').onclick = () => { me = Q.map(() => 0); go('loading'); setTimeout(() 
 
 /* ======================= quiz ======================= */
 let qi = 0;
+/* live counter: top = best overlap any guest has with the answers given so far; show how many guests share at least (top - 1) of them */
+function liveStats() {
+  const done = me.map((a, i) => a === null ? -1 : i).filter(i => i >= 0);
+  if (!done.length) return { done: 0, top: 0, k: 0, count: guests.length };
+  const sc = guests.map(g => done.filter(i => g.answers[i] === me[i]).length), top = Math.max(...sc), k = Math.max(1, top - 1);
+  return { done: done.length, top, k, count: sc.filter(v => v >= k).length };
+}
+let lastCount = null;
+function renderLive() {
+  const st = liveStats(), num = $('lv-num'), txt = $('lv-txt');
+  if (!st.done) { num.textContent = guests.length; txt.innerHTML = 'guests are here tonight<small>Answer to see who’s like you</small>'; lastCount = null; return; }
+  num.textContent = st.count;
+  txt.innerHTML = `${st.count === 1 ? 'guest shares' : 'guests share'} at least <b>${st.k}</b> of your ${st.done} answer${st.done > 1 ? 's' : ''}<small>Best match so far: ${st.top} of ${st.done}</small>`;
+  if (lastCount !== st.count) { num.classList.add('bump'); setTimeout(() => num.classList.remove('bump'), 250); }
+  lastCount = st.count;
+}
 function renderQ() {
   const q = Q[qi];
   $('qn').textContent = `Question ${qi + 1} of ${Q.length}`; $('qt').textContent = q.q;
   $('dots').innerHTML = Q.map((_, i) => `<i class="${i < qi ? 'done' : i === qi ? 'cur' : ''}"></i>`).join('');
   $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${me[qi] === i ? 'sel' : ''}" data-i="${i}"><span>${o[0]}</span>${o[1]}</button>`).join('');
+  renderLive();
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => {
     me[qi] = +b.dataset.i; renderQ();
     setTimeout(() => { if (qi < Q.length - 1) { qi++; renderQ(); } else { go('loading'); setTimeout(() => go('graph'), 1900); } }, 260);
