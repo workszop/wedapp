@@ -49,8 +49,8 @@
   /* quiz */
   .quiz .top{display:flex;align-items:center;justify-content:space-between;height:32px}
   .back{background:none;border:0;font-size:22px;color:var(--mute);cursor:pointer;padding:0 8px 0 0}
-  .dots{display:flex;gap:5px}
-  .dots i{width:19px;height:5px;border-radius:3px;background:var(--line);transition:background .3s}
+  .dots{display:flex;gap:4px}
+  .dots i{width:15px;height:5px;border-radius:3px;background:var(--line);transition:background .3s}
   .dots i.done{background:var(--sage)}.dots i.cur{background:var(--rose)}
   .qn{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--rose);margin:26px 0 8px;font-weight:700}
   .quiz h3{font:400 29px/1.2 var(--serif);margin:0 0 22px}
@@ -60,7 +60,15 @@
   .opt:hover{border-color:var(--blush)}
   .opt.sel{border-color:var(--rose);background:#fdf0f0;box-shadow:0 6px 18px -8px rgba(217,138,147,.8);transform:translateY(-2px)}
   .quiz .foot{text-align:center;color:var(--mute);font-size:11.5px;margin-top:10px}
-  .live{margin-top:auto;display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 16px;box-shadow:0 10px 24px -16px rgba(80,60,60,.5)}
+  .qact{margin-top:auto;display:flex;gap:10px;align-items:center;justify-content:space-between;min-height:42px;padding-top:10px}
+  .qact .btn{width:auto;padding:11px 16px;font-size:14px}
+  .qact .btn.ghost{padding:11px 4px}
+  .req{display:inline-block;font-size:10px;letter-spacing:.1em;border-radius:999px;padding:2px 8px;margin-left:8px;vertical-align:1px}
+  .req.r{background:#fbe3e5;color:var(--rose)}.req.o{background:#eef3ec;color:var(--sage-d)}
+  .name-in{width:100%;font:400 26px var(--serif);padding:14px 16px;border-radius:16px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);outline:none}
+  .name-in:focus{border-color:var(--rose)}
+  .name-hint{font-size:12px;color:var(--mute);margin:10px 4px 0}
+  .live{margin-top:10px;display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 16px;box-shadow:0 10px 24px -16px rgba(80,60,60,.5)}
   .lv-num{font:400 44px/1 var(--serif);color:var(--rose);min-width:54px;text-align:center;transition:transform .25s}
   .lv-num.bump{transform:scale(1.25)}
   .lv-txt{font-size:13px;line-height:1.4;color:var(--ink)}
@@ -111,6 +119,7 @@
   .pills{display:flex;flex-wrap:wrap;gap:6px}
   .pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;background:#f3ece1;border-radius:999px;padding:5px 11px 5px 8px}
   .pill em{font-style:normal;font-size:15px}
+  .skipnote{font-size:12px;color:var(--mute)}
   .pills.dim .pill{background:transparent;border:1px dashed var(--line);color:var(--mute);font-weight:500}
   .row{display:flex;align-items:center;gap:10px;font-size:13px;background:#faf5ee;border-radius:12px;padding:8px 12px}
   .row em{font-style:normal;font-size:18px}.row small{color:var(--mute);display:block;font-size:11px}
@@ -133,10 +142,10 @@
   <section class="intro">
     <span class="tag">Product mockup · sample data</span>
     <h1>Find your people at the <em>reception</em></h1>
-    <p>Guests answer ten light questions on their phone. The app draws a live graph with <b>you in the middle</b> and every other guest placed by how much your answers overlap – so you know who to sit next to, dance with, or wave at.</p>
+    <p>Guests give their name, bride-or-groom and friend-or-family – everything else is optional. The app draws a live graph with <b>you in the middle</b> and every other guest placed by how much your answers overlap – so you know who to sit next to, dance with, or wave at.</p>
     <ul class="steps" id="steps">
       <li><button data-go="welcome"><b>1</b><span>Welcome<small>Scan the QR on your table card</small></span></button></li>
-      <li><button data-go="quiz"><b>2</b><span>Ten questions<small>Tap to answer – about a minute</small></span></button></li>
+      <li><button data-go="quiz"><b>2</b><span>Name + 2 required, 7 optional<small>Skip anything you like</small></span></button></li>
       <li><button data-go="graph"><b>3</b><span>Your connection graph<small>Drag nodes, filter by question</small></span></button></li>
       <li><button data-go="profile"><b>4</b><span>Guest profile<small>Shared answers, table number, icebreaker</small></span></button></li>
     </ul>
@@ -157,7 +166,7 @@
             <h2>Ania &amp; Marek</h2>
             <div class="sub">SATURDAY 14 JUNE · VILLA RÓŻANA</div>
             <svg class="mini-graph" id="mini" viewBox="0 0 320 92"></svg>
-            <div class="pitch">“Answer ten quick questions and see who you’ll click with tonight.”</div>
+            <div class="pitch">“Answer a couple of quick questions and see who you’ll click with tonight.”</div>
           </div>
           <div>
             <button class="btn" id="start">Find my people</button>
@@ -171,6 +180,7 @@
           <div class="qn" id="qn"></div>
           <h3 id="qt"></h3>
           <div class="opts" id="opts"></div>
+          <div class="qact" id="qact"></div>
           <div class="live" id="live">
             <div class="lv-num" id="lv-num">22</div>
             <div class="lv-txt" id="lv-txt"></div>
@@ -238,7 +248,7 @@ const COL = { 5: '#c9a35b', 4: '#d98a93', 3: '#7a8f7a', 2: '#b9c4b4', 1: '#d9d3c
 const TIER = { 5: 'Kindred spirits', 4: 'Practically twins', 3: 'Great chat ahead', 2: 'Some common ground', 1: 'Different flavours', 0: 'Total opposites – go say hi!' };
 const blank = () => Q.map(() => null);
 let me = blank();
-const lvl = s => { const r = s / N; return r >= 0.7 ? 5 : r >= 0.5 ? 4 : r >= 0.35 ? 3 : r >= 0.2 ? 2 : s > 0 ? 1 : 0; };   // 0–5 visual tier from the share of matching answers
+const lvl = s => { const r = s / Math.max(4, me.filter(a => a !== null).length); return r >= 0.7 ? 5 : r >= 0.5 ? 4 : r >= 0.35 ? 3 : r >= 0.2 ? 2 : s > 0 ? 1 : 0; };   // 0–5 visual tier from the share of matching answers
 const $ = id => document.getElementById(id);
 const initials = n => n.split(' ').map(w => w[0]).join('').replace('.', '');
 const avatarColor = g => PAL[g.id % PAL.length];
@@ -254,16 +264,23 @@ function go(name) {
 document.querySelectorAll('#steps button').forEach(b => b.onclick = () => {
   const t = b.dataset.go;
   if (t === 'welcome') go('welcome');
-  if (t === 'quiz') { me = blank(); qi = 0; renderQ(); go('quiz'); }
+  if (t === 'quiz') { me = blank(); si = 0; renderQ(); go('quiz'); }
   if (t === 'graph') { ensureAnswers(); go('graph'); }
   if (t === 'profile') { ensureAnswers(); go('graph'); setTimeout(() => select(rank()[0]), 900); }
 });
-function ensureAnswers() { me = me.map(a => a === null ? 0 : a); }
-$('start').onclick = () => { me = blank(); qi = 0; renderQ(); go('quiz'); };
-$('sample').onclick = () => { me = Q.map(() => 0); go('loading'); setTimeout(() => go('graph'), 1500); };
+function ensureAnswers() { if (!myName) myName = 'Alex'; me = me.map(a => a === null ? 0 : a); }
+$('start').onclick = () => { me = blank(); si = 0; renderQ(); go('quiz'); };
+$('sample').onclick = () => { myName = 'Alex'; me = Q.map(() => 0); go('loading'); setTimeout(() => go('graph'), 1500); };
 
-/* ======================= quiz ======================= */
-let qi = 0;
+/* ======================= quiz =======================
+   Required: name, bride-or-groom, friend-or-family. Everything else is optional (skip, or tap a chosen card again to clear it). */
+let myName = '';
+const REQUIRED_Q = 2;                                   // first two questions are mandatory
+const steps = [{ type: 'name' }, ...Q.map((q, i) => ({ type: 'q', i }))];
+let si = 0;
+const answeredCount = () => me.filter(a => a !== null).length;
+const mandatoryDone = () => myName.trim() && me[0] !== null && me[1] !== null;
+
 /* live counter: top = best overlap any guest has with the answers given so far; show how many guests share at least (top - 1) of them */
 function liveStats() {
   const done = me.map((a, i) => a === null ? -1 : i).filter(i => i >= 0);
@@ -280,18 +297,36 @@ function renderLive() {
   if (lastCount !== st.count) { num.classList.add('bump'); setTimeout(() => num.classList.remove('bump'), 250); }
   lastCount = st.count;
 }
+function finishQuiz() { go('loading'); setTimeout(() => go('graph'), 1900); }
+function nextStep() { if (si < steps.length - 1) { si++; renderQ(); } else finishQuiz(); }
 function renderQ() {
-  const q = Q[qi];
-  $('qn').textContent = `Question ${qi + 1} of ${Q.length}`; $('qt').textContent = q.q;
-  $('dots').innerHTML = Q.map((_, i) => `<i class="${i < qi ? 'done' : i === qi ? 'cur' : ''}"></i>`).join('');
-  $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${me[qi] === i ? 'sel' : ''}" data-i="${i}"><span>${o[0]}</span>${o[1]}</button>`).join('');
+  const st = steps[si], act = $('qact');
+  $('dots').innerHTML = steps.map((_, i) => `<i class="${i < si ? 'done' : i === si ? 'cur' : ''}"></i>`).join('');
+  $('live').style.display = st.type === 'name' ? 'none' : 'flex';
+  if (st.type === 'name') {
+    $('qn').innerHTML = `Welcome <span class="req r">REQUIRED</span>`; $('qt').textContent = 'What’s your name?';
+    $('opts').style.display = 'block';
+    $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="First name" autocomplete="off" value="${myName.replace(/"/g, '&quot;')}"><div class="name-hint">Shown to other guests on the graph.</div>`;
+    const inp = $('name-in'), upd = () => { myName = inp.value.trim(); $('name-next').disabled = !myName; };
+    act.innerHTML = `<span></span><button class="btn" id="name-next">Continue</button>`; $('name-next').disabled = !myName; $('name-next').onclick = nextStep;
+    inp.oninput = upd; inp.onkeydown = e => { if (e.key === 'Enter' && myName) nextStep(); };
+    return;
+  }
   renderLive();
+  const qi = st.i, q = Q[qi], req = qi < REQUIRED_Q;
+  $('qn').innerHTML = `Question ${qi + 1} of ${Q.length} <span class="req ${req ? 'r' : 'o'}">${req ? 'REQUIRED' : 'OPTIONAL'}</span>`; $('qt').textContent = q.q;
+  $('opts').style.display = '';
+  $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${me[qi] === i ? 'sel' : ''}" data-i="${i}"><span>${o[0]}</span>${o[1]}</button>`).join('');
+  act.innerHTML = req ? '<span class="name-hint" style="margin:0">Needed to place you at the right table.</span>'
+    : `<button class="btn ghost" id="skip">${me[qi] === null ? 'Skip' : 'Next'}</button>` + (mandatoryDone() ? `<button class="btn alt" id="done-now">See my graph now →</button>` : '');
+  if (!req) { $('skip').onclick = nextStep; $('done-now').onclick = finishQuiz; }
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => {
-    me[qi] = +b.dataset.i; renderQ();
-    setTimeout(() => { if (qi < Q.length - 1) { qi++; renderQ(); } else { go('loading'); setTimeout(() => go('graph'), 1900); } }, 260);
+    const i = +b.dataset.i;
+    if (me[qi] === i && !req) { me[qi] = null; renderQ(); return; }          // optional: tap again to clear
+    me[qi] = i; renderQ(); setTimeout(nextStep, 260);
   });
 }
-$('qback').onclick = () => { if (qi > 0) { qi--; renderQ(); } else go('welcome'); };
+$('qback').onclick = () => { if (si > 0) { si--; renderQ(); } else go('welcome'); };
 
 /* ======================= scoring ======================= */
 const shared = g => Q.map((_, i) => g.answers[i] === me[i] ? i : -1).filter(i => i >= 0);
@@ -305,7 +340,7 @@ function fitCanvas() { const r = $('cbox').getBoundingClientRect(), k = $('phone
 function targetR(s) { const max = Math.min(W, H) / 2 - 26; return Math.min(max, 52 + (5 - s) * 29); }
 function startGraph() {
   fitCanvas();
-  const you = { id: -1, you: true, x: W / 2, y: H / 2, vx: 0, vy: 0, r: 25, s: 5, first: 'You' };
+  const you = { id: -1, you: true, x: W / 2, y: H / 2, vx: 0, vy: 0, r: 25, s: 5, first: myName || 'You' };
   nodes = [you, ...guests.map((g, i) => { const s = lvl(score(g)), a = i * 2.399 + .3, R = targetR(s); return { ...g, s, x: W / 2 + Math.cos(a) * R * .6, y: H / 2 + Math.sin(a) * R * .6, vx: 0, vy: 0, r: 9 + s * 2.3, born: (5 - s) * .35 + i * .035 }; })];
   links = [];
   for (let i = 1; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
@@ -313,9 +348,9 @@ function startGraph() {
     if (n >= 5 && nodes[i].s >= 1 && nodes[j].s >= 1) links.push([nodes[i], nodes[j], n]);
   }
   $('gsub').textContent = `${guests.length} guests · ${guests.filter(g => lvl(score(g)) >= 3).length} click with you`;
-  $('chips').innerHTML = `<button class="chip on" data-f="-1">All</button>` + Q.map((q, i) => `<button class="chip" data-f="${i}">${q.opts[me[i]][0]} ${q.label}</button>`).join('');
+  $('chips').innerHTML = `<button class="chip on" data-f="-1">All</button>` + Q.map((q, i) => me[i] === null ? '' : `<button class="chip" data-f="${i}">${q.opts[me[i]][0]} ${q.label}</button>`).join('');
   $('chips').querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = +c.dataset.f < 0 ? null : +c.dataset.f; $('chips').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c)); });
-  $('tops').innerHTML = rank().slice(0, 7).map(g => `<button class="mt" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><span>${g.first}<small>${score(g)}/${N} in common</small></span></button>`).join('');
+  $('tops').innerHTML = rank().slice(0, 7).map(g => `<button class="mt" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><span>${g.first}<small>${score(g)}/${answeredCount()} in common</small></span></button>`).join('');
   $('tops').querySelectorAll('.mt').forEach(b => b.onclick = () => select(guests[+b.dataset.id]));
   selected = null; filter = null; t0 = performance.now();
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
@@ -356,7 +391,8 @@ function loop() {
     if (n.you || n === selected) { ctx.beginPath(); ctx.arc(n.x, n.y, n.r * sc + 7 + Math.sin(t * 2.2) * 2, 0, 7); ctx.fillStyle = n.you ? 'rgba(217,138,147,.18)' : COL[n.s] + '33'; ctx.fill(); }
     ctx.beginPath(); ctx.arc(n.x, n.y, n.r * sc, 0, 7); ctx.fillStyle = n.you ? '#2b2a33' : COL[n.s]; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fffdf9'; ctx.stroke();
     ctx.fillStyle = n.you || n.s >= 3 ? '#fff' : '#5d5b66'; ctx.font = `700 ${n.you ? 13 : Math.max(9, n.r * .75)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(n.you ? 'YOU' : initials(n.name), n.x, n.y + .5);
+    ctx.fillText(n.you ? (myName || 'You').slice(0, 1).toUpperCase() : initials(n.name), n.x, n.y + .5);
+    if (n.you) { ctx.fillStyle = '#2b2a33'; ctx.font = '700 11px system-ui'; ctx.fillText(myName || 'You', n.x, n.y + n.r + 12); }
     if (!n.you && (n.s >= 3 || n === selected || (filter !== null && !faded(n)))) { ctx.fillStyle = '#2b2a33'; ctx.font = '600 10.5px system-ui'; ctx.fillText(n.first, n.x, n.y + n.r * sc + 11); }
     ctx.globalAlpha = 1;
   }
@@ -378,11 +414,12 @@ function select(g) {
   const av = $('p-av'); av.textContent = initials(g.name); av.style.background = avatarColor(g);
   const side = ['Bride’s', 'Groom’s', 'Mutual'][g.answers[0]], rel = g.answers[1] === 0 ? 'friend' : 'family';
   $('p-name').textContent = g.name; $('p-meta').textContent = `Table ${g.table} · ${g.answers[0] === 2 && g.answers[1] === 1 ? 'Family of both' : side + ' ' + rel}`;
-  $('p-score').textContent = `${s}/${N}`; $('p-score').style.color = c === '#d9d3c9' ? '#8b8794' : c; $('p-tier').textContent = TIER[L];
-  $('p-meter').style.setProperty('--c', c); $('p-meter').innerHTML = Q.map((_, i) => `<i class="${i < s ? 'f' : ''}"></i>`).join('');
-  const diff = Q.map((q, i) => i).filter(i => !sh.includes(i));
+  $('p-score').textContent = `${s}/${answeredCount()}`; $('p-score').style.color = c === '#d9d3c9' ? '#8b8794' : c; $('p-tier').textContent = TIER[L];
+  $('p-meter').style.setProperty('--c', c); $('p-meter').innerHTML = Array.from({ length: Math.max(1, answeredCount()) }, (_, i) => `<i class="${i < s ? 'f' : ''}"></i>`).join('');
+  const diff = Q.map((q, i) => i).filter(i => me[i] !== null && !sh.includes(i)), skipped = Q.map((q, i) => i).filter(i => me[i] === null);
   $('p-shared').innerHTML = (sh.length ? `<div class="lbl">You both</div><div class="pills">${sh.map(i => `<span class="pill" title="${Q[i].label}"><em>${Q[i].opts[g.answers[i]][0]}</em>${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '<div class="lbl">Nothing in common yet</div>')
-    + (diff.length ? `<div class="lbl">Different</div><div class="pills dim">${diff.map(i => `<span class="pill" title="${Q[i].label}"><em>${Q[i].opts[g.answers[i]][0]}</em>${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '');
+    + (diff.length ? `<div class="lbl">Different</div><div class="pills dim">${diff.map(i => `<span class="pill" title="${Q[i].label}"><em>${Q[i].opts[g.answers[i]][0]}</em>${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '')
+    + (skipped.length ? `<div class="lbl">You skipped</div><div class="skipnote">${skipped.map(i => Q[i].label).join(' · ')}</div>` : '');
   const st = sh.length ? (typeof Q[sh[0]].starter === 'function' ? Q[sh[0]].starter(Q[sh[0]].opts[g.answers[sh[0]]][1]) : Q[sh[0]].starter) : null;
   $('p-start').textContent = st ? `Ask ${g.first} about ${st}.` : `You two have nothing in common yet – ask ${g.first} what’s on their dessert plate.`;
   const w = $('p-wave'); w.textContent = 'Wave 👋'; w.classList.remove('done'); w.onclick = () => { w.textContent = 'Wave sent ✓'; w.classList.add('done'); toast(`${g.first} will get your wave at table ${g.table}`); };
