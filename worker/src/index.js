@@ -128,7 +128,7 @@ export class EventRoom extends DurableObject {
     if (!this.ready()) return err(404, 'unknown_event');
 
     if (path === '/event' && method === 'GET') return json(this.eventInfo());
-    if (path === '/manifest' && method === 'GET') return this.manifest(url);
+    if (path === '/manifest' && method === 'GET') return this.manifest(url, request.headers.get('X-App-Url'));
     if (path === '/join' && method === 'POST') return this.join(request);
     if (path === '/admin' || path.startsWith('/admin/')) return this.admin(request, path, method);
 
@@ -189,8 +189,8 @@ export class EventRoom extends DurableObject {
     return err(404, 'not_found');
   }
 
-  manifest(url) {
-    const app = this.env.APP_URL.replace(/\/?$/, '/'), slug = this.meta('slug'), pl = url.searchParams.get('lang') !== 'en';
+  manifest(url, app) {
+    const slug = this.meta('slug'), pl = url.searchParams.get('lang') !== 'en';
     const k = url.searchParams.get('k') || '', start = `${app}?e=${slug}` + (/^[A-Za-z0-9_-]{20,80}$/.test(k) ? `#k=${k}` : '');
     const icon = (f, s, p) => ({ src: `${app}icons/${f}`, sizes: `${s}x${s}`, type: 'image/png', purpose: p });
     return json({
@@ -273,8 +273,13 @@ export class EventRoom extends DurableObject {
   }
 }
 
+// APP_URLS lists every address the static app is served from (first = default). Their origins, plus
+// ALLOWED_ORIGINS for local development, are the browsers allowed to call the API.
+const appUrls = env => (env.APP_URLS || '').split(',').map(s => s.trim()).filter(Boolean).map(u => u.replace(/\/?$/, '/'));
+/** The app address this request came from (so manifests and links stay on the same domain), else the default. */
+function appFor(request, env) { const o = request.headers.get('Origin'), list = appUrls(env); return list.find(u => new URL(u).origin === o) || list[0]; }
 function corsHeaders(request, env) {
-  const origin = request.headers.get('Origin'), allowed = (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+  const origin = request.headers.get('Origin'), allowed = [...appUrls(env).map(u => new URL(u).origin), ...(env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean)];
   const h = { Vary: 'Origin' };
   if (origin && allowed.includes(origin)) Object.assign(h, { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Max-Age': '86400' });
   return h;
@@ -291,12 +296,13 @@ async function route(request, env, url) {
     const slug = randomString(20, SLUG_ABC), adminCode = randomString(12, CODE_ABC);
     const created = await env.ROOM.get(env.ROOM.idFromName(slug)).init({ slug, names, dateLine, adminHash: await sha256(adminCode) });
     if (!created) return err(409, 'exists');
-    return json({ slug, adminCode, url: `${env.APP_URL.replace(/\/?$/, '/')}?e=${slug}` }, 201);
+    return json({ slug, adminCode, url: `${appFor(request, env)}?e=${slug}` }, 201);
   }
   const m = url.pathname.match(/^\/api\/e\/([^/]+)(\/|$)/);
   if (m) {
     if (!SLUG_RE.test(m[1])) return err(404, 'unknown_event');
-    return env.ROOM.get(env.ROOM.idFromName(m[1])).fetch(request);
+    const h = new Headers(request.headers); h.set('X-App-Url', appFor(request, env));   // set here, so a client cannot choose it
+    return env.ROOM.get(env.ROOM.idFromName(m[1])).fetch(new Request(request, { headers: h }));
   }
   return err(404, 'not_found');
 }
