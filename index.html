@@ -3722,7 +3722,7 @@ function applyEvent() {   // couple's names and date on the welcome screen
 const isCouple = () => REAL && !!token && (myRole === 'bride' || myRole === 'groom');
 const photoAskHTML = () => `<div class="cpask"><div class="cp-ic">${ic('camera', 24)}</div><b>${tr('photoAskT')}</b><p>${tr('photoAskP')}</p><div class="row2"><button class="btn alt" type="button" data-photo="no">${tr('photoNo')}</button><button class="btn" type="button" data-photo="add">${ic('image-plus', 18)}${tr('photoAdd')}</button></div></div>`;
 function renderPhoto() {
-  if (!REAL) return;
+  if (!REAL) { const fig = $('cphoto'), img = $('cphoto-img'); if (!img.getAttribute('src')) img.src = 'img/bee.jpg'; img.alt = ''; fig.hidden = false; return; }   // demo: the bee stands in for the couple's photo
   const has = !!(EVT && EVT.photo), fig = $('cphoto'), img = $('cphoto-img');
   fig.hidden = !has;
   if (has) { const src = `${API}/api/e/${EVENT}/photo?v=${EVT.photo}`; if (img.getAttribute('src') !== src) img.src = src; img.alt = tr('photoAlt', EVT.names); }
@@ -4063,7 +4063,7 @@ function applyLang() {   // static texts via data-i18n / data-i18n-attr, then ev
   refreshUnread();
 }
 applyLang();
-if (REAL) bootReal();
+if (REAL) bootReal(); else renderPhoto();
 </script>
 </body>
 </html>
