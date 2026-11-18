@@ -686,6 +686,7 @@
   </div>
 </div>
 
+<script src="cropper.js"></script>
 <script>
 /* qrcode-generator 2.0.4 · (c) Kazuhiko Arase · MIT licence · inlined so the mockup works offline */
 //---------------------------------------------------------------------
@@ -3088,6 +3089,7 @@ const T = {
     shareTextReal: n => `Poznajmy się na brunchu ślubnym: ${n}`,
     err_messages_off: 'Ten gość ma wyłączone wiadomości', err_own_messages_off: 'Włącz wiadomości u siebie, żeby pisać do innych', err_slow_down: 'Za szybko. Spróbuj za chwilę.',
     err_guest_gone: 'Tego gościa nie ma już w wydarzeniu', err_event_full: 'Lista gości jest już pełna', err_bad_code: 'Kod pary młodej jest nieprawidłowy',
+    cropT: 'Ustaw zdjęcie', cropHint: 'Przesuń zdjęcie palcem, żeby wybrać kadr. Rozsuń palce albo użyj suwaka, żeby powiększyć.', cropZoom: 'Powiększenie', cropCancel: 'Anuluj', cropSave: 'Zapisz',
     photoAskT: 'Wasze zdjęcie pod imionami', photoAskP: 'Goście zobaczą je na ekranie powitalnym, pod waszymi imionami. Możecie też zrezygnować.',
     photoAdd: 'Dodaj zdjęcie', photoNo: 'Bez zdjęcia', photoChange: 'Zmień zdjęcie', photoRemove: 'Usuń zdjęcie',
     photoBusy: 'Wysyłam zdjęcie…', photoSaved: 'Zdjęcie dodane', photoRemoved: 'Bez zdjęcia – możecie je dodać później w panelu pary', photoAlt: n => `Zdjęcie: ${n}`,
@@ -3198,6 +3200,7 @@ const T = {
     shareTextReal: n => `Find your people at the wedding brunch: ${n}`,
     err_messages_off: 'Messages are turned off for this guest', err_own_messages_off: 'Turn your own messages on to write to others', err_slow_down: 'Too fast. Try again in a moment.',
     err_guest_gone: 'This guest is no longer in the event', err_event_full: 'The guest list is full', err_bad_code: 'The couple’s code is not valid',
+    cropT: 'Frame your photo', cropHint: 'Drag the photo to choose what shows. Pinch or use the slider to zoom.', cropZoom: 'Zoom', cropCancel: 'Cancel', cropSave: 'Save',
     photoAskT: 'Your photo under your names', photoAskP: 'Guests will see it on the welcome screen, under your names. You can also skip it.',
     photoAdd: 'Add a photo', photoNo: 'No photo', photoChange: 'Change photo', photoRemove: 'Remove photo',
     photoBusy: 'Uploading the photo…', photoSaved: 'Photo added', photoRemoved: 'No photo – you can add one later in the couple panel', photoAlt: n => `Photo: ${n}`,
@@ -3724,7 +3727,7 @@ function applyEvent() {   // couple's names and date on the welcome screen
 const isCouple = () => REAL && !!token && (myRole === 'bride' || myRole === 'groom');
 const photoAskHTML = () => `<div class="cpask"><div class="cp-ic">${ic('camera', 24)}</div><b>${tr('photoAskT')}</b><p>${tr('photoAskP')}</p><div class="row2"><button class="btn alt" type="button" data-photo="no">${tr('photoNo')}</button><button class="btn" type="button" data-photo="add">${ic('image-plus', 18)}${tr('photoAdd')}</button></div></div>`;
 function renderPhoto() {
-  if (!REAL) { const fig = $('cphoto'), img = $('cphoto-img'); if (!img.getAttribute('src')) img.src = 'img/bee.jpg'; img.alt = ''; fig.hidden = false; return; }   // demo: the bee stands in for the couple's photo
+  if (!REAL) { const fig = $('cphoto'), img = $('cphoto-img'); if (!img.getAttribute('src')) img.src = 'img/couple.jpg'; img.alt = ''; fig.hidden = false; return; }   // demo: a cartoon couple stands in for the couple's photo
   const has = !!(EVT && EVT.photo), fig = $('cphoto'), img = $('cphoto-img');
   fig.hidden = !has;
   if (has) { const src = `${API}/api/e/${EVENT}/photo?v=${EVT.photo}`; if (img.getAttribute('src') !== src) img.src = src; img.alt = tr('photoAlt', EVT.names); }
@@ -3732,15 +3735,6 @@ function renderPhoto() {
   const ask = isCouple() && EVT && !has && !EVT.photoState;   // not decided yet
   $('cpask-w').innerHTML = ask ? photoAskHTML() : '';
   const sa = document.getElementById('cpask-s'); if (sa) sa.innerHTML = ask ? photoAskHTML() : '';
-}
-async function shrinkPhoto(file) {   // longest side 1200 px, JPEG; re-encoding also drops EXIF data such as GPS position
-  let src;
-  try { src = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
-  catch (e) { src = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = URL.createObjectURL(file); }); }
-  const w = src.width || src.naturalWidth, h = src.height || src.naturalHeight, k = Math.min(1, 1200 / Math.max(w, h));
-  const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
-  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
-  return new Promise((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error('encode')), 'image/jpeg', 0.85));
 }
 async function sendPhoto(method, blob) {
   const r = await fetch(`${API}/api/e/${EVENT}/me/photo`, { method, headers: { Authorization: 'Bearer ' + token, ...(blob ? { 'Content-Type': blob.type } : {}) }, body: blob || undefined });
@@ -3750,7 +3744,8 @@ async function sendPhoto(method, blob) {
 }
 $('cp-file').onchange = async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
-  let blob; try { blob = await shrinkPhoto(f); } catch (x) { toast(tr('photoReadFail'), null, 4000); return; }
+  let blob; try { blob = await openCropper(f, { labels: { title: tr('cropT'), hint: tr('cropHint'), zoom: tr('cropZoom'), cancel: tr('cropCancel'), save: tr('cropSave') } }); } catch (x) { toast(tr('photoReadFail'), null, 4000); return; }
+  if (!blob) return;   // cancelled
   toast(tr('photoBusy'), null, 8000);
   try { await sendPhoto('PUT', blob); toast(tr('photoSaved')); } catch (x) { toast(errText(x), null, 4000); }
 };

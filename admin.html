@@ -132,6 +132,7 @@
   </section>
 </main>
 
+<script src="cropper.js"></script>
 <script>
 // ─── Constants ───
 const API = document.querySelector('meta[name="tt-api"]').content.trim().replace(/\/$/, '');
@@ -190,15 +191,6 @@ function render() {
 }
 async function load() { state.data = await admin(); render(); }
 
-async function shrinkPhoto(file) {   // longest side 1200 px, JPEG; re-encoding drops EXIF data such as GPS position
-  let src;
-  try { src = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
-  catch (e) { src = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = URL.createObjectURL(file); }); }
-  const w = src.width || src.naturalWidth, h = src.height || src.naturalHeight, k = Math.min(1, 1200 / Math.max(w, h));
-  const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
-  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
-  return new Promise((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error('encode')), 'image/jpeg', 0.85));
-}
 async function photoCall(method, blob) {
   const r = await fetch(`${API}/api/e/${state.slug}/admin/photo`, { method, headers: { Authorization: 'Bearer ' + state.code, ...(blob ? { 'Content-Type': blob.type } : {}) }, body: blob || undefined });
   const j = await r.json().catch(() => null);
@@ -217,7 +209,8 @@ $('f-edit').onsubmit = async e => {
 $('b-photo').onclick = () => $('photo-file').click();
 $('photo-file').onchange = async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
-  let blob; try { blob = await shrinkPhoto(f); } catch (x) { say('m-photo', 'Nie udało się odczytać tego zdjęcia.', 'err'); return; }
+  let blob; try { blob = await openCropper(f); } catch (x) { say('m-photo', 'Nie udało się odczytać tego zdjęcia.', 'err'); return; }
+  if (!blob) return;   // cancelled
   say('m-photo', 'Wysyłam zdjęcie…');
   try { await photoCall('PUT', blob); await load(); say('m-photo', 'Zdjęcie zapisane.', 'ok'); } catch (x) { say('m-photo', errText(x), 'err'); }
 };
