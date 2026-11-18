@@ -47,6 +47,9 @@
   .msg{font-size:14px;font-weight:600;min-height:20px;margin-top:10px}
   .msg.err{color:var(--rose-d)} .msg.ok{color:var(--sage-d)}
   .scroll{overflow-x:auto}
+  .photo-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .photo-box{width:200px;aspect-ratio:4/3;border-radius:20px;background:#f6f2fb;display:grid;place-items:center;overflow:hidden;color:var(--mute);font-size:13px;text-align:center;padding:0}
+  .photo-box img{width:100%;height:100%;object-fit:cover;object-position:50% 35%;display:block}
   [hidden]{display:none!important}
   @media (max-width:768px){main{padding:18px 14px 40px}h1{font-size:28px}}
 </style>
@@ -88,6 +91,20 @@
     <div class="row"><button type="button" class="alt" id="b-bride">Dołącz jako panna młoda</button><button type="button" class="alt" id="b-groom">Dołącz jako pan młody</button></div>
   </section>
 
+  <section class="card" id="photo-card" hidden>
+    <h2>Zdjęcie pary</h2>
+    <p>Goście zobaczą je na ekranie powitalnym, pod waszymi imionami. Możecie je dodać, zmienić albo zrezygnować ze zdjęcia.</p>
+    <div class="photo-row">
+      <div class="photo-box" id="photo-box"></div>
+      <div class="row" style="align-items:center">
+        <button type="button" id="b-photo">Wgraj zdjęcie</button>
+        <button type="button" class="danger" id="b-photo-x">Bez zdjęcia</button>
+        <input type="file" id="photo-file" accept="image/*" hidden>
+      </div>
+    </div>
+    <div class="msg" id="m-photo" role="status"></div>
+  </section>
+
   <section class="card" id="guests-card" hidden>
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Goście</h2><button type="button" class="alt" id="b-refresh">Odśwież</button></div>
     <div class="scroll"><table><thead><tr><th>Imię</th><th>Stół</th><th>Odpowiedzi</th><th>Widoczność</th><th>Dołączył(a)</th><th></th></tr></thead><tbody id="guests"></tbody></table></div>
@@ -119,7 +136,7 @@
 // ─── Constants ───
 const API = document.querySelector('meta[name="tt-api"]').content.trim().replace(/\/$/, '');
 const APP = new URL('./', location.href).href;
-const ERRORS = { bad_code: 'Nieprawidłowy kod pary młodej.', bad_key: 'Nieprawidłowy klucz operatora.', unknown_event: 'Nie ma takiego wydarzenia.', slow_down: 'Za dużo prób. Spróbuj za kilka minut.', bad_request: 'Sprawdź wpisane dane.', not_configured: 'Serwer nie ma ustawionego klucza operatora.' };
+const ERRORS = { not_an_image: 'To nie jest zdjęcie (JPG, PNG albo WebP).', photo_too_big: 'Zdjęcie jest za duże.', bad_code: 'Nieprawidłowy kod pary młodej.', bad_key: 'Nieprawidłowy klucz operatora.', unknown_event: 'Nie ma takiego wydarzenia.', slow_down: 'Za dużo prób. Spróbuj za kilka minut.', bad_request: 'Sprawdź wpisane dane.', not_configured: 'Serwer nie ma ustawionego klucza operatora.' };
 
 // ─── State ───
 const state = { slug: '', code: '', data: null };
@@ -152,13 +169,19 @@ function twoTap(btn, label, action) {   // second tap within 4 s confirms; avoid
 function render() {
   const d = state.data, on = !!d;
   document.body.dataset.state = on ? 'open' : 'closed';
-  for (const id of ['panel', 'guests-card', 'wipe-card']) $(id).hidden = !on;
+  for (const id of ['panel', 'photo-card', 'guests-card', 'wipe-card']) $(id).hidden = !on;
   if (!on) return;
   $('ev-title').textContent = d.event.names; $('names').value = d.event.names; $('dateLine').value = d.event.dateLine || '';
   const day = iso => new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
   $('stats').innerHTML = [[d.guests.length, 'gości'], [d.online, 'teraz w aplikacji'], [d.messages, 'wiadomości'], [day(d.event.purgeAt), 'automatyczne usunięcie danych']]
     .map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
   $('links').innerHTML = linkRow('goście', guestUrl());
+  const ev = d.event;
+  $('photo-box').innerHTML = ev.photo ? `<img src="${API}/api/e/${state.slug}/photo?v=${ev.photo}" alt="Zdjęcie pary">`
+    : `<span>${ev.photoState === 'declined' ? 'Bez zdjęcia (wybór pary)' : 'Brak zdjęcia'}</span>`;
+  $('b-photo').textContent = ev.photo ? 'Zmień zdjęcie' : 'Wgraj zdjęcie';
+  $('b-photo-x').textContent = ev.photo ? 'Usuń zdjęcie' : 'Bez zdjęcia';
+  $('b-photo-x').hidden = !ev.photo && ev.photoState === 'declined';
   $('guests').innerHTML = d.guests.map(g => `<tr data-id="${esc(g.id)}"><td>${esc(g.name)} ${g.role ? `<span class="tag">${g.role === 'bride' ? 'panna młoda' : 'pan młody'}</span>` : ''}</td><td>${esc(g.table ?? '–')}</td><td>${esc(g.answered)}/10</td><td>${g.visible ? 'na grafie' : 'ukryty(-a)'}</td><td>${esc(new Date(g.createdAt).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td><td><button type="button" class="danger" data-del="${esc(g.id)}">Usuń</button></td></tr>`).join('')
     || '<tr><td colspan="6">Nikt jeszcze nie dołączył.</td></tr>';
   $('guests').querySelectorAll('[data-del]').forEach(b => twoTap(b, 'Na pewno?', async () => {
@@ -166,6 +189,21 @@ function render() {
   }));
 }
 async function load() { state.data = await admin(); render(); }
+
+async function shrinkPhoto(file) {   // longest side 1200 px, JPEG; re-encoding drops EXIF data such as GPS position
+  let src;
+  try { src = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch (e) { src = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = URL.createObjectURL(file); }); }
+  const w = src.width || src.naturalWidth, h = src.height || src.naturalHeight, k = Math.min(1, 1200 / Math.max(w, h));
+  const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return new Promise((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error('encode')), 'image/jpeg', 0.85));
+}
+async function photoCall(method, blob) {
+  const r = await fetch(`${API}/api/e/${state.slug}/admin/photo`, { method, headers: { Authorization: 'Bearer ' + state.code, ...(blob ? { 'Content-Type': blob.type } : {}) }, body: blob || undefined });
+  const j = await r.json().catch(() => null);
+  if (!r.ok) { const e = new Error('api'); e.code = (j && j.error) || 'http_' + r.status; throw e; }
+}
 
 // ─── Listeners ───
 $('f-login').onsubmit = async e => {
@@ -175,6 +213,16 @@ $('f-login').onsubmit = async e => {
 $('f-edit').onsubmit = async e => {
   e.preventDefault();
   try { await admin('', { method: 'PUT', body: { names: $('names').value, dateLine: $('dateLine').value } }); await load(); say('m-login', 'Zapisano.', 'ok'); } catch (x) { say('m-login', errText(x), 'err'); }
+};
+$('b-photo').onclick = () => $('photo-file').click();
+$('photo-file').onchange = async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+  let blob; try { blob = await shrinkPhoto(f); } catch (x) { say('m-photo', 'Nie udało się odczytać tego zdjęcia.', 'err'); return; }
+  say('m-photo', 'Wysyłam zdjęcie…');
+  try { await photoCall('PUT', blob); await load(); say('m-photo', 'Zdjęcie zapisane.', 'ok'); } catch (x) { say('m-photo', errText(x), 'err'); }
+};
+$('b-photo-x').onclick = async () => {
+  try { await photoCall('DELETE'); await load(); say('m-photo', 'Bez zdjęcia. Możecie je dodać w każdej chwili.', 'ok'); } catch (x) { say('m-photo', errText(x), 'err'); }
 };
 $('b-refresh').onclick = () => load().then(() => say('m-guests', 'Odświeżono.', 'ok'), x => say('m-guests', errText(x), 'err'));
 $('b-tables').onclick = () => { const n = Math.min(200, Math.max(0, parseInt($('tables').value, 10) || 0)); $('table-links').innerHTML = Array.from({ length: n }, (_, i) => linkRow('stół ' + (i + 1), guestUrl(i + 1))).join(''); };

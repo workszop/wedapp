@@ -5,7 +5,9 @@
 // 300-guest evening inside the free plan, and "delete everything" is one deleteAll() on the event's object.
 //
 // Public routes (all under /api/e/:slug):
-//   GET    /event               event name, date line and guest count (no auth)
+//   GET    /event               event name, date line, guest count and photo version (no auth)
+//   GET    /photo               the couple's photo (no auth; guests see it on the welcome screen)
+//   PUT    /me/photo  DELETE /me/photo   bride or groom only: raw image body / remove (= no photo)
 //   GET    /manifest            web app manifest whose start_url keeps the event (and, with ?r=, a restore code)
 //   POST   /join                {name, answers[10], token?, table?, role?, code?} -> {token, me}   (same token again = same guest)
 //   GET    /me   PUT /me   DELETE /me      own profile, answers and settings; delete = erase my data
@@ -14,7 +16,7 @@
 //   GET    /graph               every visible guest except me: id, name, table, role, answers, msg
 //   GET    /inbox   GET /messages?with=ID   POST /messages {to, body}   POST /messages/read {with}
 //   GET    /ws                  WebSocket (token in Sec-WebSocket-Protocol: "tt, <token>")
-//   GET    /admin   PUT /admin   DELETE /admin   DELETE /admin/guests/:id     couple only (Bearer admin code)
+//   GET    /admin   PUT /admin   DELETE /admin   DELETE /admin/guests/:id   PUT|DELETE /admin/photo     couple only (Bearer admin code)
 // Operator route:
 //   POST   /api/admin/events    {names, dateLine, adminCode?} with Bearer MASTER_KEY -> {slug, adminCode}   (adminCode lets the operator reuse a couple's code)
 import { DurableObject } from 'cloudflare:workers';
@@ -26,6 +28,8 @@ const MAX_GUESTS = 200, MAX_BODY = 500, KEEP_DAYS = 60;
 const JOIN_LIMIT = [300, 10 * 60e3];  // joins per IP per window – above the guest cap, because the whole venue shares one Wi-Fi address
 const SEND_LIMIT = [20, 60e3];        // messages per guest per window
 const ADMIN_FAILS = [8, 10 * 60e3];   // wrong couple codes per IP per window before further wrong ones get 429
+const PHOTO_MAX = 1500 * 1024;   // the app shrinks photos to ~200 KB before upload; this is only a safety cap
+const imageType = b => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? 'image/jpeg' : b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 ? 'image/png' : b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50 ? 'image/webp' : null;
 const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/, RESTORE_RE = /^[A-Za-z0-9_-]{32}$/, RESTORE_TTL = 24 * 3600e3;
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers } });
@@ -72,7 +76,8 @@ export class EventRoom extends DurableObject {
   /** sessions: extra login tokens of a guest (the installed app). restores: short-lived codes that let the installed app log in as the guest. */
   extraTables() {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, guest_id INTEGER NOT NULL);
-      CREATE TABLE IF NOT EXISTS restores (hash TEXT PRIMARY KEY, guest_id INTEGER NOT NULL, exp INTEGER NOT NULL);`);
+      CREATE TABLE IF NOT EXISTS restores (hash TEXT PRIMARY KEY, guest_id INTEGER NOT NULL, exp INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS photo (k INTEGER PRIMARY KEY CHECK (k = 1), mime TEXT NOT NULL, data BLOB NOT NULL);`);
   }
   meta(k) { const r = this.sql.exec('SELECT v FROM meta WHERE k = ?', k).toArray()[0]; return r ? r.v : null; }
   setMeta(k, v) { this.sql.exec('INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, String(v)); }
@@ -109,7 +114,34 @@ export class EventRoom extends DurableObject {
   me(g) { return { id: String(g.id), name: g.name, answers: JSON.parse(g.answers), table: g.tbl, role: g.role, allowMessages: !!g.allow_messages, visible: !!g.visible }; }
   card(g) { return { id: String(g.id), name: g.name, answers: JSON.parse(g.answers), table: g.tbl, role: g.role, msg: !!g.allow_messages }; }
   msg(m, meId) { const who = id => id === meId ? 'me' : String(id); return { id: String(m.id), from: who(m.from_id), to: who(m.to_id), body: m.body, at: m.at, readAt: m.read_at }; }
-  eventInfo() { return { slug: this.meta('slug'), names: this.meta('names'), dateLine: this.meta('dateLine'), guests: this.one('SELECT COUNT(*) AS n FROM guests').n }; }
+  eventInfo() {
+    const ps = this.meta('photoState') || '';   // '' = not decided yet, 'set', 'declined'
+    return { slug: this.meta('slug'), names: this.meta('names'), dateLine: this.meta('dateLine'), guests: this.one('SELECT COUNT(*) AS n FROM guests').n, photo: ps === 'set' ? +(this.meta('photoV') || 1) : 0, photoState: ps };
+  }
+
+  // ---------- the couple's photo (shown under their names on the welcome screen) ----------
+  async putPhoto(request) {
+    const len = +(request.headers.get('Content-Length') || 0);
+    if (len > PHOTO_MAX) return err(413, 'photo_too_big');
+    const buf = await request.arrayBuffer();
+    if (!buf.byteLength || buf.byteLength > PHOTO_MAX) return err(buf.byteLength ? 413 : 400, buf.byteLength ? 'photo_too_big' : 'bad_request');
+    const b = new Uint8Array(buf, 0, Math.min(12, buf.byteLength)), mime = imageType(b);
+    if (!mime) return err(415, 'not_an_image');
+    this.sql.exec('INSERT INTO photo (k, mime, data) VALUES (1, ?, ?) ON CONFLICT(k) DO UPDATE SET mime = excluded.mime, data = excluded.data', mime, buf);
+    this.setMeta('photoV', (+(this.meta('photoV') || 0)) + 1); this.setMeta('photoState', 'set');
+    this.broadcast({ type: 'event' });
+    return json(this.eventInfo());
+  }
+  dropPhoto() {   // removing the photo also means "no photo, thanks": the couple is not asked again
+    this.sql.exec('DELETE FROM photo'); this.setMeta('photoState', 'declined');
+    this.broadcast({ type: 'event' });
+    return json(this.eventInfo());
+  }
+  getPhoto() {
+    const r = this.one('SELECT mime, data FROM photo WHERE k = 1');
+    if (!r || this.meta('photoState') !== 'set') return err(404, 'no_photo');
+    return new Response(r.data, { headers: { 'Content-Type': r.mime, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' } });
+  }
 
   // ---------- realtime ----------
   sendTo(gid, obj) { const s = JSON.stringify(obj); for (const ws of this.ctx.getWebSockets('g:' + gid)) { try { ws.send(s); } catch (e) {} } }
@@ -148,6 +180,7 @@ export class EventRoom extends DurableObject {
     if (!this.ready()) return err(404, 'unknown_event');
 
     if (path === '/event' && method === 'GET') return json(this.eventInfo());
+    if (path === '/photo' && method === 'GET') return this.getPhoto();
     if (path === '/manifest' && method === 'GET') return this.manifest(url, request.headers.get('X-App-Url'));
     if (path === '/join' && method === 'POST') return this.join(request);
     if (path === '/restore' && method === 'POST') return this.restore(request);
@@ -178,6 +211,11 @@ export class EventRoom extends DurableObject {
       const u = this.one('UPDATE guests SET role = ?, answers = ?, updated_at = ? WHERE id = ? RETURNING *', b.role, JSON.stringify(a), now(), g.id);
       this.announce(u);
       return json(this.me(u));
+    }
+    if (path === '/me/photo') {   // the bride or the groom can add, replace or decline the photo from the app
+      if (!g.role) return err(403, 'couple_only');
+      if (method === 'PUT') return this.putPhoto(request);
+      if (method === 'DELETE') return this.dropPhoto();
     }
     if (path === '/me/restore' && method === 'POST') {   // code for the manifest of the installed app; reusable for a day, so the login token never travels in a URL
       const code = randomString(32, TOKEN_ABC), exp = Date.now() + RESTORE_TTL;
@@ -326,6 +364,8 @@ export class EventRoom extends DurableObject {
       return json(this.eventInfo());
     }
     if (path === '/admin' && method === 'DELETE') { await this.wipe(); return json({ deleted: true }); }
+    if (path === '/admin/photo' && method === 'PUT') return this.putPhoto(request);
+    if (path === '/admin/photo' && method === 'DELETE') return this.dropPhoto();
     const m = path.match(/^\/admin\/guests\/(\d+)$/);
     if (m && method === 'DELETE') { this.removeGuest(parseInt(m[1], 10)); return json({ deleted: true }); }
     return err(404, 'not_found');
