@@ -458,7 +458,7 @@
           <div>
             <button class="btn" id="start">Find my people</button>
             <button class="btn ghost" id="sample">Skip – preview with sample answers</button>
-            <div class="wrow"><button class="btn ghost share-open" id="share-open"></button><button class="btn ghost share-open" id="install-btn" hidden></button></div>
+            <div class="wrow"><button class="btn ghost share-open" id="share-open"></button></div>
           </div>
         </div>
 
@@ -2872,7 +2872,7 @@ const T = {
     qrCard: '<b>Otwórz na telefonie</b><span>Zeskanuj kod aparatem. Aplikacja jest zrobiona pod telefony.</span>',
     note: 'Wersja demo: odpowiedzi wpisujesz naprawdę, goście są fikcyjni (para młoda też korzysta z aplikacji). Otwórz na telefonie, żeby zobaczyć widok pełnoekranowy.',
     banner: '<b>Aplikacja na pełnym ekranie</b><small>Bez paska adresu · działa offline</small>',
-    how: 'Jak?', install: 'Zainstaluj', installPhone: 'Zainstaluj na telefonie', gotIt: 'Jasne',
+    how: 'Jak?', install: 'Zainstaluj', gotIt: 'Jasne',
     close: 'Zamknij', back: 'Wstecz', navMain: 'Główna nawigacja', guideAria: 'Instalacja aplikacji',
     shareOpen: 'Udostępnij aplikację', shareT: 'Udostępnij Table Talk', shareP: 'Zeskanuj aparatem telefonu, aby otworzyć aplikację',
     shareLink: 'Udostępnij link', copyLink: 'Kopiuj link', linkCopied: 'Skopiowano link', shareText: 'Poznajmy się na weselu Ani i Marka',
@@ -2980,7 +2980,7 @@ const T = {
     qrCard: '<b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span>',
     note: 'Demo – answers are real inputs, the guests are fictional (the couple use the app too). Open on a phone for the full-screen view.',
     banner: '<b>Get the full-screen app</b><small>No address bar · works offline</small>',
-    how: 'How', install: 'Install', installPhone: 'Install on your phone', gotIt: 'Got it',
+    how: 'How', install: 'Install', gotIt: 'Got it',
     close: 'Close', back: 'Back', navMain: 'Main', guideAria: 'Install the app',
     shareOpen: 'Share the app', shareT: 'Share Table Talk', shareP: 'Scan with a phone camera to open the app',
     shareLink: 'Share link', copyLink: 'Copy link', linkCopied: 'Link copied', shareText: 'Find your people at Ania & Marek’s reception',
@@ -3787,11 +3787,9 @@ setTimeout(syncBanner, 1400);
 let deferredPrompt = null;
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-function updateInstall() { const b = $('install-btn'), can = !standalone() && (deferredPrompt || isIOS || isAndroid || inApp) && !framed(); b.hidden = !can; if (can) b.innerHTML = ic('download', 18) + tr('installPhone'); }
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; updateInstall(); if (typeof syncBanner === 'function') syncBanner(); });
-addEventListener('appinstalled', () => { deferredPrompt = null; updateInstall(); });
-async function runInstall() { if (!deferredPrompt) return openGuide(); deferredPrompt.prompt(); const r = await deferredPrompt.userChoice.catch(() => ({})); deferredPrompt = null; updateInstall(); if (r.outcome === 'dismissed') openGuide(); }
-$('install-btn').onclick = () => { if (deferredPrompt && !inApp) runInstall(); else openGuide(); };
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (typeof syncBanner === 'function') syncBanner(); });
+addEventListener('appinstalled', () => { deferredPrompt = null; syncBanner(); });
+async function runInstall() { if (!deferredPrompt) return openGuide(); deferredPrompt.prompt(); const r = await deferredPrompt.userChoice.catch(() => ({})); deferredPrompt = null; if (r.outcome === 'dismissed') openGuide(); }
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
 /* ======================= welcome mini-graph (decorative) ======================= */
@@ -3811,7 +3809,7 @@ function refitGraph() {
   const keep = nodes.map(n => [n.x / W, n.y / H]); fitCanvas(); nodes.forEach((n, i) => { n.x = keep[i][0] * W; n.y = keep[i][1] * H; });
 }
 function fit() {
-  const p = $('phone'), w = $('wrap'); document.documentElement.classList.toggle('native', !framed()); updateInstall();
+  const p = $('phone'), w = $('wrap'); document.documentElement.classList.toggle('native', !framed());
   if (framed()) { const k = Math.min(1, (innerHeight - 40) / 820); p._scale = k; p.style.transform = `scale(${k})`; w.style.width = 390 * k + 'px'; w.style.height = 820 * k + 'px'; }
   else { p._scale = 1; p.style.transform = ''; w.style.width = ''; w.style.height = ''; }   // phones: real full-screen app, no frame, no scaling
   refitGraph();
@@ -3833,7 +3831,7 @@ function applyLang() {   // static texts via data-i18n / data-i18n-attr, then ev
     el.querySelectorAll('button').forEach(b => b.onclick = () => setLang(b.dataset.lang));
   });
   if (REAL) { applyEvent(); updateManifest(); }
-  renderChrome(); drawMini(); mountTabbar(); syncTabbar(); syncWelcome(); rerenderWelcome(); renderQ(); bannerCopy(); updateInstall();
+  renderChrome(); drawMini(); mountTabbar(); syncTabbar(); syncWelcome(); rerenderWelcome(); renderQ(); bannerCopy();
   if ($('s-summary').classList.contains('active')) renderSummary();
   if ($('s-inbox').classList.contains('active')) renderInbox();
   if (nodes.length) { nodes[0].first = myName || tr('you'); mountSeg('seg-graph', 'graph'); }

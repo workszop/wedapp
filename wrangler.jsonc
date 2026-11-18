@@ -1,0 +1,9 @@
+{
+  // Static site for bee-talk.app (Worker "wedapp", built by Cloudflare on every push to main).
+  // The API lives in worker/ and is deployed separately as "wedapp-api".
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wedapp",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "." },
+  "routes": [{ "pattern": "bee-talk.app", "custom_domain": true }]
+}

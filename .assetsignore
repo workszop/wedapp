@@ -1,0 +1,10 @@
+# not part of the site
+.git
+.gitignore
+.assetsignore
+.wrangler
+node_modules
+wrangler.jsonc
+worker
+*.secret
+.dev.vars
