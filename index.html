@@ -2859,6 +2859,7 @@ function go(name) {
   if (name === 'graph') startGraph();
   if (name === 'summary') renderSummary();
   if (name === 'inbox') renderInbox();
+  if (name === 'welcome') syncWelcome();
   if (name !== 'graph') closeSheet();
   syncTabbar(); if (typeof syncBanner === 'function') syncBanner();
 }
@@ -2872,8 +2873,8 @@ document.querySelectorAll('#steps button').forEach(b => b.onclick = () => {
   if (t === 'profile') { ensureAnswers(); showView('graph'); setTimeout(() => select(rank()[0]), 900); }
 });
 function ensureAnswers() { if (!myName) myName = 'Alex'; me = me.map(a => a === null ? 0 : a); }
-$('start').onclick = () => { me = blank(); si = 0; renderQ(); go('quiz'); };
-$('sample').onclick = () => { myName = 'Alex'; me = Q.map(() => 0); flushWelcomeReply(); go('loading'); setTimeout(() => showView('summary'), 1500); };
+$('start').onclick = () => { if (mandatoryDone()) { showView('summary'); return; } me = blank(); si = 0; renderQ(); go('quiz'); };
+$('sample').onclick = () => { if (mandatoryDone()) { myName = ''; me = blank(); si = 0; renderQ(); go('quiz'); return; } myName = 'Alex'; me = Q.map(() => 0); flushWelcomeReply(); go('loading'); setTimeout(() => showView('summary'), 1500); };
 
 /* ======================= quiz =======================
    Required: name, bride-or-groom, friend-or-family. Everything else is optional (skip, or tap a chosen card again to clear it). */
@@ -2941,13 +2942,19 @@ const rank = () => [...guests].sort((a, b) => score(b) - score(a) || a.id - b.id
 let view = 'summary';
 function showView(v) {
   view = v;
+  if (v === 'home') { go('welcome'); return; }
   if (v === 'graph') { go('graph'); return; }
   if (v === 'chats') { go('inbox'); return; }
   if (!$('s-summary').classList.contains('active')) go('summary'); else renderSummary();
 }
 function segHTML(active) { return [['summary', 'Summary', 'layout-list'], ['names', 'Names', 'users'], ['graph', 'Graph', 'network'], ['chats', 'Chats', 'message-circle']].map(([k, l, i]) => `<button data-v="${k}" class="${k === active ? 'on' : ''}">${ic(i, 16)}${l}${k === 'chats' ? '<span class="bdg" style="display:none"></span>' : ''}</button>`).join(''); }
 /* native-style bottom tab bar (replaces the segmented control on every results screen) */
-const TABS = [['summary', 'Summary', 'layout-list'], ['names', 'Names', 'users'], ['graph', 'Graph', 'network'], ['chats', 'Chats', 'message-circle']];
+const TABS = [['home', 'Home', 'house'], ['summary', 'Summary', 'layout-list'], ['names', 'Names', 'users'], ['graph', 'Graph', 'network'], ['chats', 'Chats', 'message-circle']];
+function syncWelcome() {   // returning from the results: keep their answers unless they choose to start over
+  const back = !!mandatoryDone();
+  $('start').textContent = back ? 'Back to my matches' : 'Find my people';
+  $('sample').textContent = back ? 'Start over with new answers' : 'Skip – preview with sample answers';
+}
 function mountTabbar() {
   $('tabbar').innerHTML = TABS.map(([k, l, i]) => `<button data-v="${k}" aria-label="${l}">${ic(i, 24, 1.8)}<span>${l}</span>${k === 'chats' ? '<i class="bdg" style="display:none"></i>' : ''}</button>`).join('');
   $('tabbar').querySelectorAll('button').forEach(b => b.onclick = () => showView(b.dataset.v));
