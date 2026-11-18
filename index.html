@@ -3510,9 +3510,10 @@ function LiveBackend() {
    State lives on the server; the phone keeps only the guest token (localStorage, per event). */
 const NAME_RE = /^[\p{L}\p{M}\d .'’-]{1,24}$/u, nameOk = () => NAME_RE.test(myName.trim());   // same rule as the Worker
 const errText = e => e && e.code ? (typeof T[LANG]['err_' + e.code] === 'string' ? tr('err_' + e.code) : tr('sendFail')) : REAL ? tr('netFail') : (e && e.message) || tr('sendFail');
-const TOKEN_KEY = 'tt_token_' + EVENT, ROLE_KEY = 'tt_role_' + EVENT, known = new Map();
+const TOKEN_KEY = 'tt_token_' + EVENT, ROLE_KEY = 'tt_role_' + EVENT, JOIN_KEY = 'tt_join_' + EVENT, RESTORE_KEY = 'tt_restore_' + EVENT, known = new Map();
+const randomToken = () => { const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; return [...crypto.getRandomValues(new Uint8Array(43))].map(b => abc[b % 64]).join(''); };   // login tokens are made on the phone
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
-let token = '', EVT = null, mySettings = { allowMessages: true, visible: true }, myTable = null, lastSaved = '', saveTimer = null, saving = Promise.resolve();
+let restorePending = '', joinToken = '', token = '', EVT = null, mySettings = { allowMessages: true, visible: true }, myTable = null, lastSaved = '', saveTimer = null, saving = Promise.resolve();
 const norm = c => ({ id: +c.id, name: c.name, first: c.name.split(' ')[0], table: c.table, answers: c.answers, msg: c.msg, ...(c.role ? { couple: c.role } : {}) });
 async function api(path, { method = 'GET', body } = {}) {
   const r = await fetch(`${API}/api/e/${EVENT}${path}`, { method, headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -3520,10 +3521,11 @@ async function api(path, { method = 'GET', body } = {}) {
   if (!r.ok) { const e = new Error((j && j.error) || 'http_' + r.status); e.status = r.status; e.code = (j && j.error) || 'http'; throw e; }
   return j;
 }
-if (REAL) (function readUrl() {   // #k=<token> (installed app / restore link), #role=bride|groom&code=<admin code> (the couple), ?t=<table> (per-table QR)
+if (REAL) (function readUrl() {   // #r=<restore code> (installed app), #role=bride|groom&code=<admin code> (the couple), ?t=<table> (per-table QR)
   document.documentElement.classList.add('real');
   const h = new URLSearchParams(location.hash.slice(1)), q = new URLSearchParams(location.search);
-  const k = h.get('k'); if (k && /^[A-Za-z0-9_-]{20,80}$/.test(k)) store.set(TOKEN_KEY, k);
+  const k = h.get('k'); if (k && /^[A-Za-z0-9_-]{20,80}$/.test(k)) store.set(TOKEN_KEY, k);   // apps installed before restore codes existed
+  const r = h.get('r'); if (r && /^[A-Za-z0-9_-]{32}$/.test(r)) restorePending = r;
   const role = h.get('role'), code = h.get('code'); if ((role === 'bride' || role === 'groom') && code) { try { sessionStorage.setItem(ROLE_KEY, JSON.stringify({ role, code })); } catch (e) {} }
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);   // keep secrets out of the address bar and of shared links
   const t = parseInt(q.get('t'), 10); if (t >= 1 && t <= 200) myTable = t;
@@ -3531,8 +3533,20 @@ if (REAL) (function readUrl() {   // #k=<token> (installed app / restore link), 
 })();
 const pendingRole = () => { try { return JSON.parse(sessionStorage.getItem(ROLE_KEY)); } catch (e) { return null; } };
 function adoptMe(m) { myName = m.name; me = m.answers.slice(); mySettings = { allowMessages: m.allowMessages, visible: m.visible }; if (m.table) myTable = m.table; lastSaved = JSON.stringify({ name: m.name, answers: m.answers }); }
+/* The installed app has its own storage (iOS), so its start_url carries a restore code: reusable for a day, traded for a login
+   of its own on first launch. The login token itself never appears in a URL. */
+const restoreCode = () => { try { const r = JSON.parse(store.get(RESTORE_KEY)); return r && r.exp - Date.now() > 12 * 3600e3 ? r.code : ''; } catch (e) { return ''; } };
+async function ensureRestore() {
+  if (!token || restoreCode()) return;
+  try { const r = await api('/me/restore', { method: 'POST' }); store.set(RESTORE_KEY, JSON.stringify({ code: r.code, exp: r.expiresAt })); updateManifest(); } catch (e) {}
+}
 function updateManifest() {   // the installed app must open this event (and this guest), not the demo
-  const l = document.querySelector('link[rel="manifest"]'); if (l) l.href = `${API}/api/e/${EVENT}/manifest?lang=${LANG}` + (token ? '&k=' + encodeURIComponent(token) : '');
+  const l = document.querySelector('link[rel="manifest"]'), rc = token ? restoreCode() : ''; if (l) l.href = `${API}/api/e/${EVENT}/manifest?lang=${LANG}` + (rc ? '&r=' + rc : '');
+}
+async function claimRole() {   // the couple's link opened on a phone that had already joined as a guest
+  const p = pendingRole(); if (!p || !token) return;
+  try { adoptMe(await api('/me/role', { method: 'POST', body: p })); try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} syncWelcome(); renderQ(); }
+  catch (e) { if (e.code === 'bad_code') { try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} } toast(errText(e), null, 4000); }
 }
 function applyEvent() {   // couple's names and date on the welcome screen
   const names = EVT ? EVT.names : '', caps = names.split(/\s+/).filter(w => /^\p{Lu}/u.test(w)).map(w => w[0]).slice(0, 2);
@@ -3550,10 +3564,11 @@ async function pushMe() {   // join on the first save, update afterwards; always
   if (token && sig === lastSaved) return;
   try {
     if (!token) {
-      const r = await api('/join', { method: 'POST', body: { ...body, table: myTable, ...(p || {}) } });
-      token = r.token; store.set(TOKEN_KEY, token); try { sessionStorage.removeItem(ROLE_KEY); } catch (e) {}
-      mySettings = { allowMessages: r.me.allowMessages, visible: r.me.visible }; lastSaved = sig; updateManifest(); backend.connect();   // connect -> 'sync' -> loadGraph
-    } else { await api('/me', { method: 'PUT', body }); lastSaved = sig; }
+      let jt = store.get(JOIN_KEY) || joinToken; if (!jt) { jt = joinToken = randomToken(); store.set(JOIN_KEY, jt); }   // kept until the join is confirmed: repeating it cannot create a second guest
+      const r = await api('/join', { method: 'POST', body: { ...body, token: jt, table: myTable, ...(p || {}) } });
+      token = r.token; store.set(TOKEN_KEY, token); store.set(JOIN_KEY, null); joinToken = ''; try { sessionStorage.removeItem(ROLE_KEY); } catch (e) {}
+      mySettings = { allowMessages: r.me.allowMessages, visible: r.me.visible }; lastSaved = sig; updateManifest(); backend.connect(); ensureRestore();   // connect -> 'sync' -> loadGraph
+    } else { await api('/me', { method: 'PUT', body }); lastSaved = sig; if (pendingRole()) await claimRole(); }
     saveRetry = 0;
   } catch (e) {
     if ((!e.status || e.status === 429 || e.status >= 500) && saveRetry < 6) { clearTimeout(saveTimer); saveTimer = setTimeout(flushMe, Math.min(60000, 5000 * 2 ** saveRetry++)); }   // no connection or rate limit: try again by itself
@@ -3592,15 +3607,18 @@ function onLive(ev) {   // pushes from the WebSocket
   refreshViews();
 }
 function forgetMe(reset) {   // drop the token; with reset also the local answers (after "delete my data" or removal by the couple)
-  token = ''; store.set(TOKEN_KEY, null); lastSaved = ''; backend.close(); updateManifest();
+  token = ''; joinToken = ''; store.set(TOKEN_KEY, null); store.set(JOIN_KEY, null); store.set(RESTORE_KEY, null); lastSaved = ''; backend.close(); updateManifest();
   if (reset) { myName = ''; me = blank(); guests.length = 0; closeSheet(); si = 0; renderQ(); go('welcome'); }
 }
 async function bootReal() {
   updateManifest();
   try { EVT = await api('/event'); } catch (e) { toast(tr(e.status === 404 ? 'eventMissing' : 'netFail'), null, 9000); if (e.status === 404) $('start').disabled = true; return; }
   applyEvent();
+  if (!token && restorePending) {   // first launch of the installed app: log in as the guest who installed it
+    const t = randomToken(); try { await api('/restore', { method: 'POST', body: { code: restorePending, token: t } }); token = t; store.set(TOKEN_KEY, t); } catch (e) {}
+  }
   if (!token) return;
-  try { adoptMe(await api('/me')); syncWelcome(); renderQ(); backend.connect(); } catch (e) { if (e.status === 401) forgetMe(); }
+  try { adoptMe(await api('/me')); syncWelcome(); renderQ(); backend.connect(); await claimRole(); ensureRestore(); } catch (e) { if (e.status === 401) forgetMe(); }
 }
 
 const backend = REAL ? LiveBackend() : MockBackend({ getGuest: guestById });

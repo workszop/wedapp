@@ -6,9 +6,11 @@
 //
 // Public routes (all under /api/e/:slug):
 //   GET    /event               event name, date line and guest count (no auth)
-//   GET    /manifest            web app manifest whose start_url keeps the event (and, with ?k=, the guest token)
-//   POST   /join                {name, answers[10], table?, role?, code?} -> {token, me}
+//   GET    /manifest            web app manifest whose start_url keeps the event (and, with ?r=, a restore code)
+//   POST   /join                {name, answers[10], token?, table?, role?, code?} -> {token, me}   (same token again = same guest)
 //   GET    /me   PUT /me   DELETE /me      own profile, answers and settings; delete = erase my data
+//   POST   /me/role {role, code}           take the bride/groom role on an existing guest
+//   POST   /me/restore -> {code}   POST /restore {code, token}     log the installed app in as the same guest
 //   GET    /graph               every visible guest except me: id, name, table, role, answers, msg
 //   GET    /inbox   GET /messages?with=ID   POST /messages {to, body}   POST /messages/read {with}
 //   GET    /ws                  WebSocket (token in Sec-WebSocket-Protocol: "tt, <token>")
@@ -23,7 +25,8 @@ const NAME_RE = /^[\p{L}\p{M}\d .'’-]{1,24}$/u;
 const MAX_GUESTS = 200, MAX_BODY = 500, KEEP_DAYS = 60;
 const JOIN_LIMIT = [300, 10 * 60e3];  // joins per IP per window – above the guest cap, because the whole venue shares one Wi-Fi address
 const SEND_LIMIT = [20, 60e3];        // messages per guest per window
-const ADMIN_FAILS = [8, 10 * 60e3];   // wrong admin codes per window before the event locks admin access
+const ADMIN_FAILS = [8, 10 * 60e3];   // wrong couple codes per IP per window before further wrong ones get 429
+const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/, RESTORE_RE = /^[A-Za-z0-9_-]{32}$/, RESTORE_TTL = 24 * 3600e3;
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers } });
 const err = (status, error) => json({ error }, status);
@@ -60,8 +63,16 @@ export class EventRoom extends DurableObject {
 
   // ---------- storage ----------
   ready() {
-    if (this.isReady === null) this.isReady = this.sql.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'").toArray().length > 0;
+    if (this.isReady === null) {
+      this.isReady = this.sql.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'").toArray().length > 0;
+      if (this.isReady) this.extraTables();   // events created before these tables existed
+    }
     return this.isReady;
+  }
+  /** sessions: extra login tokens of a guest (the installed app). restores: short-lived codes that let the installed app log in as the guest. */
+  extraTables() {
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, guest_id INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS restores (hash TEXT PRIMARY KEY, guest_id INTEGER NOT NULL, exp INTEGER NOT NULL);`);
   }
   meta(k) { const r = this.sql.exec('SELECT v FROM meta WHERE k = ?', k).toArray()[0]; return r ? r.v : null; }
   setMeta(k, v) { this.sql.exec('INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, String(v)); }
@@ -78,6 +89,7 @@ export class EventRoom extends DurableObject {
       CREATE TABLE messages (id INTEGER PRIMARY KEY AUTOINCREMENT, from_id INTEGER NOT NULL, to_id INTEGER NOT NULL, body TEXT NOT NULL, at TEXT NOT NULL, read_at TEXT);
       CREATE INDEX messages_to ON messages (to_id, from_id);
       CREATE INDEX messages_from ON messages (from_id, to_id);`);
+    this.extraTables();
     const purgeAt = Date.now() + KEEP_DAYS * 864e5;
     this.setMeta('slug', slug); this.setMeta('names', names); this.setMeta('dateLine', dateLine); this.setMeta('adminHash', adminHash);
     this.setMeta('createdAt', now()); this.setMeta('purgeAt', new Date(purgeAt).toISOString());
@@ -112,15 +124,23 @@ export class EventRoom extends DurableObject {
   webSocketError() {}
 
   // ---------- auth ----------
-  async guestFrom(token) { return token ? this.one('SELECT * FROM guests WHERE token_hash = ?', await sha256(token)) : null; }
-  async isAdmin(req) {
-    const ip = req.headers.get('CF-Connecting-IP') || '?', t = Date.now();
-    const fails = (this.adminFails.get(ip) || []).filter(x => t - x < ADMIN_FAILS[1]);
-    if (fails.length >= ADMIN_FAILS[0]) return null;   // locked
-    const code = bearer(req).toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (code && await sha256(code) === this.meta('adminHash')) return true;
-    fails.push(t); this.adminFails.set(ip, fails); return false;
+  async guestFrom(token) {
+    if (!token) return null;
+    const h = await sha256(token);
+    return this.one('SELECT * FROM guests WHERE token_hash = ?', h) || this.one('SELECT g.* FROM guests g JOIN sessions s ON s.guest_id = g.id WHERE s.hash = ?', h);
   }
+  /** true = right code, false = wrong, null = wrong and over the limit (429). The right code always works: the whole venue
+      shares one IP, so a lockout would let any guest shut the couple out. Guessing a 60-bit code online is hopeless anyway. */
+  async checkCode(raw, ip) {
+    const code = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code && await sha256(code) === this.meta('adminHash')) return true;
+    const t = Date.now(), fails = (this.adminFails.get(ip) || []).filter(x => t - x < ADMIN_FAILS[1]);
+    fails.push(t); this.adminFails.set(ip, fails.slice(-50));
+    return fails.length > ADMIN_FAILS[0] ? null : false;
+  }
+  isAdmin(req) { return this.checkCode(bearer(req), req.headers.get('CF-Connecting-IP') || '?'); }
+  /** Give the bride/groom role to this guest; whoever held it before loses it, and the other phones are told. */
+  takeRole(role, exceptId) { for (const old of this.all('UPDATE guests SET role = NULL WHERE role = ? AND id != ? RETURNING *', role, exceptId)) this.announce(old); }
 
   // ---------- HTTP ----------
   async fetch(request) {
@@ -130,6 +150,7 @@ export class EventRoom extends DurableObject {
     if (path === '/event' && method === 'GET') return json(this.eventInfo());
     if (path === '/manifest' && method === 'GET') return this.manifest(url, request.headers.get('X-App-Url'));
     if (path === '/join' && method === 'POST') return this.join(request);
+    if (path === '/restore' && method === 'POST') return this.restore(request);
     if (path === '/admin' || path.startsWith('/admin/')) return this.admin(request, path, method);
 
     if (path === '/ws') {
@@ -146,6 +167,24 @@ export class EventRoom extends DurableObject {
     const g = await this.guestFrom(bearer(request));
     if (!g) return err(401, 'unauthorized');
 
+    if (path === '/me/role' && method === 'POST') {   // the couple's link opened on a phone that had already joined as a guest
+      const b = await readJson(request);
+      if (!b || (b.role !== 'bride' && b.role !== 'groom')) return err(400, 'bad_request');
+      const ok = await this.checkCode(b.code, request.headers.get('CF-Connecting-IP') || '?');
+      if (ok === null) return err(429, 'slow_down');
+      if (!ok) return err(403, 'bad_code');
+      this.takeRole(b.role, g.id);
+      const a = JSON.parse(g.answers); a[0] = b.role === 'bride' ? 0 : 1;
+      const u = this.one('UPDATE guests SET role = ?, answers = ?, updated_at = ? WHERE id = ? RETURNING *', b.role, JSON.stringify(a), now(), g.id);
+      this.announce(u);
+      return json(this.me(u));
+    }
+    if (path === '/me/restore' && method === 'POST') {   // code for the manifest of the installed app; reusable for a day, so the login token never travels in a URL
+      const code = randomString(32, TOKEN_ABC), exp = Date.now() + RESTORE_TTL;
+      this.sql.exec('DELETE FROM restores WHERE guest_id = ? OR exp < ?', g.id, Date.now());
+      this.sql.exec('INSERT INTO restores (hash, guest_id, exp) VALUES (?, ?, ?)', await sha256(code), g.id, exp);
+      return json({ code, expiresAt: exp });
+    }
     if (path === '/me') {
       if (method === 'GET') return json(this.me(g));
       if (method === 'PUT') return this.updateMe(g, await readJson(request));
@@ -191,7 +230,7 @@ export class EventRoom extends DurableObject {
 
   manifest(url, app) {
     const slug = this.meta('slug'), pl = url.searchParams.get('lang') !== 'en';
-    const k = url.searchParams.get('k') || '', start = `${app}?e=${slug}` + (/^[A-Za-z0-9_-]{20,80}$/.test(k) ? `#k=${k}` : '');
+    const r = url.searchParams.get('r') || '', start = `${app}?e=${slug}` + (RESTORE_RE.test(r) ? `#r=${r}` : '');
     const icon = (f, s, p) => ({ src: `${app}icons/${f}`, sizes: `${s}x${s}`, type: 'image/png', purpose: p });
     return json({
       id: `${app}?e=${slug}`, lang: pl ? 'pl' : 'en', name: `Table Talk – ${this.meta('names')}`, short_name: 'Table Talk',
@@ -209,20 +248,39 @@ export class EventRoom extends DurableObject {
     const name = cleanText(b.name, 40), table = b.table ?? null;
     if (!NAME_RE.test(name)) return err(400, 'bad_name');
     if (!validAnswers(b.answers) || !validTable(table)) return err(400, 'bad_request');
+    // The app sends a token it generated itself, so a join whose reply was lost can be repeated without creating a second guest.
+    const token = TOKEN_RE.test(b.token || '') ? b.token : randomString(43, TOKEN_ABC), hash = await sha256(token);
+    const again = this.one('SELECT * FROM guests WHERE token_hash = ?', hash);
+    if (again) {
+      const res = this.updateMe(again, { name, answers: b.answers });
+      return res.status === 200 ? json({ token, me: this.me(this.one('SELECT * FROM guests WHERE id = ?', again.id)) }) : res;
+    }
     if (this.one('SELECT COUNT(*) AS n FROM guests').n >= MAX_GUESTS) return err(403, 'event_full');
     let role = null;
     if (b.role !== undefined && b.role !== null) {   // the couple join with the admin code so nobody else can pose as them
       if (b.role !== 'bride' && b.role !== 'groom') return err(400, 'bad_request');
-      const ok = await this.isAdmin(new Request(request.url, { headers: { Authorization: 'Bearer ' + (b.code || ''), 'CF-Connecting-IP': ip } }));
+      const ok = await this.checkCode(b.code, ip);
       if (ok === null) return err(429, 'slow_down');
       if (!ok) return err(403, 'bad_code');
-      for (const old of this.all('UPDATE guests SET role = NULL WHERE role = ? RETURNING *', b.role)) this.announce(old);   // a re-join (new phone) takes the role over; tell the other phones
+      this.takeRole(b.role, 0);   // a re-join (new phone) takes the role over
       role = b.role;
     }
-    const token = randomString(43, TOKEN_ABC), t = now();
-    const g = this.one('INSERT INTO guests (token_hash, name, answers, tbl, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *', await sha256(token), name, JSON.stringify(b.answers), table, role, t, t);
+    const t = now();
+    const g = this.one('INSERT INTO guests (token_hash, name, answers, tbl, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *', hash, name, JSON.stringify(b.answers), table, role, t, t);
     this.announce(g);
     return json({ token, me: this.me(g) }, 201);
+  }
+
+  /** The installed app trades a restore code for a login of its own (its token is generated on the phone). */
+  async restore(request) {
+    if (!rateOk(this.joins, request.headers.get('CF-Connecting-IP') || '?', JOIN_LIMIT)) return err(429, 'slow_down');
+    const b = await readJson(request);
+    if (!b || !RESTORE_RE.test(b.code || '') || !TOKEN_RE.test(b.token || '')) return err(400, 'bad_request');
+    const r = this.one('SELECT * FROM restores WHERE hash = ? AND exp > ?', await sha256(b.code), Date.now());
+    const g = r && this.one('SELECT * FROM guests WHERE id = ?', r.guest_id);
+    if (!g) return err(403, 'restore_gone');
+    this.sql.exec('INSERT OR IGNORE INTO sessions (hash, guest_id) VALUES (?, ?)', await sha256(b.token), g.id);
+    return json({ me: this.me(g) });
   }
 
   updateMe(g, b) {
@@ -242,6 +300,7 @@ export class EventRoom extends DurableObject {
 
   removeGuest(id) {
     this.sql.exec('DELETE FROM messages WHERE from_id = ? OR to_id = ?', id, id);
+    this.sql.exec('DELETE FROM sessions WHERE guest_id = ?', id); this.sql.exec('DELETE FROM restores WHERE guest_id = ?', id);
     this.sql.exec('DELETE FROM guests WHERE id = ?', id);
     this.broadcast({ type: 'gone', id: String(id) }, id);
     for (const ws of this.ctx.getWebSockets('g:' + id)) { try { ws.close(4002, 'guest deleted'); } catch (e) {} }
