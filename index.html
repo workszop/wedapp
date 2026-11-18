@@ -8,19 +8,19 @@
 <meta name="theme-color" content="#ffffff">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" href="icons/icon-192.png?v=2">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" href="icons/icon-192.png?v=3">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Table Talk">
-<title>Table Talk · Poznajmy się na brunchu ślubnym</title>
+<meta name="apple-mobile-web-app-title" content="Bee Talk">
+<title>Bee Talk · Poznajmy się na brunchu ślubnym</title>
 <meta name="description" content="Odpowiedz na kilka pytań i zobacz z kim z gości łączy cię najwięcej.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Table Talk">
-<meta property="og:title" content="Table Talk · Poznajmy się na brunchu ślubnym">
+<meta property="og:site_name" content="Bee Talk">
+<meta property="og:title" content="Bee Talk · Poznajmy się na brunchu ślubnym">
 <meta property="og:description" content="Odpowiedz na kilka pytań i zobacz z kim z gości łączy cię najwięcej.">
-<meta property="og:image" content="https://bee-talk.app/icons/icon-512.png?v=2">
+<meta property="og:image" content="https://bee-talk.app/icons/icon-512.png?v=3">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..700,100&family=Nunito:wght@400;600;700;800&display=swap">
@@ -557,7 +557,7 @@
           <div class="share-card" role="dialog" aria-label="Install the app" data-i18n-attr="aria-label:guideAria">
             <div class="grab"></div>
             <button class="share-x" id="guide-x" aria-label="Close" data-i18n-attr="aria-label:close"></button>
-            <h4 id="guide-t">Install Table Talk</h4>
+            <h4 id="guide-t">Install Bee Talk</h4>
             <p id="guide-p"></p>
             <ol class="gsteps" id="guide-steps"></ol>
             <div class="sh-btns"><button class="btn" id="guide-copy"></button><button class="btn alt" id="guide-ok" data-i18n="gotIt">Got it</button></div>
@@ -570,7 +570,7 @@
           <div class="share-card" role="dialog" aria-label="Share the app" data-i18n-attr="aria-label:shareOpen">
             <div class="grab"></div>
             <button class="share-x" id="share-x" aria-label="Close" data-i18n-attr="aria-label:close"></button>
-            <h4 data-i18n="shareT">Share Table Talk</h4>
+            <h4 data-i18n="shareT">Share Bee Talk</h4>
             <p data-i18n="shareP">Scan with a phone camera to open the app</p>
             <div class="qr" id="qr"></div>
             <div class="share-url" id="share-url"></div>
@@ -2995,7 +2995,7 @@ const REAL = !!EVENT;
 const plForm = (n, one, few, many) => n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? few : many;   // Polish plural forms: 1 gość · 2 goście · 5 gości
 const T = {
   pl: {
-    title: 'Table Talk · Poznajmy się na brunchu ślubnym',
+    title: 'Bee Talk · Poznajmy się na brunchu ślubnym',
     desc: 'Odpowiedz na kilka pytań i zobacz z kim z gości łączy cię najwięcej.',
     langAria: 'Język',
     h1: 'Poznajmy się na <em>brunchu ślubnym</em>',
@@ -3010,7 +3010,7 @@ const T = {
     banner: '<b>Aplikacja na pełnym ekranie</b><small>Bez paska adresu · działa offline</small>',
     how: 'Jak?', install: 'Zainstaluj', gotIt: 'Jasne',
     close: 'Zamknij', back: 'Wstecz', navMain: 'Główna nawigacja', guideAria: 'Instalacja aplikacji',
-    shareOpen: 'Udostępnij aplikację', shareT: 'Udostępnij Table Talk', shareP: 'Zeskanuj aparatem telefonu, aby otworzyć aplikację',
+    shareOpen: 'Udostępnij aplikację', shareT: 'Udostępnij Bee Talk', shareP: 'Zeskanuj aparatem telefonu, aby otworzyć aplikację',
     shareLink: 'Udostępnij link', copyLink: 'Kopiuj link', linkCopied: 'Skopiowano link', shareText: 'Poznajmy się na brunchu ślubnym Ani i Marka',
     date: 'SOBOTA, 14 CZERWCA · VILLA RÓŻANA',
     messages: 'Wiadomości', wnPh: 'Odpowiedz Ani i Markowi…', wnAria: 'Odpowiedź', wnSend: 'Wyślij odpowiedź',
@@ -3077,15 +3077,15 @@ const T = {
         s: [['Dotknij menu <b>⋮</b> w tej aplikacji'], ['Wybierz <b>Otwórz w Chrome</b> (lub <b>Otwórz w przeglądarce</b>)'], ['W Chrome dotknij <b>⋮</b> → <b>Zainstaluj aplikację</b>']] },
       inIOS: { title: 'Najpierw otwórz w Safari', p: 'Wbudowana przeglądarka tej aplikacji nie umie instalować. Otwórz link w Safari i dodaj go do ekranu początkowego.',
         s: [['Dotknij przycisku <b>⋯</b> lub <b>Udostępnij</b> w tej aplikacji'], ['Wybierz <b>Otwórz w Safari</b>'], ['W Safari dotknij <b>Udostępnij</b> → <b>Do ekranu początkowego</b>']] },
-      ios: { title: 'Dodaj do ekranu początkowego', p: 'Otwórz Table Talk z ekranu początkowego, a pasek adresu Safari zniknie. Aplikacja działa wtedy na pełnym ekranie jak każda inna.',
-        s: [['Dotknij przycisku <b>Udostępnij</b> w Safari', 'kwadrat ze strzałką na dole ekranu'], ['Przewiń i dotknij <b>Do ekranu początkowego</b>'], ['Zostaw włączone <b>Otwórz jako aplikację internetową</b> i dotknij <b>Dodaj</b>'], ['Otwórz <b>Table Talk</b> z ekranu początkowego', 'nie z Safari']] },
-      android: { title: 'Zainstaluj na Androidzie', p: 'Po instalacji Table Talk działa na pełnym ekranie, bez paska adresu, także offline.' },
-      open: ['Otwórz <b>Table Talk</b> z ekranu głównego lub listy aplikacji', 'działa teraz na pełnym ekranie, bez paska adresu'],
+      ios: { title: 'Dodaj do ekranu początkowego', p: 'Otwórz Bee Talk z ekranu początkowego, a pasek adresu Safari zniknie. Aplikacja działa wtedy na pełnym ekranie jak każda inna.',
+        s: [['Dotknij przycisku <b>Udostępnij</b> w Safari', 'kwadrat ze strzałką na dole ekranu'], ['Przewiń i dotknij <b>Do ekranu początkowego</b>'], ['Zostaw włączone <b>Otwórz jako aplikację internetową</b> i dotknij <b>Dodaj</b>'], ['Otwórz <b>Bee Talk</b> z ekranu początkowego', 'nie z Safari']] },
+      android: { title: 'Zainstaluj na Androidzie', p: 'Po instalacji Bee Talk działa na pełnym ekranie, bez paska adresu, także offline.' },
+      open: ['Otwórz <b>Bee Talk</b> z ekranu głównego lub listy aplikacji', 'działa teraz na pełnym ekranie, bez paska adresu'],
       chrome: [['Dotknij menu <b>⋮</b> w prawym górnym rogu Chrome'], ['Dotknij <b>Zainstaluj aplikację</b>', 'jeśli widzisz <b>Dodaj do ekranu głównego</b>, wybierz to, a potem <b>Zainstaluj</b>'], ['Potwierdź przyciskiem <b>Zainstaluj</b>']],
       samsung: [['Dotknij menu <b>≡</b> w prawym dolnym rogu'], ['Dotknij <b>Dodaj stronę do</b> → <b>Ekran startowy</b>', 'lub <b>Zainstaluj aplikację</b>, jeśli jest widoczne'], ['Potwierdź przyciskiem <b>Dodaj</b>']],
       firefox: [['Dotknij menu <b>⋮</b>'], ['Dotknij <b>Zainstaluj</b>', 'lub <b>Dodaj aplikację do ekranu głównego</b>'], ['Potwierdź przyciskiem <b>Dodaj</b>']],
       edge: [['Dotknij menu <b>⋯</b> na dole'], ['Dotknij <b>Dodaj do telefonu</b>', 'lub <b>Dodaj do ekranu głównego</b>'], ['Potwierdź przyciskiem <b>Dodaj</b>']],
-      generic: { title: 'Zainstaluj Table Talk', p: 'Po instalacji aplikacja działa na pełnym ekranie, także offline.', s: [['Otwórz menu przeglądarki'], ['Wybierz <b>Zainstaluj aplikację</b> lub <b>Dodaj do ekranu głównego</b>']] },
+      generic: { title: 'Zainstaluj Bee Talk', p: 'Po instalacji aplikacja działa na pełnym ekranie, także offline.', s: [['Otwórz menu przeglądarki'], ['Wybierz <b>Zainstaluj aplikację</b> lub <b>Dodaj do ekranu głównego</b>']] },
     },
     q: [
       { label: 'Panna czy pan młody', q: 'Czyim gościem jesteś?', opts: ['Panny młodej', 'Pana młodego', 'Obojga'], starter: 'najlepsza historia o pannie młodej albo panu młodym' },
@@ -3101,7 +3101,7 @@ const T = {
     ],
   },
   en: {
-    title: 'Table Talk · Meet your people at the wedding brunch',
+    title: 'Bee Talk · Meet your people at the wedding brunch',
     desc: 'Answer a few questions and see which guests you have the most in common with.',
     langAria: 'Language',
     h1: 'Find your people at the <em>wedding brunch</em>',
@@ -3116,7 +3116,7 @@ const T = {
     banner: '<b>Get the full-screen app</b><small>No address bar · works offline</small>',
     how: 'How', install: 'Install', gotIt: 'Got it',
     close: 'Close', back: 'Back', navMain: 'Main', guideAria: 'Install the app',
-    shareOpen: 'Share the app', shareT: 'Share Table Talk', shareP: 'Scan with a phone camera to open the app',
+    shareOpen: 'Share the app', shareT: 'Share Bee Talk', shareP: 'Scan with a phone camera to open the app',
     shareLink: 'Share link', copyLink: 'Copy link', linkCopied: 'Link copied', shareText: 'Find your people at Ania & Marek’s wedding brunch',
     date: 'SATURDAY 14 JUNE · VILLA RÓŻANA',
     messages: 'Messages', wnPh: 'Reply to Ania & Marek…', wnAria: 'Reply', wnSend: 'Send reply',
@@ -3183,15 +3183,15 @@ const T = {
         s: [['Tap the <b>⋮</b> menu in this app'], ['Choose <b>Open in Chrome</b> (or <b>Open in browser</b>)'], ['In Chrome tap <b>⋮</b> → <b>Install app</b>']] },
       inIOS: { title: 'Open in Safari first', p: 'This app’s built-in browser can’t install apps. Open the link in Safari, then add it to your Home Screen.',
         s: [['Tap the <b>⋯</b> or <b>Share</b> button in this app'], ['Choose <b>Open in Safari</b>'], ['In Safari tap <b>Share</b> → <b>Add to Home Screen</b>']] },
-      ios: { title: 'Add to Home Screen', p: 'Open Table Talk from your Home Screen and the Safari address bar is gone – it runs full screen like a normal app.',
-        s: [['Tap the <b>Share</b> button in Safari', 'the square with an arrow, at the bottom of the screen'], ['Scroll and tap <b>Add to Home Screen</b>'], ['Keep <b>Open as Web App</b> switched on, then tap <b>Add</b>'], ['Open <b>Table Talk</b> from your Home Screen', 'not from Safari']] },
-      android: { title: 'Install on Android', p: 'Install Table Talk for a full-screen app with no address bar that also works offline.' },
-      open: ['Open <b>Table Talk</b> from your home screen or app drawer', 'it now runs full screen, with no address bar'],
+      ios: { title: 'Add to Home Screen', p: 'Open Bee Talk from your Home Screen and the Safari address bar is gone – it runs full screen like a normal app.',
+        s: [['Tap the <b>Share</b> button in Safari', 'the square with an arrow, at the bottom of the screen'], ['Scroll and tap <b>Add to Home Screen</b>'], ['Keep <b>Open as Web App</b> switched on, then tap <b>Add</b>'], ['Open <b>Bee Talk</b> from your Home Screen', 'not from Safari']] },
+      android: { title: 'Install on Android', p: 'Install Bee Talk for a full-screen app with no address bar that also works offline.' },
+      open: ['Open <b>Bee Talk</b> from your home screen or app drawer', 'it now runs full screen, with no address bar'],
       chrome: [['Tap the <b>⋮</b> menu at the top right of Chrome'], ['Tap <b>Install app</b>', 'if you see <b>Add to Home screen</b> instead, tap that, then <b>Install</b>'], ['Confirm with <b>Install</b>']],
       samsung: [['Tap the <b>≡</b> menu at the bottom right'], ['Tap <b>Add page to</b> → <b>Home screen</b>', 'or <b>Install app</b> if it is shown'], ['Confirm with <b>Add</b>']],
       firefox: [['Tap the <b>⋮</b> menu'], ['Tap <b>Install</b>', 'or <b>Add app to Home screen</b>'], ['Confirm with <b>Add</b>']],
       edge: [['Tap the <b>⋯</b> menu at the bottom'], ['Tap <b>Add to phone</b>', 'or <b>Add to Home screen</b>'], ['Confirm with <b>Add</b>']],
-      generic: { title: 'Install Table Talk', p: 'Install it for a full-screen app that works offline.', s: [['Open your browser menu'], ['Choose <b>Install app</b> or <b>Add to Home screen</b>']] },
+      generic: { title: 'Install Bee Talk', p: 'Install it for a full-screen app that works offline.', s: [['Open your browser menu'], ['Choose <b>Install app</b> or <b>Add to Home screen</b>']] },
     },
     q: [
       { label: 'Bride or groom', q: 'Whose guest are you?', opts: ['Bride’s side', 'Groom’s side', 'Both – we’re mutual'], starter: 'the best story about the bride or groom' },
@@ -3692,7 +3692,7 @@ function applyEvent() {   // couple's names and date on the welcome screen
   document.querySelector('#s-welcome .mono').textContent = caps.join('&'); document.querySelector('#s-welcome h2').textContent = names;
   document.querySelector('#s-welcome .sub').textContent = EVT ? EVT.dateLine : ''; document.querySelector('.wn-h b').textContent = names;
   document.querySelectorAll('.wn-av i').forEach((el, i) => { el.textContent = caps[i] || ''; });
-  if (names) document.title = 'Table Talk · ' + names;
+  if (names) document.title = 'Bee Talk · ' + names;
   rerenderWelcome();
 }
 let saveRetry = 0;
@@ -3849,7 +3849,7 @@ async function copyLink() {
   toast(tr('linkCopied'));
 }
 async function shareApp() {
-  if (navigator.share) { try { await navigator.share({ title: 'Table Talk', text: REAL && EVT ? tr('shareTextReal', EVT.names) : tr('shareText'), url: shareURL() }); } catch (e) {} } else copyLink();
+  if (navigator.share) { try { await navigator.share({ title: 'Bee Talk', text: REAL && EVT ? tr('shareTextReal', EVT.names) : tr('shareText'), url: shareURL() }); } catch (e) {} } else copyLink();
 }
 const openShare = () => { renderQR(); $('share').classList.add('open'); $('share').setAttribute('aria-hidden', 'false'); };
 const closeShare = () => { $('share').classList.remove('open'); $('share').setAttribute('aria-hidden', 'true'); };

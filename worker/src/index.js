@@ -1,4 +1,4 @@
-// Table Talk API – one Durable Object (SQLite storage) per wedding event.
+// Bee Talk API – one Durable Object (SQLite storage) per wedding event.
 //
 // Why a Durable Object instead of D1 + polling: every guest keeps one hibernating WebSocket open, so new
 // guests, changed answers and chat messages are pushed to the other phones. Nobody polls, which keeps a
@@ -231,9 +231,9 @@ export class EventRoom extends DurableObject {
   manifest(url, app) {
     const slug = this.meta('slug'), pl = url.searchParams.get('lang') !== 'en';
     const r = url.searchParams.get('r') || '', start = `${app}?e=${slug}` + (RESTORE_RE.test(r) ? `#r=${r}` : '');
-    const icon = (f, s, p) => ({ src: `${app}icons/${f}?v=2`, sizes: `${s}x${s}`, type: 'image/png', purpose: p });
+    const icon = (f, s, p) => ({ src: `${app}icons/${f}?v=3`, sizes: `${s}x${s}`, type: 'image/png', purpose: p });
     return json({
-      id: `${app}?e=${slug}`, lang: pl ? 'pl' : 'en', name: `Table Talk – ${this.meta('names')}`, short_name: 'Table Talk',
+      id: `${app}?e=${slug}`, lang: pl ? 'pl' : 'en', name: `Bee Talk – ${this.meta('names')}`, short_name: 'Bee Talk',
       description: pl ? 'Znajdź na brunchu ślubnym gości, z którymi znajdziesz wspólny język.' : 'Find the guests you’ll click with at the wedding brunch.',
       start_url: start, scope: app, display: 'standalone', background_color: '#ffffff', theme_color: '#ffffff',
       icons: [icon('icon-192.png', 192, 'any'), icon('icon-512.png', 512, 'any'), icon('icon-maskable-512.png', 512, 'maskable')],
