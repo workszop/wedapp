@@ -114,11 +114,9 @@
   .g-bottom{bottom:0;padding:16px max(var(--px),env(safe-area-inset-right)) var(--pb) max(var(--px),env(safe-area-inset-left));background:linear-gradient(0deg,rgba(255,255,255,.97) 0,rgba(255,255,255,.9) 70%,rgba(255,255,255,0) 100%)}
   .g-bottom .legend{position:static;background:none;padding:0;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:2px 10px;font-size:10.5px;line-height:1.5;color:var(--mute)}
   .g-bottom .legend .hnt{margin-left:auto;font-style:italic}
-  .g-top .seg{margin:0 0 2px}.g-top .chips{padding:10px 0 2px}
+  .g-top .seg{margin:0 0 2px}
   .ghead h3{font:400 26px/1.1 var(--serif);margin:0}
   .ghead p{margin:4px 0 0;color:var(--mute);font-size:13px}
-  .chips{display:flex;gap:7px;overflow-x:auto;padding:12px 0 6px;scrollbar-width:none;flex:none}
-  .chips::-webkit-scrollbar{display:none}
   .chip{flex:none;font:600 12px var(--sans);border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:10px 14px;cursor:pointer;white-space:nowrap;min-height:40px}
   .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .canvas-box{position:absolute;inset:0;flex:none;min-height:0;border-radius:0 !important;border:0 !important;border-radius:22px;background:#fff;border:1px solid var(--line);overflow:hidden}
@@ -283,7 +281,6 @@
     .g-top{display:flex;align-items:center;gap:12px;padding-bottom:10px}
     .g-top .ghead h3{font-size:20px;white-space:nowrap}.g-top .ghead p{display:none}
     .g-top .seg{margin:0;width:340px;flex:none}.g-top .seg button{padding:8px 0;min-height:38px}
-    .g-top .chips{flex:1;min-width:0;padding:0}
     .g-bottom{display:flex;align-items:center;gap:14px;padding-top:14px}
     .g-bottom .legend{flex:1;margin:0}.g-bottom .legend .hnt{margin-left:auto}
     .mt{padding:4px 10px 4px 4px}.mt .av{width:26px;height:26px}
@@ -374,7 +371,7 @@
       <li><button data-go="welcome"><b>1</b><span data-i18n="st1">Welcome<small>Scan the QR on your table card</small></span></button></li>
       <li><button data-go="quiz"><b>2</b><span data-i18n="st2">Name + 2 required, 8 optional<small>Skip anything you like</small></span></button></li>
       <li><button data-go="summary"><b>3</b><span data-i18n="st3">Your summary<small>How many matches, how many people – see names or graph</small></span></button></li>
-      <li><button data-go="graph"><b>4</b><span data-i18n="st4">Your connection graph<small>Drag nodes, filter by question</small></span></button></li>
+      <li><button data-go="graph"><b>4</b><span data-i18n="st4">Your connection graph<small>Drag nodes, tap a guest to see their profile</small></span></button></li>
       <li><button data-go="profile"><b>5</b><span data-i18n="st5">Guest profile<small>Shared answers, table number, icebreaker</small></span></button></li>
       <li><button data-go="chats"><b>6</b><span data-i18n="st6">Messages<small>Chat with a guest – mock now, real backend later</small></span></button></li>
     </ul>
@@ -489,7 +486,6 @@
           <div class="canvas-box" id="cbox"><canvas id="cv"></canvas></div>
           <div class="g-top" id="gtop">
             <div class="seg" id="seg-graph"></div>
-            <div class="chips" id="chips"></div>
           </div>
           <div class="g-bottom" id="gbot">
             <div class="legend" id="legend"></div>
@@ -2845,7 +2841,7 @@ const T = {
     st1: 'Powitanie<small>Zeskanuj kod QR z wizytówki na stole</small>',
     st2: 'Imię + 2 wymagane, 8 opcjonalnych<small>Pomiń, co chcesz</small>',
     st3: 'Twoje podsumowanie<small>Ile dopasowań i ile osób, potem imiona albo graf</small>',
-    st4: 'Twój graf połączeń<small>Przeciągaj węzły, filtruj według pytań</small>',
+    st4: 'Twój graf połączeń<small>Przeciągaj węzły, dotknij gościa, żeby zobaczyć profil</small>',
     st5: 'Profil gościa<small>Wspólne odpowiedzi, numer stołu, temat na początek</small>',
     st6: 'Wiadomości<small>Czat z gościem: na razie symulowany, prawdziwy backend później</small>',
     qrCard: '<b>Otwórz na telefonie</b><span>Zeskanuj kod aparatem. Aplikacja jest zrobiona pod telefony.</span>',
@@ -2953,7 +2949,7 @@ const T = {
     st1: 'Welcome<small>Scan the QR on your table card</small>',
     st2: 'Name + 2 required, 8 optional<small>Skip anything you like</small>',
     st3: 'Your summary<small>How many matches, how many people – see names or graph</small>',
-    st4: 'Your connection graph<small>Drag nodes, filter by question</small>',
+    st4: 'Your connection graph<small>Drag nodes, tap a guest to see their profile</small>',
     st5: 'Guest profile<small>Shared answers, table number, icebreaker</small>',
     st6: 'Messages<small>Chat with a guest – mock now, real backend later</small>',
     qrCard: '<b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span>',
@@ -3247,10 +3243,6 @@ function layoutRect() {
 }
 function fitCanvas() { const r = $('cbox').getBoundingClientRect(), k = $('phone')._scale || 1; W = r.width / k; H = r.height / k; dpr = Math.min(2, (window.devicePixelRatio || 1) * k); cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); layoutRect(); }
 function targetR(s) { const max = Math.min(W, H) / 2 - 26; return Math.min(max, 52 + (5 - s) * 29); }
-function mountChips() {   // question filters above the graph; keeps the active filter when re-rendered
-  $('chips').innerHTML = `<button class="chip ${filter === null ? 'on' : ''}" data-f="-1">${tr('all')}</button>` + Q.map((q, i) => me[i] === null ? '' : `<button class="chip ${filter === i ? 'on' : ''}" data-f="${i}">${ic(q.opts[me[i]][0], 15)}${q.label}</button>`).join('');
-  $('chips').querySelectorAll('.chip').forEach(c => c.onclick = () => { filter = +c.dataset.f < 0 ? null : +c.dataset.f; $('chips').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c)); });
-}
 function startGraph() {
   fitCanvas();
   const you = { id: -1, you: true, x: W / 2, y: H / 2, vx: 0, vy: 0, r: 25, s: 5, first: myName || tr('you') };
@@ -3268,7 +3260,7 @@ function startGraph() {
     grp[2].sort((a, b) => b.raw - a.raw || a.id - b.id).forEach((n, i) => { const up = i % 2 === 0, f = ((Math.floor(i / 2) + .5) * 0.618034) % 1, [a0, a1] = up ? [262, 278] : [82, 98]; n.ang = (a0 + f * (a1 - a0)) * Math.PI / 180; }); }
   rank().slice(0, 3).forEach(g => { const nd = nodes.find(x => x.id === g.id); if (nd && nd.s >= 4) nd.top = true; });   // only the top three get a score badge
   mountSeg('seg-graph', 'graph');
-  selected = null; filter = null; mountChips(); t0 = performance.now();
+  selected = null; filter = null; t0 = performance.now();
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
 }
 function step(dt) {
@@ -3551,10 +3543,9 @@ async function loadGraph() {
   if (!token) return;
   try { const r = await api('/graph'); guests.length = 0; guests.push(...r.guests.map(norm)); refreshViews(true); } catch (e) { if (e.status === 401) forgetMe(true); }
 }
-function rebuildGraph() {   // new guest list, same picture: nodes keep their place, the filter stays
-  const old = new Map(nodes.map(n => [n.id, n])), f = filter;
+function rebuildGraph() {   // new guest list, same picture: nodes keep their place
+  const old = new Map(nodes.map(n => [n.id, n]));
   startGraph(); nodes.forEach(n => { const o = old.get(n.id); if (o) { n.x = o.x; n.y = o.y; n.born = -9; } });
-  filter = f !== null && me[f] !== null ? f : null; mountChips();
 }
 let refreshT = null, refreshLast = 0;
 function refreshViews(now) {   // re-render what is on screen, at most every 2.5 s while guests keep joining
@@ -3820,7 +3811,7 @@ function applyLang() {   // static texts via data-i18n / data-i18n-attr, then ev
   renderChrome(); drawMini(); mountTabbar(); syncTabbar(); syncWelcome(); rerenderWelcome(); renderQ(); bannerCopy(); updateInstall();
   if ($('s-summary').classList.contains('active')) renderSummary();
   if ($('s-inbox').classList.contains('active')) renderInbox();
-  if (nodes.length) { nodes[0].first = myName || tr('you'); mountSeg('seg-graph', 'graph'); mountChips(); }
+  if (nodes.length) { nodes[0].first = myName || tr('you'); mountSeg('seg-graph', 'graph'); }
   if (sheetGuest) select(sheetGuest);
   if (chatActive() && chat.id) openChat(guestOf(chat.id), chat.from);
   if ($('guide').classList.contains('open')) openGuide();
