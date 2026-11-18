@@ -20,7 +20,7 @@ import { DurableObject } from 'cloudflare:workers';
 const OPT_COUNTS = [3, 2, 5, 4, 5, 4, 4, 6, 6, 6];   // number of options per question, same order as Q in index.html
 const SLUG_RE = /^[a-z0-9]{12,40}$/;
 const NAME_RE = /^[\p{L}\p{M}\d .'’-]{1,24}$/u;
-const MAX_GUESTS = 500, MAX_BODY = 500, KEEP_DAYS = 60;
+const MAX_GUESTS = 200, MAX_BODY = 500, KEEP_DAYS = 60;
 const JOIN_LIMIT = [60, 10 * 60e3];   // joins per IP per window – generous, because the whole venue shares one Wi-Fi address
 const SEND_LIMIT = [20, 60e3];        // messages per guest per window
 const ADMIN_FAILS = [8, 10 * 60e3];   // wrong admin codes per window before the event locks admin access
