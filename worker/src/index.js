@@ -21,7 +21,7 @@ const OPT_COUNTS = [3, 2, 5, 4, 5, 4, 4, 6, 6, 6];   // number of options per qu
 const SLUG_RE = /^[a-z0-9]{12,40}$/;
 const NAME_RE = /^[\p{L}\p{M}\d .'’-]{1,24}$/u;
 const MAX_GUESTS = 200, MAX_BODY = 500, KEEP_DAYS = 60;
-const JOIN_LIMIT = [60, 10 * 60e3];   // joins per IP per window – generous, because the whole venue shares one Wi-Fi address
+const JOIN_LIMIT = [300, 10 * 60e3];  // joins per IP per window – above the guest cap, because the whole venue shares one Wi-Fi address
 const SEND_LIMIT = [20, 60e3];        // messages per guest per window
 const ADMIN_FAILS = [8, 10 * 60e3];   // wrong admin codes per window before the event locks admin access
 
@@ -35,7 +35,7 @@ const TOKEN_ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345678
 const SLUG_ABC = 'abcdefghijklmnopqrstuvwxyz234567';                                    // 32 symbols
 const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';                                    // 32 symbols, no 0/O/1/I
 const cleanText = (v, max) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
-async function readJson(req) { try { const t = await req.text(); return t.length > 4000 ? null : JSON.parse(t); } catch (e) { return null; } }
+async function readJson(req) { try { const t = await req.text(); if (t.length > 4000) return null; const v = JSON.parse(t); return v && typeof v === 'object' && !Array.isArray(v) ? v : null; } catch (e) { return null; } }   // only JSON objects
 
 function rateOk(map, key, [limit, windowMs]) {
   const t = Date.now(), list = (map.get(key) || []).filter(x => t - x < windowMs);
@@ -216,7 +216,7 @@ export class EventRoom extends DurableObject {
       const ok = await this.isAdmin(new Request(request.url, { headers: { Authorization: 'Bearer ' + (b.code || ''), 'CF-Connecting-IP': ip } }));
       if (ok === null) return err(429, 'slow_down');
       if (!ok) return err(403, 'bad_code');
-      this.sql.exec('UPDATE guests SET role = NULL WHERE role = ?', b.role);   // a re-join (new phone) takes the role over
+      for (const old of this.all('UPDATE guests SET role = NULL WHERE role = ? RETURNING *', b.role)) this.announce(old);   // a re-join (new phone) takes the role over; tell the other phones
       role = b.role;
     }
     const token = randomString(43, TOKEN_ABC), t = now();

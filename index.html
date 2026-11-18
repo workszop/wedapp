@@ -3149,7 +3149,10 @@ function liveStats() {
 let lastCount = null;
 function renderLive() {
   const st = liveStats(), num = $('lv-num'), txt = $('lv-txt');
-  if (REAL && !guests.length) { num.textContent = 0; txt.innerHTML = tr('liveFirst'); lastCount = null; return; }
+  if (REAL && !guests.length) {   // before joining the list is not loaded yet: show the public guest count of the event
+    const n = token ? 0 : (EVT && EVT.guests) || 0;
+    num.textContent = n; txt.innerHTML = n ? tr('liveStart', n) : tr('liveFirst'); lastCount = null; return;
+  }
   if (!st.done) { num.textContent = guests.length; txt.innerHTML = tr('liveStart', guests.length); lastCount = null; return; }
   num.textContent = st.count;
   txt.innerHTML = tr('liveShare', st.count, st.k, st.done) + `<small>${tr('liveBest', st.top, st.done)}</small>`;
@@ -3539,6 +3542,7 @@ function applyEvent() {   // couple's names and date on the welcome screen
   if (names) document.title = 'Table Talk · ' + names;
   rerenderWelcome();
 }
+let saveRetry = 0;
 async function pushMe() {   // join on the first save, update afterwards; always sends the whole state, so a lost request heals itself
   if (!REAL || !mandatoryDone() || !nameOk()) return;
   const p = token ? null : pendingRole(); if (p) me[0] = p.role === 'bride' ? 0 : 1;
@@ -3550,7 +3554,9 @@ async function pushMe() {   // join on the first save, update afterwards; always
       token = r.token; store.set(TOKEN_KEY, token); try { sessionStorage.removeItem(ROLE_KEY); } catch (e) {}
       mySettings = { allowMessages: r.me.allowMessages, visible: r.me.visible }; lastSaved = sig; updateManifest(); backend.connect();   // connect -> 'sync' -> loadGraph
     } else { await api('/me', { method: 'PUT', body }); lastSaved = sig; }
+    saveRetry = 0;
   } catch (e) {
+    if ((!e.status || e.status === 429 || e.status >= 500) && saveRetry < 6) { clearTimeout(saveTimer); saveTimer = setTimeout(flushMe, Math.min(60000, 5000 * 2 ** saveRetry++)); }   // no connection or rate limit: try again by itself
     if (e.status === 401 && token) { forgetMe(); return pushMe(); }   // the token died (profile removed): join again
     if (e.code === 'bad_name') { si = 0; renderQ(); go('quiz'); toast(tr('badName'), null, 5000); return; }
     if (e.code === 'bad_code') { try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} }
@@ -3654,7 +3660,7 @@ $('chat-back').onclick = () => showView(chat.from === 'chats' ? 'chats' : chat.f
 $('chat-form').onsubmit = async e => {
   e.preventDefault(); const v = $('chat-input').value.trim(); if (!v) return;
   $('chat-input').value = ''; updateSend();
-  try { appendMsg(await backend.sendMessage(chat.id, v)); } catch (err) { toast(errText(err)); }
+  try { appendMsg(await backend.sendMessage(chat.id, v)); } catch (err) { if (!$('chat-input').value) { $('chat-input').value = v; updateSend(); } toast(errText(err)); }   // keep the unsent text
 };
 backend.subscribe(ev => {
   if (ev.type === 'guest' || ev.type === 'gone' || ev.type === 'sync' || ev.type === 'kicked') { onLive(ev); return; }
