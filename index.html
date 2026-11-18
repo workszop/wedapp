@@ -382,14 +382,14 @@
     .qr-card{margin-bottom:10px;padding:8px}.qr-card .qr.sm{width:80px}
   }
   /* ---------- real event (html.real): no demo walkthrough, no canned chat with the couple ---------- */
-  html.real .steps,html.real .note,html.real .tag,html.real #wn-form{display:none}
+  html.real .steps,html.real #wn-form{display:none}
   .btn.ghost.danger{color:var(--rose)}
 </style>
 </head>
 <body>
 <div class="stage">
   <section class="intro">
-    <div class="intro-top"><span class="tag" data-i18n="tag">Demo · sample data</span><div class="lang" data-lang-switch></div></div>
+    <div class="intro-top"><div class="lang" data-lang-switch></div></div>
     <h1 data-i18n="h1">Find your people at the <em>reception</em></h1>
     <p data-i18n="introP">Guests give their name, bride-or-groom and friend-or-family – everything else is optional. The app draws a live graph with <b>you in the middle</b> and every other guest placed by how much your answers overlap – so you know who to sit next to, dance with, or wave at.</p>
     <ul class="steps" id="steps">
@@ -398,10 +398,9 @@
       <li><button data-go="summary"><b>3</b><span data-i18n="st3">Your summary<small>How many matches, how many people – see names or graph</small></span></button></li>
       <li><button data-go="graph"><b>4</b><span data-i18n="st4">Your connection graph<small>Drag nodes, tap a guest to see their profile</small></span></button></li>
       <li><button data-go="profile"><b>5</b><span data-i18n="st5">Guest profile<small>Shared answers, table number, icebreaker</small></span></button></li>
-      <li><button data-go="chats"><b>6</b><span data-i18n="st6">Messages<small>Chat with a guest; replies are simulated in the demo</small></span></button></li>
+      <li><button data-go="chats"><b>6</b><span data-i18n="st6">Messages<small>Write to a guest you’d like to meet</small></span></button></li>
     </ul>
     <div class="qr-card"><div class="qr sm" id="qr-side"></div><div data-i18n="qrCard"><b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span></div></div>
-    <div class="note" data-i18n="note">Demo – answers are real inputs, the guests are fictional (the couple use the app too). Open on a phone for the full-screen view.</div>
   </section>
 
   <div class="phone-wrap" id="wrap">
@@ -2860,7 +2859,6 @@ const T = {
     title: 'Table Talk · Poznajmy się na weselu',
     desc: 'Odpowiedz na kilka pytań i zobacz z kim z gości łączy cię najwięcej.',
     langAria: 'Język',
-    tag: 'Wersja demo · przykładowe dane',
     h1: 'Poznajmy się na <em>weselu</em>',
     introP: 'Goście podają imię, wybierają stronę panny albo pana młodego oraz znajomych albo rodzinę. Reszta pytań jest opcjonalna. Aplikacja rysuje na żywo graf z <b>Tobą pośrodku</b> i ustawia pozostałych gości według tego, jak bardzo pokrywają się wasze odpowiedzi, więc wiesz, obok kogo usiąść, z kim zatańczyć i komu pomachać.',
     st1: 'Powitanie<small>Zeskanuj kod QR z wizytówki na stole</small>',
@@ -2868,9 +2866,8 @@ const T = {
     st3: 'Twoje podsumowanie<small>Ile dopasowań i ile osób, potem imiona albo graf</small>',
     st4: 'Twój graf połączeń<small>Przeciągaj węzły, dotknij gościa, żeby zobaczyć profil</small>',
     st5: 'Profil gościa<small>Wspólne odpowiedzi, numer stołu, temat na początek</small>',
-    st6: 'Wiadomości<small>Czat z gościem; w wersji demo odpowiedzi są symulowane</small>',
+    st6: 'Wiadomości<small>Napisz do gościa, którego chcesz poznać</small>',
     qrCard: '<b>Otwórz na telefonie</b><span>Zeskanuj kod aparatem. Aplikacja jest zrobiona pod telefony.</span>',
-    note: 'Wersja demo: odpowiedzi wpisujesz naprawdę, goście są fikcyjni (para młoda też korzysta z aplikacji). Otwórz na telefonie, żeby zobaczyć widok pełnoekranowy.',
     banner: '<b>Aplikacja na pełnym ekranie</b><small>Bez paska adresu · działa offline</small>',
     how: 'Jak?', install: 'Zainstaluj', gotIt: 'Jasne',
     close: 'Zamknij', back: 'Wstecz', navMain: 'Główna nawigacja', guideAria: 'Instalacja aplikacji',
@@ -2968,7 +2965,6 @@ const T = {
     title: 'Table Talk · Meet your people at the wedding',
     desc: 'Answer a few questions and see which guests you have the most in common with.',
     langAria: 'Language',
-    tag: 'Demo · sample data',
     h1: 'Find your people at the <em>reception</em>',
     introP: 'Guests give their name, bride-or-groom and friend-or-family – everything else is optional. The app draws a live graph with <b>you in the middle</b> and every other guest placed by how much your answers overlap – so you know who to sit next to, dance with, or wave at.',
     st1: 'Welcome<small>Scan the QR on your table card</small>',
@@ -2976,9 +2972,8 @@ const T = {
     st3: 'Your summary<small>How many matches, how many people – see names or graph</small>',
     st4: 'Your connection graph<small>Drag nodes, tap a guest to see their profile</small>',
     st5: 'Guest profile<small>Shared answers, table number, icebreaker</small>',
-    st6: 'Messages<small>Chat with a guest; replies are simulated in the demo</small>',
+    st6: 'Messages<small>Write to a guest you’d like to meet</small>',
     qrCard: '<b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span>',
-    note: 'Demo – answers are real inputs, the guests are fictional (the couple use the app too). Open on a phone for the full-screen view.',
     banner: '<b>Get the full-screen app</b><small>No address bar · works offline</small>',
     how: 'How', install: 'Install', gotIt: 'Got it',
     close: 'Close', back: 'Back', navMain: 'Main', guideAria: 'Install the app',
