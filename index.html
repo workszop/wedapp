@@ -2810,6 +2810,7 @@ Object.assign(ICONS, {"share-2":"<circle cx=\"18\" cy=\"5\" r=\"3\" /> <circle c
 Object.assign(ICONS, {"send": "<path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\" /> <path d=\"m21.854 2.147-10.94 10.939\" />"});
 Object.assign(ICONS, {"download": "<path d=\"M12 15V3\" /> <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" /> <path d=\"m7 10 5 5 5-5\" />"});
 Object.assign(ICONS, {"share":"<path d=\"M12 2v13\" /> <path d=\"m16 6-4-4-4 4\" /> <path d=\"M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8\" />","square-plus":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"M8 12h8\" /> <path d=\"M12 8v8\" />","ellipsis":"<circle cx=\"12\" cy=\"12\" r=\"1\" /> <circle cx=\"19\" cy=\"12\" r=\"1\" /> <circle cx=\"5\" cy=\"12\" r=\"1\" />","compass":"<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z\" />","smartphone":"<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\" /> <path d=\"M12 18h.01\" />"});
+Object.assign(ICONS, {"ellipsis-vertical": "<circle cx=\"12\" cy=\"12\" r=\"1\" /> <circle cx=\"12\" cy=\"5\" r=\"1\" /> <circle cx=\"12\" cy=\"19\" r=\"1\" />"});
 const ic = (n, s = 20, w = 2) => `<svg class="ic" xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
 
 const Q = [
@@ -3375,15 +3376,30 @@ sheetDrag($('sheet'), closeSheet); sheetDrag(document.querySelector('.share-card
 document.addEventListener('click', e => { if (e.target.closest('button, .opt, .prow')) { try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} } }, true);   // light haptic tick where supported (Android)
 // --- install guide: Safari on iPhone cannot hide its address bar in a normal tab, only the installed app can ---
 const inApp = /FBAN|FBAV|Instagram|Line\/|WhatsApp|Snapchat|Twitter|MicroMessenger|LinkedInApp|GSA\//i.test(navigator.userAgent);
+const isAndroid = /android/i.test(navigator.userAgent);
+const droid = /SamsungBrowser/i.test(navigator.userAgent) ? 'samsung' : /Firefox|FxiOS/i.test(navigator.userAgent) ? 'firefox' : /EdgA/i.test(navigator.userAgent) ? 'edge' : 'chrome';
 const dismissedKey = 'tt_install_dismissed';
 const getDismissed = () => { try { return localStorage.getItem(dismissedKey) === '1'; } catch (e) { return false; } };
 function guideSteps() {
   const step = (i, icon, t, sm) => `<li><span class="n">${i}</span><span class="ic">${ic(icon, 22)}</span><span>${t}${sm ? `<small>${sm}</small>` : ''}</span></li>`;
-  if (inApp) return { title: 'Open in Safari first', p: 'This app’s built-in browser can’t install apps. Open the link in Safari, then add it to your Home Screen.',
-    html: step(1, 'ellipsis', 'Tap the <b>⋯</b> or <b>Share</b> button in this app') + step(2, 'compass', 'Choose <b>Open in Safari</b>') + step(3, 'share', 'In Safari tap <b>Share</b> → <b>Add to Home Screen</b>') };
+  if (inApp) return isAndroid
+    ? { title: 'Open in Chrome first', p: 'This app’s built-in browser can’t install apps. Open the link in Chrome, then install it.',
+        html: step(1, 'ellipsis-vertical', 'Tap the <b>⋮</b> menu in this app') + step(2, 'compass', 'Choose <b>Open in Chrome</b> (or <b>Open in browser</b>)') + step(3, 'download', 'In Chrome tap <b>⋮</b> → <b>Install app</b>') }
+    : { title: 'Open in Safari first', p: 'This app’s built-in browser can’t install apps. Open the link in Safari, then add it to your Home Screen.',
+        html: step(1, 'ellipsis', 'Tap the <b>⋯</b> or <b>Share</b> button in this app') + step(2, 'compass', 'Choose <b>Open in Safari</b>') + step(3, 'share', 'In Safari tap <b>Share</b> → <b>Add to Home Screen</b>') };
   if (isIOS) return { title: 'Add to Home Screen', p: 'Open Table Talk from your Home Screen and the Safari address bar is gone – it runs full screen like a normal app.',
     html: step(1, 'share', 'Tap the <b>Share</b> button in Safari', 'the square with an arrow, at the bottom of the screen') + step(2, 'square-plus', 'Scroll and tap <b>Add to Home Screen</b>') + step(3, 'smartphone', 'Keep <b>Open as Web App</b> switched on, then tap <b>Add</b>') + step(4, 'check', 'Open <b>Table Talk</b> from your Home Screen', 'not from Safari') };
-  return { title: 'Install Table Talk', p: 'Install it for a full-screen app that works offline.', html: step(1, 'ellipsis', 'Open your browser menu <b>⋮</b>') + step(2, 'download', 'Tap <b>Install app</b> or <b>Add to Home screen</b>') };
+  if (isAndroid) {
+    const open = step(4, 'check', 'Open <b>Table Talk</b> from your home screen or app drawer', 'it now runs full screen, with no address bar');
+    const by = {
+      chrome: step(1, 'ellipsis-vertical', 'Tap the <b>⋮</b> menu at the top right of Chrome') + step(2, 'download', 'Tap <b>Install app</b>', 'if you see <b>Add to Home screen</b> instead, tap that, then <b>Install</b>') + step(3, 'smartphone', 'Confirm with <b>Install</b>') + open,
+      samsung: step(1, 'ellipsis', 'Tap the <b>≡</b> menu at the bottom right') + step(2, 'square-plus', 'Tap <b>Add page to</b> → <b>Home screen</b>', 'or <b>Install app</b> if it is shown') + step(3, 'smartphone', 'Confirm with <b>Add</b>') + open,
+      firefox: step(1, 'ellipsis-vertical', 'Tap the <b>⋮</b> menu') + step(2, 'download', 'Tap <b>Install</b>', 'or <b>Add app to Home screen</b>') + step(3, 'smartphone', 'Confirm with <b>Add</b>') + open,
+      edge: step(1, 'ellipsis', 'Tap the <b>⋯</b> menu at the bottom') + step(2, 'square-plus', 'Tap <b>Add to phone</b>', 'or <b>Add to Home screen</b>') + step(3, 'smartphone', 'Confirm with <b>Add</b>') + open,
+    };
+    return { title: 'Install on Android', p: 'Install Table Talk for a full-screen app with no address bar that also works offline.', html: by[droid] };
+  }
+  return { title: 'Install Table Talk', p: 'Install it for a full-screen app that works offline.', html: step(1, 'ellipsis-vertical', 'Open your browser menu') + step(2, 'download', 'Choose <b>Install app</b> or <b>Add to Home screen</b>') };
 }
 function openGuide() {
   const g = guideSteps(); $('guide-t').textContent = g.title; $('guide-p').textContent = g.p; $('guide-steps').innerHTML = g.html;
@@ -3393,17 +3409,19 @@ const closeGuide = () => { $('guide').classList.remove('open'); $('guide').setAt
 $('guide-x').innerHTML = ic('x', 22); $('guide-copy').innerHTML = ic('copy', 18) + 'Copy link'; $('ib-ic').innerHTML = ic('smartphone', 20); $('ib-x').innerHTML = ic('x', 18);
 $('guide-bd').onclick = closeGuide; $('guide-x').onclick = closeGuide; $('guide-ok').onclick = closeGuide; $('guide-copy').onclick = () => { copyLink(); };
 sheetDrag(document.querySelector('#guide .share-card'), closeGuide);
-$('ib-go').onclick = openGuide; $('ib-x').onclick = () => { try { localStorage.setItem(dismissedKey, '1'); } catch (e) {} syncBanner(); };
-function syncBanner() { const ok = (isIOS || inApp) && !standalone() && !framed() && !getDismissed() && $('s-welcome').classList.contains('active'); $('ibanner').classList.toggle('show', ok); }
+$('ib-go').onclick = () => { if (deferredPrompt && !inApp) runInstall(); else openGuide(); }; $('ib-x').onclick = () => { try { localStorage.setItem(dismissedKey, '1'); } catch (e) {} syncBanner(); };
+function bannerCopy() { $('ib-go').textContent = deferredPrompt && !inApp ? 'Install' : 'How'; }
+function syncBanner() { bannerCopy(); const ok = (isIOS || isAndroid || inApp) && !standalone() && !framed() && !getDismissed() && $('s-welcome').classList.contains('active'); $('ibanner').classList.toggle('show', ok); }
 setTimeout(syncBanner, 1400);
 // installable app: Android shows the real prompt, iOS gets instructions
 let deferredPrompt = null;
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-function updateInstall() { const b = $('install-btn'), can = !standalone() && (deferredPrompt || isIOS || inApp) && !framed(); b.hidden = !can; if (can) b.innerHTML = ic('download', 18) + 'Install on your phone'; }
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; updateInstall(); });
+function updateInstall() { const b = $('install-btn'), can = !standalone() && (deferredPrompt || isIOS || isAndroid || inApp) && !framed(); b.hidden = !can; if (can) b.innerHTML = ic('download', 18) + 'Install on your phone'; }
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; updateInstall(); if (typeof syncBanner === 'function') syncBanner(); });
 addEventListener('appinstalled', () => { deferredPrompt = null; updateInstall(); });
-$('install-btn').onclick = async () => { if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; updateInstall(); } else openGuide(); };
+async function runInstall() { if (!deferredPrompt) return openGuide(); deferredPrompt.prompt(); const r = await deferredPrompt.userChoice.catch(() => ({})); deferredPrompt = null; updateInstall(); if (r.outcome === 'dismissed') openGuide(); }
+$('install-btn').onclick = () => { if (deferredPrompt && !inApp) runInstall(); else openGuide(); };
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
 /* ======================= welcome mini-graph (decorative) ======================= */
