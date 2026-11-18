@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#faf6f0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Table Talk">
 <title>Table Talk · Wedding reception app mockup</title>
 <meta name="description" content="Mockup of a wedding reception app: answer ten questions, see a graph connecting you to guests with similar answers.">
 <style>
@@ -11,10 +16,13 @@
     --sage:#7a8f7a;--sage-d:#4f6650;--blush:#e8b4b8;--rose:#d98a93;--gold:#c9a35b;
     --serif:Georgia,"Times New Roman",serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   }
-  *{box-sizing:border-box}
-  html,body{margin:0;min-height:100%}
+  :root{--pt:calc(env(safe-area-inset-top,0px) + 16px);--px:20px;--pb:calc(env(safe-area-inset-bottom,0px) + 16px)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;overscroll-behavior:none}
+  button{touch-action:manipulation;font-family:inherit}
   body{font-family:var(--sans);color:var(--ink);background:radial-gradient(1200px 600px at 20% -10%,#f6e6e3 0,transparent 60%),radial-gradient(900px 600px at 100% 100%,#e5ece3 0,transparent 55%),#f4efe7;}
-  .stage{max-width:1100px;margin:0 auto;padding:28px 20px;display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:40px;align-items:center;min-height:100vh}
+  .stage{display:block}
+  .intro{display:none}
   /* ---------- presenter column ---------- */
   .intro h1{font:400 40px/1.1 var(--serif);margin:0 0 10px}
   .intro h1 em{color:var(--rose);font-style:italic}
@@ -27,15 +35,17 @@
   .steps small{display:block;font-weight:400;color:var(--mute);margin-top:2px}
   .note{font-size:12px;color:var(--mute)}
   /* ---------- phone ---------- */
-  .phone-wrap{justify-self:center}
-  .phone{width:390px;height:820px;border-radius:56px;background:#1d1c22;padding:11px;box-shadow:0 40px 80px -20px rgba(60,40,40,.45),0 0 0 2px #36343d inset;transform-origin:top left;position:relative}
-  .screen-area{position:relative;width:100%;height:100%;border-radius:45px;overflow:hidden;background:var(--ivory)}
-  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:112px;height:30px;border-radius:20px;background:#0d0d10;z-index:30}
-  .status{position:absolute;top:0;left:0;right:0;height:50px;display:flex;justify-content:space-between;align-items:center;padding:6px 30px 0;font:600 14px var(--sans);z-index:20;pointer-events:none}
-  .screen{position:absolute;inset:0;padding:56px 22px 26px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transform:translateX(24px);transition:opacity .35s,transform .35s}
+  /* mobile first: the app IS the viewport (real phone supplies its own bezel, notch and status bar) */
+  .phone-wrap{width:100%;height:100vh;height:100dvh}
+  .phone{width:100%;height:100%;position:relative}
+  .screen-area{position:relative;width:100%;height:100%;overflow:hidden;background:var(--ivory)}
+  .notch,.status{display:none}
+  .screen{position:absolute;inset:0;padding:var(--pt) var(--px) var(--pb);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;opacity:0;pointer-events:none;transform:translateX(24px);transition:opacity .35s,transform .35s}
+  .screen::-webkit-scrollbar{display:none}
+  .screen>*{flex-shrink:0}
   .screen.active{opacity:1;pointer-events:auto;transform:none}
   .screen.left{transform:translateX(-24px)}
-  .btn{font:700 16px var(--sans);border:0;border-radius:16px;padding:15px 20px;cursor:pointer;background:var(--ink);color:#fff;width:100%}
+  .btn{font:700 16px var(--sans);border:0;border-radius:16px;padding:15px 20px;min-height:50px;cursor:pointer;background:var(--ink);color:#fff;width:100%}
   .btn:active{transform:scale(.98)}
   .btn.ghost{background:transparent;color:var(--mute);font-weight:600;font-size:14px;padding:10px}
   /* welcome */
@@ -48,7 +58,7 @@
   .mini-graph{height:92px;margin:14px 0 0}
   /* quiz */
   .quiz .top{display:flex;align-items:center;justify-content:space-between;height:32px}
-  .back{background:none;border:0;font-size:22px;color:var(--mute);cursor:pointer;padding:0 8px 0 0}
+  .back{background:none;border:0;font-size:28px;line-height:1;color:var(--mute);cursor:pointer;padding:8px 16px 8px 0;min-height:44px}
   .dots{display:flex;gap:4px}
   .dots i{width:15px;height:5px;border-radius:3px;background:var(--line);transition:background .3s}
   .dots i.done{background:var(--sage)}.dots i.cur{background:var(--rose)}
@@ -82,14 +92,14 @@
   @keyframes ring{0%{transform:scale(.3);opacity:.9}100%{transform:scale(1.15);opacity:0}}
   .loading h3{font:400 24px var(--serif);margin:0 0 6px}.loading p{color:var(--mute);font-size:14px;margin:0}
   /* graph */
-  .graph{padding-top:54px;padding-bottom:16px}
+  .graph{padding-bottom:var(--pb)}
   .ghead h3{font:400 26px/1.1 var(--serif);margin:0}
   .ghead p{margin:4px 0 0;color:var(--mute);font-size:13px}
   .chips{display:flex;gap:7px;overflow-x:auto;padding:12px 0 6px;scrollbar-width:none;flex:none}
   .chips::-webkit-scrollbar{display:none}
-  .chip{flex:none;font:600 12px var(--sans);border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+  .chip{flex:none;font:600 12px var(--sans);border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:10px 14px;cursor:pointer;white-space:nowrap;min-height:40px}
   .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .canvas-box{position:relative;flex:1;min-height:0;border-radius:22px;background:radial-gradient(circle at 50% 50%,#fff 0,#f6efe6 100%);border:1px solid var(--line);overflow:hidden}
+  .canvas-box{position:relative;flex:1 0 auto;min-height:250px;border-radius:22px;background:radial-gradient(circle at 50% 50%,#fff 0,#f6efe6 100%);border:1px solid var(--line);overflow:hidden}
   canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
   .legend{position:absolute;left:10px;bottom:8px;display:flex;gap:10px;font-size:10.5px;color:var(--mute);pointer-events:none;background:rgba(255,253,249,.85);padding:3px 8px;border-radius:8px}
   .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:-0.5px}
@@ -102,9 +112,9 @@
   .mt small{display:block;font-weight:500;color:var(--mute);font-size:11px}
   /* results: summary / names */
   .seg{display:flex;background:#efe8dc;border-radius:12px;padding:3px;gap:2px;flex:none;margin:12px 0 4px}
-  .seg button{flex:1;border:0;background:transparent;border-radius:10px;padding:8px 0;font:600 13px var(--sans);color:var(--mute);cursor:pointer}
+  .seg button{flex:1;border:0;background:transparent;border-radius:10px;padding:11px 0;font:600 14px var(--sans);color:var(--mute);cursor:pointer;min-height:44px}
   .seg button.on{background:var(--paper);color:var(--ink);box-shadow:0 2px 6px -2px rgba(60,40,40,.3)}
-  .summary{padding-top:54px;padding-bottom:18px}
+  .summary{padding-bottom:var(--pb)}
   .panel{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;display:none;padding-top:10px}
   .panel::-webkit-scrollbar{display:none}
   .panel.on{display:block}
@@ -133,7 +143,7 @@
   .cta .btn{padding:13px}
   .btn.alt{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
   /* profile sheet */
-  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-radius:28px 28px 0 0;padding:10px 22px 26px;box-shadow:0 -20px 50px -10px rgba(40,30,30,.35);transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.8,.2,1);z-index:25}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-radius:28px 28px 0 0;padding:10px var(--px) var(--pb);max-height:88dvh;max-height:88vh;overflow-y:auto;box-shadow:0 -20px 50px -10px rgba(40,30,30,.35);transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.8,.2,1);z-index:25}
   .sheet.open{transform:none}
   .grab{width:42px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
   .sh-top{display:flex;gap:14px;align-items:center}
@@ -160,12 +170,28 @@
   .sh-btns{display:flex;gap:10px}.sh-btns .btn{padding:13px}
   .btn.alt{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
   .btn.done{background:var(--sage-d)}
-  .toast{position:absolute;left:50%;top:62px;transform:translate(-50%,-20px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:40;white-space:nowrap}
+  .toast{position:absolute;left:50%;top:calc(var(--pt) + 4px);transform:translate(-50%,-20px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:40;white-space:nowrap}
   .toast.show{opacity:1;transform:translate(-50%,0)}
-  @media (max-width:820px){
-    .stage{grid-template-columns:1fr;padding:12px 0;gap:0}
-    .intro{display:none}
-    .phone-wrap{justify-self:center}
+  /* short phones (iPhone SE, landscape): tighten the quiz so it fits without scrolling */
+  @media (max-height:720px){
+    .opt{padding:12px 8px}.opt span{font-size:24px;margin-bottom:4px}
+    .quiz h3{font-size:24px;margin-bottom:14px}.qn{margin:14px 0 6px}
+    .mono{width:96px;height:96px;font-size:34px;margin-top:6px}.welcome h2{font-size:28px;margin-top:14px}.welcome .pitch{margin-top:14px;font-size:17px}.mini-graph{height:70px}
+    .hero .big{font-size:48px}.sh-top .av{width:48px;height:48px}.score b{font-size:30px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+  /* ===== desktop / tablet enhancement: presenter column + phone frame ===== */
+  @media (min-width:900px){
+    :root{--pt:56px;--px:22px;--pb:26px}
+    .stage{max-width:1100px;margin:0 auto;padding:28px 20px;display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:40px;align-items:center;min-height:100vh}
+    .intro{display:block}
+    .phone-wrap{justify-self:center;width:auto;height:auto}
+    .phone{width:390px;height:820px;border-radius:56px;background:#1d1c22;padding:11px;box-shadow:0 40px 80px -20px rgba(60,40,40,.45),0 0 0 2px #36343d inset;transform-origin:top left}
+    .screen-area{border-radius:45px}
+    .notch{display:block;position:absolute;top:9px;left:50%;transform:translateX(-50%);width:112px;height:30px;border-radius:20px;background:#0d0d10;z-index:30}
+    .status{position:absolute;top:0;left:0;right:0;height:50px;display:flex;justify-content:space-between;align-items:center;padding:6px 30px 0;font:600 14px var(--sans);z-index:20;pointer-events:none}
+    .sheet{max-height:80%}
   }
 </style>
 </head>
@@ -521,12 +547,18 @@ function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('sh
 })();
 
 /* ======================= scale phone to the viewport ======================= */
-function fit() {
-  const p = $('phone'), w = $('wrap'), mobile = innerWidth <= 820;
-  const k = mobile ? Math.min(innerWidth / 390, innerHeight / 820) : Math.min(1, (innerHeight - 40) / 820);
-  p._scale = k; p.style.transform = `scale(${k})`; w.style.width = 390 * k + 'px'; w.style.height = 820 * k + 'px';
-  if ($('s-graph').classList.contains('active')) { const keep = nodes.map(n => [n.x / W, n.y / H]); fitCanvas(); nodes.forEach((n, i) => { n.x = keep[i][0] * W; n.y = keep[i][1] * H; }); }
+const framed = () => matchMedia('(min-width: 900px)').matches;
+function refitGraph() {
+  if (!nodes.length || !$('s-graph').classList.contains('active')) return;
+  const keep = nodes.map(n => [n.x / W, n.y / H]); fitCanvas(); nodes.forEach((n, i) => { n.x = keep[i][0] * W; n.y = keep[i][1] * H; });
 }
+function fit() {
+  const p = $('phone'), w = $('wrap');
+  if (framed()) { const k = Math.min(1, (innerHeight - 40) / 820); p._scale = k; p.style.transform = `scale(${k})`; w.style.width = 390 * k + 'px'; w.style.height = 820 * k + 'px'; }
+  else { p._scale = 1; p.style.transform = ''; w.style.width = ''; w.style.height = ''; }   // phones: real full-screen app, no frame, no scaling
+  refitGraph();
+}
+if (window.ResizeObserver) new ResizeObserver(refitGraph).observe($('cbox'));   // URL bar show/hide, rotation, split-screen
 addEventListener('resize', fit); fit(); renderQ();
 document.querySelector('#steps button[data-go="welcome"]').classList.add('on');
 </script>
