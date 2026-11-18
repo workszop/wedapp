@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<!-- Messaging backend: leave content empty to use the in-browser MockBackend. Set it to your API origin (e.g. https://tabletalk.example.workers.dev) to use HttpBackend. -->
-<meta name="tt-api" content="">
+<!-- API origin (Cloudflare Worker, see worker/). A link with ?e=<event> talks to it; without ?e= the app runs as a demo with fictional guests. -->
+<meta name="tt-api" content="https://wedapp-api.andrzey-jankowski.workers.dev">
 <meta name="theme-color" content="#ffffff">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="manifest.webmanifest">
@@ -359,6 +359,9 @@
   .welcome>div:first-child{position:relative}
   .welcome .lang{position:absolute;top:0;right:0;z-index:2}
   .intro .lang{float:right}
+  /* ---------- real event (html.real): no demo walkthrough, no canned chat with the couple ---------- */
+  html.real .steps,html.real .note,html.real .tag,html.real #wn-form{display:none}
+  .btn.ghost.danger{color:var(--rose)}
 </style>
 </head>
 <body>
@@ -2826,6 +2829,10 @@ const ic = (n, s = 20, w = 2) => `<svg class="ic" xmlns="http://www.w3.org/2000/
    The chosen language is kept in localStorage('tt_lang'); ?lang=en|pl in the URL overrides it for one visit. */
 const LANG_KEY = 'tt_lang', LANGS = ['pl', 'en'];
 let LANG = (() => { let s = null; try { s = new URLSearchParams(location.search).get('lang') || localStorage.getItem(LANG_KEY); } catch (e) {} return LANGS.includes(s) ? s : 'pl'; })();
+/* mode: a link with ?e=<event slug> is a real event served by the API; anything else is the demo with fictional guests */
+const API = ((document.querySelector('meta[name="tt-api"]') || {}).content || '').trim().replace(/\/$/, '');
+const EVENT = (() => { let e = null; try { e = new URLSearchParams(location.search).get('e'); } catch (_) {} return API && /^[a-z0-9]{12,40}$/.test(e || '') ? e : null; })();
+const REAL = !!EVENT;
 const plForm = (n, one, few, many) => n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? few : many;   // Polish plural forms: 1 gość · 2 goście · 5 gości
 const T = {
   pl: {
@@ -2883,7 +2890,7 @@ const T = {
     ask: (first, st) => `${first} – dobry początek rozmowy: ${st}.`,
     askNone: first => `Na razie nic was nie łączy. ${first} – zapytaj, jaki deser poleca.`,
     message: 'Napisz', messagesOff: 'Wiadomości wyłączone', wave: 'Pomachaj', waveSent: 'Pomachano',
-    waveToast: g => `${g.first} zobaczy, że machasz (${g.couple ? 'stół główny' : 'stół ' + g.table})`,
+    waveToast: g => `${g.first} zobaczy, że machasz` + (g.couple ? ' (stół główny)' : g.table ? ` (stół ${g.table})` : ''),
     welcomeNote: 'Cześć! Bardzo się cieszymy, że jesteś z nami. Poszukaj dziś ludzi, z którymi znajdziesz wspólny język, i napisz nam, skąd nas znasz. – Ania i Marek',
     coupleAuto: 'Jesteśmy właśnie na własnym weselu, ale odpiszemy, gdy tylko wrócimy z podróży poślubnej i ogarniemy dzieci, psy, kredyt i całą resztę. – Ania i Marek',
     replies: ['Haha, tak! Miło Cię poznać. Siedzisz gdzieś przy parkiecie?', 'U mnie tak samo! Co pijesz? Znajdę Cię przy barze.', 'Super. Zatańczymy później?', 'Wypatruję Cię po pierwszym tańcu!', 'Jaki ten świat mały! Szukaj mnie przy {t}, poznam Cię ze wszystkimi.', 'Tak! Opowiesz mi więcej, jak wjedzie tort.'],
@@ -2896,6 +2903,18 @@ const T = {
     suggHi: (first, me) => `Cześć ${first}, tu ${me || 'gość z wesela'}. Miło Cię poznać!`,
     nInCommon: (s, n) => `${s}/${n} wspólnych`,
     chatNote: 'Wiadomości zostają w aplikacji. Nie udostępniamy numerów telefonów.', sendFail: 'Nie udało się wysłać',
+    liveFirst: 'gości oprócz Ciebie<small>Pozostali zaraz dołączą</small>',
+    emptyEvent: 'Na razie jesteś tu tylko Ty. Dopasowania pojawią się, gdy dołączą kolejni goście.',
+    consent: 'Inni goście zobaczą Twoje imię, numer stołu i odpowiedzi. W zakładce Rozmowy możesz się ukryć albo usunąć swoje dane.',
+    badName: 'Imię może mieć do 24 znaków: litery, cyfry, spacje, kropki i myślniki.',
+    visibleMe: 'Pokazuj mnie na grafie<small>Po wyłączeniu inni goście nie widzą Twojego imienia ani odpowiedzi</small>',
+    visOn: 'Widać Cię na grafie', visOff: 'Inni goście już Cię nie widzą',
+    deleteMe: 'Usuń moje dane', deleteMeSure: 'Dotknij jeszcze raz, żeby usunąć', deleted: 'Twoje dane zostały usunięte', removed: 'Twój profil został usunięty z wydarzenia',
+    eventMissing: 'Nie znaleziono tego wydarzenia. Zeskanuj ponownie kod QR ze stołu.', netFail: 'Brak połączenia. Spróbuj ponownie.',
+    welcomeNoteReal: 'Cześć! Bardzo się cieszymy, że jesteś z nami. Poszukaj dziś ludzi, z którymi znajdziesz wspólny język.',
+    shareTextReal: n => `Znajdź swoich ludzi na weselu: ${n}`,
+    err_messages_off: 'Ten gość ma wyłączone wiadomości', err_own_messages_off: 'Włącz wiadomości u siebie, żeby pisać do innych', err_slow_down: 'Za szybko. Spróbuj za chwilę.',
+    err_guest_gone: 'Tego gościa nie ma już w wydarzeniu', err_event_full: 'Lista gości jest już pełna', err_bad_code: 'Kod pary młodej jest nieprawidłowy',
     guide: {
       inAndroid: { title: 'Najpierw otwórz w Chrome', p: 'Wbudowana przeglądarka tej aplikacji nie umie instalować. Otwórz link w Chrome i zainstaluj stamtąd.',
         s: [['Dotknij menu <b>⋮</b> w tej aplikacji'], ['Wybierz <b>Otwórz w Chrome</b> (lub <b>Otwórz w przeglądarce</b>)'], ['W Chrome dotknij <b>⋮</b> → <b>Zainstaluj aplikację</b>']] },
@@ -2979,7 +2998,7 @@ const T = {
     ask: (first, st) => `Ask ${first} about ${st}.`,
     askNone: first => `You two have nothing in common yet – ask ${first} what’s on their dessert plate.`,
     message: 'Message', messagesOff: 'Messages off', wave: 'Wave', waveSent: 'Wave sent',
-    waveToast: g => `${g.first} will get your wave ${g.couple ? 'at the head table' : 'at table ' + g.table}`,
+    waveToast: g => `${g.first} will get your wave` + (g.couple ? ' at the head table' : g.table ? ' at table ' + g.table : ''),
     welcomeNote: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight – and tell us, how do you know us? – Ania & Marek',
     coupleAuto: 'We’re currently at our own wedding, but we’ll get back to you as soon as we’re back from the honeymoon, kids, dogs, mortgages and the like. – Ania & Marek',
     replies: ['Haha, yes! Great to meet you – are you sitting near the dance floor?', 'Same here! What are you drinking? I’ll find you at the bar.', 'Love that. Save me a dance later?', 'I’ll look out for you after the first dance!', 'Small world – find me at {t}, I’ll introduce you to everyone.', 'Yes! Tell me more once the cake is out.'],
@@ -2992,6 +3011,18 @@ const T = {
     suggHi: (first, me) => `Hi ${first}, I’m ${me || 'a guest'} – nice to meet you!`,
     nInCommon: (s, n) => `${s}/${n} in common`,
     chatNote: 'Messages stay in the app – no phone numbers are shared.', sendFail: 'Could not send',
+    liveFirst: 'other guests so far<small>The rest will join soon</small>',
+    emptyEvent: 'You’re the first one here. Matches appear as other guests join.',
+    consent: 'Other guests will see your name, table and answers. You can hide yourself or delete your data in the Chats tab.',
+    badName: 'A name can have up to 24 characters: letters, digits, spaces, dots and hyphens.',
+    visibleMe: 'Show me on the graph<small>When off, other guests can’t see your name or answers</small>',
+    visOn: 'You’re visible on the graph', visOff: 'Other guests can’t see you now',
+    deleteMe: 'Delete my data', deleteMeSure: 'Tap again to delete', deleted: 'Your data has been deleted', removed: 'Your profile was removed from the event',
+    eventMissing: 'This event was not found. Scan the QR code on your table again.', netFail: 'No connection. Please try again.',
+    welcomeNoteReal: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight.',
+    shareTextReal: n => `Find your people at the wedding: ${n}`,
+    err_messages_off: 'Messages are turned off for this guest', err_own_messages_off: 'Turn your own messages on to write to others', err_slow_down: 'Too fast. Try again in a moment.',
+    err_guest_gone: 'This guest is no longer in the event', err_event_full: 'The guest list is full', err_bad_code: 'The couple’s code is not valid',
     guide: {
       inAndroid: { title: 'Open in Chrome first', p: 'This app’s built-in browser can’t install apps. Open the link in Chrome, then install it.',
         s: [['Tap the <b>⋮</b> menu in this app'], ['Choose <b>Open in Chrome</b> (or <b>Open in browser</b>)'], ['In Chrome tap <b>⋮</b> → <b>Install app</b>']] },
@@ -3041,6 +3072,8 @@ const rnd = (s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ 
 const guests = NAMES.map((name, i) => ({ id: i, name, first: name.split(' ')[0], table: 1 + (i * 3) % 8, msg: i % 7 !== 5,   // msg:false = this guest has turned messages off
   answers: Q.map((q, qi) => rnd() < 0.7 ? ARCH[i % 5][qi] % q.opts.length : Math.floor(rnd() * q.opts.length)) }));
 guests.push(...COUPLE.map((c, i) => ({ ...c, id: guests.length + i })));
+if (REAL) guests.length = 0;   // real event: the list comes from the API (loadGraph) and from WebSocket pushes
+const guestById = id => guests.find(g => String(g.id) === String(id));
 const PAL = ['#8aa0b8', '#d98a93', '#7a8f7a', '#c9a35b', '#a58bb8', '#6fa3a0'];
 const COL = { 5: '#c9a35b', 4: '#d98a93', 3: '#7a8f7a', 2: '#b9c4b4', 1: '#d9d3c9', 0: '#d9d3c9' };
 /* graph colours by side + relationship: bride's friends pink, bride's family violet, groom's friends green, groom's family blue */
@@ -3051,9 +3084,10 @@ const blank = () => Q.map(() => null);
 let me = blank();
 const lvl = s => { const r = s / Math.max(4, me.filter(a => a !== null).length); return r >= 0.7 ? 5 : r >= 0.5 ? 4 : r >= 0.35 ? 3 : r >= 0.2 ? 2 : s > 0 ? 1 : 0; };   // 0–5 visual tier from the share of matching answers
 const $ = id => document.getElementById(id);
-const initials = n => n.split(' ').map(w => w[0]).join('').replace('.', '');
+const initials = n => n.split(' ').filter(Boolean).map(w => w[0]).join('').replace('.', '').slice(0, 3);
 const avatarColor = g => g.couple ? (g.couple === 'bride' ? '#e8a3ab' : '#86a8d0') : PAL[g.id % PAL.length];
-const tableOf = g => g.couple ? tr('headTable') : tr('tableN', g.table);
+const tableOf = g => g.couple ? tr('headTable') : g.table ? tr('tableN', g.table) : '';   // real guests may have no table number
+const dot = (...parts) => parts.filter(Boolean).join(' · ');
 
 /* ======================= navigation ======================= */
 const screens = ['welcome', 'quiz', 'loading', 'summary', 'inbox', 'chat', 'graph'];
@@ -3093,20 +3127,24 @@ const mandatoryDone = () => myName.trim() && me[0] !== null && me[1] !== null;
 function liveStats() {
   const done = me.map((a, i) => a === null ? -1 : i).filter(i => i >= 0);
   if (!done.length) return { done: 0, top: 0, k: 0, count: guests.length };
-  const sc = guests.map(g => done.filter(i => g.answers[i] === me[i]).length), top = Math.max(...sc), k = Math.max(1, top - 1);
+  const sc = guests.map(g => done.filter(i => g.answers[i] === me[i]).length), top = Math.max(0, ...sc), k = Math.max(1, top - 1);
   return { done: done.length, top, k, count: sc.filter(v => v >= k).length };
 }
 let lastCount = null;
 function renderLive() {
   const st = liveStats(), num = $('lv-num'), txt = $('lv-txt');
+  if (REAL && !guests.length) { num.textContent = 0; txt.innerHTML = tr('liveFirst'); lastCount = null; return; }
   if (!st.done) { num.textContent = guests.length; txt.innerHTML = tr('liveStart', guests.length); lastCount = null; return; }
   num.textContent = st.count;
   txt.innerHTML = tr('liveShare', st.count, st.k, st.done) + `<small>${tr('liveBest', st.top, st.done)}</small>`;
   if (lastCount !== st.count) { num.classList.add('bump'); setTimeout(() => num.classList.remove('bump'), 250); }
   lastCount = st.count;
 }
-function finishQuiz() { flushWelcomeReply(); go('loading'); setTimeout(() => showView('summary'), 1900); }
-function nextStep() { if (si < steps.length - 1) { si++; renderQ(); } else finishQuiz(); }
+function finishQuiz() {   // real event: wait until the answers are saved before showing the results
+  flushWelcomeReply(); go('loading'); const t = Date.now();
+  (REAL ? flushMe() : Promise.resolve()).then(() => setTimeout(() => showView('summary'), Math.max(0, 1900 - (Date.now() - t))));
+}
+function nextStep() { syncMe(); if (si < steps.length - 1) { si++; renderQ(); } else finishQuiz(); }
 function renderQ() {
   const st = steps[si], act = $('qact');
   $('dots').innerHTML = steps.map((_, i) => `<i class="${i < si ? 'done' : i === si ? 'cur' : ''}"></i>`).join('');
@@ -3114,10 +3152,10 @@ function renderQ() {
   if (st.type === 'name') {
     $('qn').innerHTML = `${tr('welcome')} <span class="req r">${tr('required')}</span>`; $('qt').textContent = tr('nameQ');
     $('opts').style.display = 'block';
-    $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="${tr('namePh')}" autocomplete="off" value="${myName.replace(/"/g, '&quot;')}"><div class="name-hint">${tr('nameHint')}</div>`;
-    const inp = $('name-in'), upd = () => { myName = inp.value.trim(); $('name-next').disabled = !myName; };
-    act.innerHTML = `<span></span><button class="btn" id="name-next">${tr('continue')}</button>`; $('name-next').disabled = !myName; $('name-next').onclick = nextStep;
-    inp.oninput = upd; inp.onkeydown = e => { if (e.key === 'Enter' && myName) nextStep(); };
+    $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="${tr('namePh')}" autocomplete="off" value="${esc(myName)}"><div class="name-hint">${tr(REAL ? 'consent' : 'nameHint')}</div>`;
+    const inp = $('name-in'), upd = () => { myName = inp.value.trim(); $('name-next').disabled = !nameOk(); };
+    act.innerHTML = `<span></span><button class="btn" id="name-next">${tr('continue')}</button>`; $('name-next').disabled = !nameOk(); $('name-next').onclick = nextStep;
+    inp.oninput = upd; inp.onkeydown = e => { if (e.key === 'Enter' && nameOk()) nextStep(); };
     return;
   }
   renderLive();
@@ -3130,15 +3168,15 @@ function renderQ() {
   if (!req) { $('skip').onclick = nextStep; $('done-now').onclick = finishQuiz; }
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => {
     const i = +b.dataset.i;
-    if (me[qi] === i && !req) { me[qi] = null; renderQ(); return; }          // optional: tap again to clear
-    me[qi] = i; renderQ(); setTimeout(nextStep, 260);
+    if (me[qi] === i && !req) { me[qi] = null; syncMe(); renderQ(); return; }          // optional: tap again to clear
+    me[qi] = i; syncMe(); renderQ(); setTimeout(nextStep, 260);
   });
 }
 $('qback').innerHTML = ic('chevron-left', 28, 2);
 $('qback').onclick = () => { if (si > 0) { si--; renderQ(); } else go('welcome'); };
 
 /* ======================= scoring ======================= */
-const shared = g => Q.map((_, i) => g.answers[i] === me[i] ? i : -1).filter(i => i >= 0);
+const shared = g => Q.map((_, i) => me[i] !== null && g.answers[i] === me[i] ? i : -1).filter(i => i >= 0);   // two skipped answers are not a match
 const score = g => shared(g).length;
 const rank = () => [...guests].sort((a, b) => score(b) - score(a) || a.id - b.id);
 
@@ -3158,6 +3196,7 @@ function syncWelcome() {   // returning from the results: keep their answers unl
   const back = !!mandatoryDone();
   $('start').textContent = tr(back ? 'backMatches' : 'start');
   $('sample').textContent = tr(back ? 'startOver' : 'sample');
+  $('sample').style.display = REAL && !back ? 'none' : '';   // no fake sample answers in a real event
 }
 function mountTabbar() {
   $('tabbar').innerHTML = TABS.map(([k, i]) => [k, tr('tab_' + k), i]).map(([k, l, i]) => `<button data-v="${k}" aria-label="${l}">${ic(i, 24, 1.8)}<span>${l}</span>${k === 'chats' ? '<i class="bdg" style="display:none"></i>' : ''}</button>`).join('');
@@ -3170,30 +3209,29 @@ function syncTabbar() {
   $('tabbar').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === active));
 }
 function mountSeg(id, active) { const el = $(id); el.innerHTML = segHTML(active); el.querySelectorAll('button').forEach(b => b.onclick = () => showView(b.dataset.v)); if (typeof refreshUnread === 'function') refreshUnread(); }
-function personChip(g) { return `<button class="person" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span>${g.first}</button>`; }
+function personChip(g) { return `<button class="person" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${esc(initials(g.name))}</span>${esc(g.first)}</button>`; }
 function renderSummary() {
   const done = answeredCount(), sc = guests.map(g => ({ g, s: score(g) })), top = Math.max(0, ...sc.map(x => x.s)), k = Math.max(1, top - 1);
   const close = sc.filter(x => x.s >= k && x.s > 0).length, any = sc.filter(x => x.s > 0).length;
   mountSeg('seg-summary', view === 'names' ? 'names' : 'summary');
   $('sm-title').textContent = myName ? tr('smTitleName', myName) : tr('smTitle');
-  $('sm-sub').textContent = tr('smSub', done, guests.length);
+  $('sm-sub').textContent = tr('smSub', done, guests.length + (REAL ? 1 : 0));
   // grouped: how many answers in common -> how many people
   const byCount = {}; sc.forEach(x => { if (x.s > 0) (byCount[x.s] ||= []).push(x.g); });
   const counts = Object.keys(byCount).map(Number).sort((a, b) => b - a), maxPeople = Math.max(1, ...counts.map(c => byCount[c].length));
+  const hero = guests.length ? `<div class="hero"><div class="big">${close}</div><p>${tr('liveShare', close, k, done)}</p><small>${tr('smTop', top, done, any)}</small></div>` : `<div class="hero"><p>${tr('emptyEvent')}</p></div>`;
   $('pn-summary').innerHTML = `
-    <div class="hero"><div class="big">${close}</div>
-      <p>${tr('liveShare', close, k, done)}</p>
-      <small>${tr('smTop', top, done, any)}</small></div>
+    ${hero}
     <div class="grp-t">${tr('byCount')}</div>
-    ${counts.length ? counts.map((c, i) => `<div class="grp ${c >= k ? 'close' : ''} ${i === 0 ? 'open' : ''}">
+    ${counts.length ? counts.map((c, i) => `<div class="grp ${c >= k ? 'close' : ''} ${i === 0 ? 'open' : ''}" data-c="${c}">
       <button class="grp-h"><b>${tr('inCommonN', c, done)}</b><span>${byCount[c].length}</span><small>${tr('peopleTap', byCount[c].length)}</small><div class="bar"><i style="width:${byCount[c].length / maxPeople * 100}%;--c:${COL[lvl(c)]}"></i></div></button>
       <div class="grp-b">${byCount[c].map(personChip).join('')}</div></div>`).join('') : `<div class="grp"><div class="grp-h"><b>${tr('noOverlap')}</b><small>${tr('noOverlapP')}</small></div></div>`}
     <div class="cta"><button class="btn alt" id="cta-names">${ic('users', 18)}${tr('showNames')}</button><button class="btn" id="cta-graph">${ic('network', 18)}${tr('seeGraph')}</button></div>`;
-  $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><div>${g.name}<small>${tableOf(g)} · ${tr('tier')[lvl(score(g))]}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
+  $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${esc(initials(g.name))}</span><div>${esc(g.name)}<small>${dot(tableOf(g), tr('tier')[lvl(score(g))])}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
     + `<div class="cta"><button class="btn" id="cta-graph2">${ic('network', 18)}${tr('seeGraph')}</button></div>`;
   $('pn-summary').classList.toggle('on', view !== 'names'); $('pn-names').classList.toggle('on', view === 'names'); syncTabbar();
   $('pn-summary').querySelectorAll('.grp-h').forEach(h => h.onclick = () => h.parentElement.classList.toggle('open'));
-  document.querySelectorAll('#s-summary .person, #s-summary .prow').forEach(b => b.onclick = () => select(guests[+b.dataset.id]));
+  document.querySelectorAll('#s-summary .person, #s-summary .prow').forEach(b => b.onclick = () => select(guestById(b.dataset.id)));
   $('cta-names').onclick = () => showView('names'); $('cta-graph').onclick = () => showView('graph'); $('cta-graph2').onclick = () => showView('graph');
 }
 
@@ -3219,7 +3257,7 @@ function startGraph() {
   nodes = [you, ...guests.map((g, i) => { const s = lvl(score(g)), a = i * 2.399 + .3, R = targetR(s); return { ...g, s, x: W / 2 + Math.cos(a) * R * .6, y: H / 2 + Math.sin(a) * R * .6, vx: 0, vy: 0, r: g.couple ? Math.max(19, 9 + s * 2.3) : 9 + s * 2.3, raw: score(g), cat: catColor(g), born: (5 - s) * .35 + i * .035 }; })];
   links = [];
   for (let i = 1; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
-    const n = Q.reduce((c, _, k) => c + (nodes[i].answers[k] === nodes[j].answers[k] ? 1 : 0), 0);
+    const n = Q.reduce((c, _, k) => c + (nodes[i].answers[k] !== null && nodes[i].answers[k] === nodes[j].answers[k] ? 1 : 0), 0);
     if (n >= 5 && nodes[i].s >= 1 && nodes[j].s >= 1) links.push([nodes[i], nodes[j], n]);
   }
   // radius by RANK (not by raw score): best match innermost, weakest outermost, so the whole canvas is used whatever the answers are
@@ -3237,7 +3275,7 @@ function step(dt) {
   const you = nodes[0], pad = 28, cx = (LR.x0 + LR.x1) / 2, cy = (LR.y0 + LR.y1) / 2, ex = (LR.x1 - LR.x0) / 2 - pad, ey = (LR.y1 - LR.y0) / 2 - pad;
   you.x += (cx - you.x) * 0.2; you.y += (cy - you.y) * 0.2;
   const bN = nodes.find(n => n.couple === 'bride'), gN = nodes.find(n => n.couple === 'groom');
-  { const dx = gN.x - bN.x, dy = gN.y - bN.y, d = Math.hypot(dx, dy) || 1, f = (d - 58) * 0.06, fx = dx / d * f, fy = dy / d * f;   // the couple stays together
+  if (bN && gN) { const dx = gN.x - bN.x, dy = gN.y - bN.y, d = Math.hypot(dx, dy) || 1, f = (d - 58) * 0.06, fx = dx / d * f, fy = dy / d * f;   // the couple stays together
     if (bN !== drag) { bN.vx += fx; bN.vy += fy; } if (gN !== drag) { gN.vx -= fx; gN.vy -= fy; } }
   for (const n of nodes) {
     if (n.you || n === drag) continue;
@@ -3283,15 +3321,15 @@ function loop() {
   const bride = nodes.find(n => n.couple === 'bride'), groom = nodes.find(n => n.couple === 'groom'), you = nodes[0];
   ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
   for (const n of nodes) { if (n.you || n.couple) continue; const al = ease((t - n.born) * 1.5); if (!al) continue;
-    for (const cp of [bride, groom]) { const a0 = n.answers[0]; if (cp === bride ? a0 === 1 : a0 === 0) continue;
+    for (const cp of [bride, groom]) { if (!cp) continue; const a0 = n.answers[0]; if (cp === bride ? a0 === 1 : a0 === 0) continue;
       ctx.strokeStyle = hexA(n.cat, (faded(n) ? .05 : .15) * al); ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(n.x, n.y); ctx.stroke(); } }
   ctx.setLineDash([]);
   // bride ♥ groom
-  { const dx = groom.x - bride.x, dy = groom.y - bride.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, r = bride.r + 1;
+  if (bride && groom) { const dx = groom.x - bride.x, dy = groom.y - bride.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, r = bride.r + 1;
     if (d > 2 * r + 4) { ctx.strokeStyle = 'rgba(201,163,91,.8)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(bride.x + ux * r, bride.y + uy * r); ctx.lineTo(groom.x - ux * r, groom.y - uy * r); ctx.stroke(); }
     ctx.fillStyle = '#c9a35b'; ctx.font = '700 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('♥', (bride.x + groom.x) / 2, (bride.y + groom.y) / 2 + 1); }
   // you ↔ the spouse on your side (gold)
-  for (const cp of [bride, groom]) { if (me[0] === null || (cp === bride ? me[0] === 1 : me[0] === 0)) continue;
+  for (const cp of [bride, groom]) { if (!cp || me[0] === null || (cp === bride ? me[0] === 1 : me[0] === 0)) continue;
     ctx.strokeStyle = 'rgba(201,163,91,.55)'; ctx.lineWidth = 1.6; ctx.setLineDash([2, 5]); ctx.beginPath(); ctx.moveTo(you.x, you.y); ctx.lineTo(cp.x, cp.y); ctx.stroke(); ctx.setLineDash([]); }
   // you ↔ guest links
   for (const n of nodes) { if (n.you || n.couple || n.s < 2) continue; const al = ease((t - n.born) * 1.6); if (!al) continue;
@@ -3334,17 +3372,20 @@ function select(g) {
   const n = nodes.find(x => x.id === g.id); selected = n || null;
   const s = score(g), L = lvl(s), sh = shared(g), c = COL[L];
   const av = $('p-av'); av.textContent = initials(g.name); av.style.background = avatarColor(g);
-  $('p-name').textContent = g.name; $('p-meta').textContent = g.couple ? `${tr('role_' + g.couple)} · ${tr('headTable')}` : `${tr('tableN', g.table)} · ${tr('sideRel', g.answers[0], g.answers[1])}`;
+  $('p-name').textContent = g.name; $('p-meta').textContent = g.couple ? `${tr('role_' + g.couple)} · ${tr('headTable')}` : dot(tableOf(g), tr('sideRel', g.answers[0], g.answers[1]));
   $('p-score').textContent = `${s}/${answeredCount()}`; $('p-score').style.color = c === '#d9d3c9' ? '#8b8794' : c; $('p-tier').textContent = tr('tier')[L];
   $('p-meter').style.setProperty('--c', c); $('p-meter').innerHTML = Array.from({ length: Math.max(1, answeredCount()) }, (_, i) => `<i class="${i < s ? 'f' : ''}"></i>`).join('');
-  const diff = Q.map((q, i) => i).filter(i => me[i] !== null && !sh.includes(i)), skipped = Q.map((q, i) => i).filter(i => me[i] === null);
+  const diff = Q.map((q, i) => i).filter(i => me[i] !== null && g.answers[i] !== null && !sh.includes(i)), skipped = Q.map((q, i) => i).filter(i => me[i] === null);
   $('p-shared').innerHTML = (sh.length ? `<div class="lbl">${tr('youBoth')}</div><div class="pills">${sh.map(i => `<span class="pill" title="${Q[i].label}">${ic(Q[i].opts[g.answers[i]][0], 16)}${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : `<div class="lbl">${tr('nothingCommon')}</div>`)
     + (diff.length ? `<div class="lbl">${tr('different')}</div><div class="pills dim">${diff.map(i => `<span class="pill" title="${Q[i].label}">${ic(Q[i].opts[g.answers[i]][0], 16)}${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '')
     + (skipped.length ? `<div class="lbl">${tr('youSkipped')}</div><div class="skipnote">${skipped.map(i => Q[i].label).join(' · ')}</div>` : '');
   const st = sh.length ? (typeof Q[sh[0]].starter === 'function' ? Q[sh[0]].starter(Q[sh[0]].opts[g.answers[sh[0]]][1]) : Q[sh[0]].starter) : null;
-  $('p-start').innerHTML = ic('message-square-quote', 18) + '<span>' + (st ? tr('ask', g.first, st) : tr('askNone', g.first)) + '</span>';
+  $('p-start').innerHTML = ic('message-square-quote', 18) + '<span>' + (st ? tr('ask', esc(g.first), st) : tr('askNone', esc(g.first))) + '</span>';
   const mb = $('p-msg'), canMsg = g.msg !== false; mb.innerHTML = ic('message-circle', 18) + tr(canMsg ? 'message' : 'messagesOff'); mb.disabled = !canMsg; mb.onclick = () => openChat(g, view);
-  const w = $('p-wave'); w.innerHTML = ic('hand', 18) + tr('wave'); w.classList.remove('done'); w.onclick = () => { w.innerHTML = ic('check', 18) + tr('waveSent'); w.classList.add('done'); toast(tr('waveToast', g)); };
+  const w = $('p-wave'); w.innerHTML = ic('hand', 18) + tr('wave'); w.classList.remove('done'); w.onclick = async () => {   // real event: a wave is a 👋 message, so it reaches the other phone
+    if (REAL) { try { await backend.sendMessage(String(g.id), '👋'); } catch (e) { toast(errText(e)); return; } }
+    w.innerHTML = ic('check', 18) + tr('waveSent'); w.classList.add('done'); toast(tr('waveToast', g));
+  };
   $('sheet').classList.add('open'); $('scrim').classList.add('on');
 }
 function closeSheet() { $('sheet').classList.remove('open'); $('scrim').classList.remove('on'); selected = null; sheetGuest = null; }
@@ -3364,8 +3405,8 @@ function toast(t, onTap, ms = 2200) { const e = $('toast'); e.textContent = t; e
      subscribe(handler)      -> unsubscribe()   handler gets { type:'message', message } | { type:'typing', from, on } | { type:'read', withId }
    Message = { id, from, to, body, at: ISO-8601, readAt: ISO-8601 | null, auto?: true }   (auto = automatic reply)
 
-   Matching Cloudflare routes (Workers + D1) are in HttpBackend below. Enable it by putting the API origin in
-   <meta name="tt-api" content="https://…">; leave it empty to keep the in-browser MockBackend. */
+   Two implementations: MockBackend (demo, in the browser) and LiveBackend (real event: REST + one WebSocket
+   against the Worker in worker/). LiveBackend adds connect() / close() and the events { type:'guest' | 'gone' | 'sync' | 'kicked' }. */
 
 /* Seeded and automatic messages carry a dictionary key (k) so they follow the language switch; everything else shows its stored body. */
 const bodyOf = m => m.k && typeof T[LANG][m.k] === 'string' ? tr(m.k) : m.body;
@@ -3415,41 +3456,141 @@ function MockBackend({ getGuest }) {
   };
 }
 
-/* ---- HttpBackend: the same contract over fetch(). Not used until <meta name="tt-api"> is set.
-   Suggested Worker routes (D1 table: messages(id, event_id, from_guest, to_guest, body, sent_at, read_at)):
-     GET  /api/inbox                 -> getThreads()
-     GET  /api/messages?with=ID      -> getMessages()
-     POST /api/messages              {to, body}  -> 201 Message | 403 if recipient allow_messages = 0
-     POST /api/messages/read         {with}
-     GET  /api/me/settings   PUT /api/me/settings   {allowMessages}
-     GET  /api/events?since=CURSOR   -> { cursor, events: [...] }   polled (use a Durable Object + WebSocket later for push)
-   Auth: Authorization: Bearer <guest token>, issued by POST /api/join and kept in localStorage('tt_token'). ---- */
-function HttpBackend({ baseUrl = '', token = '', pollMs = 8000 }) {
-  const call = async (path, opts = {}) => {
-    const r = await fetch(baseUrl.replace(/\/$/, '') + path, { ...opts, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...(opts.headers || {}) }, body: opts.body ? JSON.stringify(opts.body) : undefined });
-    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Request failed (' + r.status + ')');
-    return r.status === 204 ? null : r.json();
-  };
-  const subs = new Set(); let cursor = '', timer = null;
-  const poll = async () => { try { const out = await call('/api/events?since=' + encodeURIComponent(cursor)); cursor = out.cursor || cursor; (out.events || []).forEach(e => subs.forEach(f => f(e))); } catch (e) {} };
+/* ---- LiveBackend: the same contract against the Worker (worker/src/index.js). REST for reads and writes,
+   one WebSocket per guest for pushes, so nobody polls. Threads are cached and only refetched after a message. ---- */
+function LiveBackend() {
+  const subs = new Set(), emit = e => subs.forEach(f => { try { f(e); } catch (_) {} });
+  let threads = null, ws = null, retry = 0, timer = null, ping = null;
+  const remember = c => { if (c) known.set(String(c.id), norm(c)); };
+  const schedule = () => { clearTimeout(timer); timer = setTimeout(connect, Math.min(30000, 1000 * 2 ** retry++) + Math.random() * 1000); };
+  function connect() {
+    if (!token || ws) return;
+    let sock; try { sock = new WebSocket(API.replace(/^http/, 'ws') + '/api/e/' + EVENT + '/ws', ['tt', token]); } catch (e) { return schedule(); }
+    ws = sock;
+    sock.onopen = () => { retry = 0; clearInterval(ping); ping = setInterval(() => { try { sock.send('ping'); } catch (e) {} }, 45000); threads = null; emit({ type: 'sync' }); };   // (re)connected: reload the guest list and the inbox
+    sock.onmessage = e => { if (e.data === 'pong') return; let m; try { m = JSON.parse(e.data); } catch (_) { return; } if (m.type === 'message') { threads = null; remember(m.peer); } emit(m); };
+    sock.onclose = ev => { clearInterval(ping); if (ws !== sock) return; ws = null; if (ev.code === 4001 || ev.code === 4002) emit({ type: 'kicked' }); else schedule(); };
+    sock.onerror = () => {};
+  }
+  const wake = () => { if (!document.hidden && !ws && token) { retry = 0; clearTimeout(timer); connect(); } };
+  document.addEventListener('visibilitychange', wake); addEventListener('online', wake);
   return {
-    kind: 'http',
-    getThreads: () => call('/api/inbox'),
-    getMessages: id => call('/api/messages?with=' + encodeURIComponent(id)),
-    sendMessage: (to, body) => call('/api/messages', { method: 'POST', body: { to: String(to), body } }),
-    markRead: id => call('/api/messages/read', { method: 'POST', body: { with: String(id) } }),
-    getSettings: () => call('/api/me/settings'),
-    setSettings: p => call('/api/me/settings', { method: 'PUT', body: p }),
-    subscribe(fn) { subs.add(fn); if (!timer) timer = setInterval(poll, pollMs); return () => { subs.delete(fn); if (!subs.size) { clearInterval(timer); timer = null; } }; },
+    kind: 'live', connect,
+    close() { clearTimeout(timer); clearInterval(ping); const s = ws; ws = null; threads = null; if (s) { try { s.close(); } catch (e) {} } },
+    getThreads() { if (!token) return Promise.resolve([]); if (!threads) threads = api('/inbox').then(l => { l.forEach(t => remember(t.peer)); return l; }).catch(e => { threads = null; throw e; }); return threads; },
+    getMessages: id => api('/messages?with=' + encodeURIComponent(id)),
+    async sendMessage(to, body) { const m = await api('/messages', { method: 'POST', body: { to: String(to), body } }); threads = null; return m; },
+    async markRead(id) {
+      const l = await this.getThreads().catch(() => []), t = l.find(x => x.withId === String(id));
+      if (t && !t.unread) return;   // nothing unread: no request
+      await api('/messages/read', { method: 'POST', body: { with: String(id) } }); threads = null; emit({ type: 'read', withId: String(id) });
+    },
+    getSettings: async () => mySettings,
+    async setSettings(p) { const m = await api('/me', { method: 'PUT', body: p }); mySettings = { allowMessages: m.allowMessages, visible: m.visible }; return mySettings; },
+    subscribe(fn) { subs.add(fn); return () => subs.delete(fn); },
   };
 }
 
-const apiOrigin = (document.querySelector('meta[name="tt-api"]') || {}).content || '';
-const backend = apiOrigin.trim() ? HttpBackend({ baseUrl: apiOrigin.trim(), token: (() => { try { return localStorage.getItem('tt_token') || ''; } catch (e) { return ''; } })() }) : MockBackend({ getGuest: id => guests[+id] });
+/* ======================= real event: join, save answers, live guest list =======================
+   State lives on the server; the phone keeps only the guest token (localStorage, per event). */
+const NAME_RE = /^[\p{L}\p{M}\d .'’-]{1,24}$/u, nameOk = () => NAME_RE.test(myName.trim());   // same rule as the Worker
+const errText = e => e && e.code ? (typeof T[LANG]['err_' + e.code] === 'string' ? tr('err_' + e.code) : tr('sendFail')) : REAL ? tr('netFail') : (e && e.message) || tr('sendFail');
+const TOKEN_KEY = 'tt_token_' + EVENT, ROLE_KEY = 'tt_role_' + EVENT, known = new Map();
+const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
+let token = '', EVT = null, mySettings = { allowMessages: true, visible: true }, myTable = null, lastSaved = '', saveTimer = null, saving = Promise.resolve();
+const norm = c => ({ id: +c.id, name: c.name, first: c.name.split(' ')[0], table: c.table, answers: c.answers, msg: c.msg, ...(c.role ? { couple: c.role } : {}) });
+async function api(path, { method = 'GET', body } = {}) {
+  const r = await fetch(`${API}/api/e/${EVENT}${path}`, { method, headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => null);
+  if (!r.ok) { const e = new Error((j && j.error) || 'http_' + r.status); e.status = r.status; e.code = (j && j.error) || 'http'; throw e; }
+  return j;
+}
+if (REAL) (function readUrl() {   // #k=<token> (installed app / restore link), #role=bride|groom&code=<admin code> (the couple), ?t=<table> (per-table QR)
+  document.documentElement.classList.add('real');
+  const h = new URLSearchParams(location.hash.slice(1)), q = new URLSearchParams(location.search);
+  const k = h.get('k'); if (k && /^[A-Za-z0-9_-]{20,80}$/.test(k)) store.set(TOKEN_KEY, k);
+  const role = h.get('role'), code = h.get('code'); if ((role === 'bride' || role === 'groom') && code) { try { sessionStorage.setItem(ROLE_KEY, JSON.stringify({ role, code })); } catch (e) {} }
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);   // keep secrets out of the address bar and of shared links
+  const t = parseInt(q.get('t'), 10); if (t >= 1 && t <= 200) myTable = t;
+  token = store.get(TOKEN_KEY) || '';
+})();
+const pendingRole = () => { try { return JSON.parse(sessionStorage.getItem(ROLE_KEY)); } catch (e) { return null; } };
+function adoptMe(m) { myName = m.name; me = m.answers.slice(); mySettings = { allowMessages: m.allowMessages, visible: m.visible }; if (m.table) myTable = m.table; lastSaved = JSON.stringify({ name: m.name, answers: m.answers }); }
+function updateManifest() {   // the installed app must open this event (and this guest), not the demo
+  const l = document.querySelector('link[rel="manifest"]'); if (l) l.href = `${API}/api/e/${EVENT}/manifest?lang=${LANG}` + (token ? '&k=' + encodeURIComponent(token) : '');
+}
+function applyEvent() {   // couple's names and date on the welcome screen
+  const names = EVT ? EVT.names : '', caps = names.split(/\s+/).filter(w => /^\p{Lu}/u.test(w)).map(w => w[0]).slice(0, 2);
+  document.querySelector('#s-welcome .mono').textContent = caps.join('&'); document.querySelector('#s-welcome h2').textContent = names;
+  document.querySelector('#s-welcome .sub').textContent = EVT ? EVT.dateLine : ''; document.querySelector('.wn-h b').textContent = names;
+  document.querySelectorAll('.wn-av i').forEach((el, i) => { el.textContent = caps[i] || ''; });
+  if (names) document.title = 'Table Talk · ' + names;
+  rerenderWelcome();
+}
+async function pushMe() {   // join on the first save, update afterwards; always sends the whole state, so a lost request heals itself
+  if (!REAL || !mandatoryDone() || !nameOk()) return;
+  const p = token ? null : pendingRole(); if (p) me[0] = p.role === 'bride' ? 0 : 1;
+  const body = { name: myName.trim(), answers: me.slice() }, sig = JSON.stringify(body);
+  if (token && sig === lastSaved) return;
+  try {
+    if (!token) {
+      const r = await api('/join', { method: 'POST', body: { ...body, table: myTable, ...(p || {}) } });
+      token = r.token; store.set(TOKEN_KEY, token); try { sessionStorage.removeItem(ROLE_KEY); } catch (e) {}
+      mySettings = { allowMessages: r.me.allowMessages, visible: r.me.visible }; lastSaved = sig; updateManifest(); backend.connect();   // connect -> 'sync' -> loadGraph
+    } else { await api('/me', { method: 'PUT', body }); lastSaved = sig; }
+  } catch (e) {
+    if (e.status === 401 && token) { forgetMe(); return pushMe(); }   // the token died (profile removed): join again
+    if (e.code === 'bad_name') { si = 0; renderQ(); go('quiz'); toast(tr('badName'), null, 5000); return; }
+    if (e.code === 'bad_code') { try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} }
+    toast(errText(e), null, 4000);
+  }
+}
+const flushMe = () => { clearTimeout(saveTimer); return (saving = saving.then(pushMe, pushMe)); };   // one save at a time
+const syncMe = () => { if (!REAL) return; clearTimeout(saveTimer); saveTimer = setTimeout(flushMe, 700); };
+async function loadGraph() {
+  if (!token) return;
+  try { const r = await api('/graph'); guests.length = 0; guests.push(...r.guests.map(norm)); refreshViews(true); } catch (e) { if (e.status === 401) forgetMe(true); }
+}
+function rebuildGraph() {   // new guest list, same picture: nodes keep their place, the filter stays
+  const old = new Map(nodes.map(n => [n.id, n])), f = filter;
+  startGraph(); nodes.forEach(n => { const o = old.get(n.id); if (o) { n.x = o.x; n.y = o.y; n.born = -9; } });
+  filter = f !== null && me[f] !== null ? f : null; mountChips();
+}
+let refreshT = null, refreshLast = 0;
+function refreshViews(now) {   // re-render what is on screen, at most every 2.5 s while guests keep joining
+  const run = () => {
+    refreshT = null; refreshLast = Date.now(); const on = n => $('s-' + n).classList.contains('active');
+    if (on('summary')) { const open = [...document.querySelectorAll('#pn-summary .grp.open')].map(el => el.dataset.c); renderSummary(); document.querySelectorAll('#pn-summary .grp[data-c]').forEach(el => el.classList.toggle('open', open.includes(el.dataset.c))); }
+    if (on('graph')) rebuildGraph();
+    if (on('quiz') && steps[si].type !== 'name') renderLive();
+    if (sheetGuest) { const g = guestById(sheetGuest.id); if (!g) closeSheet(); else if (g !== sheetGuest) select(g); }
+  };
+  if (now) { clearTimeout(refreshT); run(); } else if (!refreshT) refreshT = setTimeout(run, Math.max(0, 2500 - (Date.now() - refreshLast)));
+}
+function onLive(ev) {   // pushes from the WebSocket
+  if (ev.type === 'sync') { loadGraph(); refreshUnread(); return; }
+  if (ev.type === 'kicked') { forgetMe(true); toast(tr('removed'), null, 5000); return; }
+  const id = +(ev.type === 'guest' ? ev.guest.id : ev.id), i = guests.findIndex(g => g.id === id);
+  if (ev.type === 'guest') { const g = norm(ev.guest); known.set(String(id), g); if (i >= 0) guests[i] = g; else guests.push(g); } else if (i >= 0) guests.splice(i, 1);
+  refreshViews();
+}
+function forgetMe(reset) {   // drop the token; with reset also the local answers (after "delete my data" or removal by the couple)
+  token = ''; store.set(TOKEN_KEY, null); lastSaved = ''; backend.close(); updateManifest();
+  if (reset) { myName = ''; me = blank(); guests.length = 0; closeSheet(); si = 0; renderQ(); go('welcome'); }
+}
+async function bootReal() {
+  updateManifest();
+  try { EVT = await api('/event'); } catch (e) { toast(tr(e.status === 404 ? 'eventMissing' : 'netFail'), null, 9000); if (e.status === 404) $('start').disabled = true; return; }
+  applyEvent();
+  if (!token) return;
+  try { adoptMe(await api('/me')); syncWelcome(); renderQ(); backend.connect(); } catch (e) { if (e.status === 401) forgetMe(); }
+}
+
+const backend = REAL ? LiveBackend() : MockBackend({ getGuest: guestById });
 
 /* ---- UI ---- */
 let chat = { id: null, from: 'chats' }, shown = new Set();
-const guestOf = id => guests[+id];
+const guestOf = id => guestById(id) || known.get(String(id));   // known: chat partners who are hidden from the graph
 const clockOf = iso => new Date(iso).toLocaleTimeString(LANG, { hour: '2-digit', minute: '2-digit' });
 const agoOf = iso => { const s = (Date.now() - new Date(iso)) / 1000; return s < 60 ? tr('now') : s < 3600 ? tr('minAgo', Math.floor(s / 60)) : s < 86400 ? tr('hAgo', Math.floor(s / 3600)) : clockOf(iso); };
 const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -3464,11 +3605,18 @@ async function renderInbox() {
   mountSeg('seg-inbox', 'chats');
   const [th, st] = await Promise.all([backend.getThreads(), backend.getSettings()]);
   $('pn-inbox').innerHTML = `<label class="toggle"><input type="checkbox" id="allow-msg" ${st.allowMessages ? 'checked' : ''}><span>${tr('allowMsg')}</span></label>`
-    + (th.length ? `<div class="plist">${th.map(t => { const g = guestOf(t.withId); return `<button class="prow ${t.unread ? 'unread' : ''}" data-id="${t.withId}"><span class="av" style="background:${avatarColor(g)}">${initials(g.name)}</span><div>${g.name}<small class="pv">${t.last.from === 'me' ? tr('youPrefix') : ''}${esc(bodyOf(t.last))}</small></div><span class="meta">${agoOf(t.last.at)}${t.unread ? '<i class="dot"></i>' : ''}</span></button>`; }).join('')}</div>`
-      : `<div class="empty">${tr('inboxEmpty')}<br><button class="btn" id="ib-graph">${ic('network', 18)}${tr('seeGraph')}</button></div>`);
+    + (REAL ? `<label class="toggle"><input type="checkbox" id="vis-me" ${st.visible ? 'checked' : ''}><span>${tr('visibleMe')}</span></label>` : '')
+    + (th.length ? `<div class="plist">${th.filter(t => guestOf(t.withId)).map(t => { const g = guestOf(t.withId); return `<button class="prow ${t.unread ? 'unread' : ''}" data-id="${t.withId}"><span class="av" style="background:${avatarColor(g)}">${esc(initials(g.name))}</span><div>${esc(g.name)}<small class="pv">${t.last.from === 'me' ? tr('youPrefix') : ''}${esc(bodyOf(t.last))}</small></div><span class="meta">${agoOf(t.last.at)}${t.unread ? '<i class="dot"></i>' : ''}</span></button>`; }).join('')}</div>`
+      : `<div class="empty">${tr('inboxEmpty')}<br><button class="btn" id="ib-graph">${ic('network', 18)}${tr('seeGraph')}</button></div>`)
+    + (REAL ? `<button class="btn ghost danger" id="del-me">${tr('deleteMe')}</button>` : '');
   $('allow-msg').onchange = e => backend.setSettings({ allowMessages: e.target.checked }).then(() => toast(tr(e.target.checked ? 'canMsgOn' : 'canMsgOff')));
   $('pn-inbox').querySelectorAll('.prow').forEach(b => b.onclick = () => openChat(guestOf(b.dataset.id), 'chats'));
   const gbtn = $('ib-graph'); if (gbtn) gbtn.onclick = () => showView('graph');
+  const vm = $('vis-me'); if (vm) vm.onchange = e => backend.setSettings({ visible: e.target.checked }).then(() => toast(tr(e.target.checked ? 'visOn' : 'visOff'))).catch(x => toast(errText(x)));
+  const dm = $('del-me'); if (dm) dm.onclick = async () => {   // two taps instead of a browser confirm dialog
+    if (!dm.dataset.sure) { dm.dataset.sure = '1'; dm.textContent = tr('deleteMeSure'); setTimeout(() => { if (dm.isConnected) { delete dm.dataset.sure; dm.textContent = tr('deleteMe'); } }, 4000); return; }
+    try { await api('/me', { method: 'DELETE' }); forgetMe(true); toast(tr('deleted'), null, 4000); } catch (x) { toast(errText(x)); }
+  };
 }
 function bubble(m) { return `<div class="bub ${m.from === 'me' ? 'me' : 'them'}" data-id="${m.id}">${m.auto ? `<em class="auto">${tr('autoReply')}</em>` : ''}${esc(bodyOf(m))}<small>${clockOf(m.at)}</small></div>`; }
 function scrollChat() { const b = $('chat-msgs'); b.scrollTop = b.scrollHeight; }
@@ -3480,7 +3628,7 @@ function suggestionsFor(g) {
 async function openChat(g, from) {
   chat = { id: String(g.id), from: from || 'chats' }; shown = new Set();
   const av = $('chat-av'); av.textContent = initials(g.name); av.style.background = avatarColor(g);
-  $('chat-name').textContent = g.name; $('chat-sub').textContent = g.couple ? `${tr('role_' + g.couple)} · ${tr('headTable')}` : `${tr('tableN', g.table)} · ${tr('nInCommon', score(g), answeredCount())}`;
+  $('chat-name').textContent = g.name; $('chat-sub').textContent = g.couple ? `${tr('role_' + g.couple)} · ${tr('headTable')}` : dot(tableOf(g), tr('nInCommon', score(g), answeredCount()));
   const list = await backend.getMessages(chat.id);
   $('chat-msgs').innerHTML = `<div class="chat-note">${tr('chatNote')}</div>` + list.map(m => { shown.add(m.id); return bubble(m); }).join('');
   $('chat-sugg').innerHTML = list.length ? '' : suggestionsFor(g).map(t => `<button class="sugg" type="button">${esc(t)}</button>`).join('');
@@ -3495,9 +3643,10 @@ $('chat-back').onclick = () => showView(chat.from === 'chats' ? 'chats' : chat.f
 $('chat-form').onsubmit = async e => {
   e.preventDefault(); const v = $('chat-input').value.trim(); if (!v) return;
   $('chat-input').value = ''; updateSend();
-  try { appendMsg(await backend.sendMessage(chat.id, v)); } catch (err) { toast(err.message || tr('sendFail')); }
+  try { appendMsg(await backend.sendMessage(chat.id, v)); } catch (err) { toast(errText(err)); }
 };
 backend.subscribe(ev => {
+  if (ev.type === 'guest' || ev.type === 'gone' || ev.type === 'sync' || ev.type === 'kicked') { onLive(ev); return; }
   if (ev.type === 'typing') { if (chatActive() && ev.from === chat.id) { const t = $('typing'); if (ev.on && !t) { $('chat-msgs').insertAdjacentHTML('beforeend', '<div class="typing" id="typing"><i></i><i></i><i></i></div>'); scrollChat(); } else if (!ev.on && t) t.remove(); } return; }
   if (ev.type === 'read') { refreshUnread(); return; }
   if (ev.type === 'message') {
@@ -3514,7 +3663,7 @@ if (window.visualViewport) visualViewport.addEventListener('resize', () => {   /
 refreshUnread();
 
 /* ======================= share the app (QR + share sheet) ======================= */
-const shareURL = () => location.href.split('#')[0].split('?')[0];
+const shareURL = () => location.href.split('#')[0].split('?')[0] + (REAL ? '?e=' + EVENT : '');   // keep the event, drop the table and language
 function qrSVG(text) {
   const q = qrcode(0, 'M'); q.addData(text); q.make();
   return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }).replace('fill="black"', 'fill="#2b2a33"');   // margin comes from the padded white card (>= 4 modules of quiet zone)
@@ -3526,7 +3675,7 @@ async function copyLink() {
   toast(tr('linkCopied'));
 }
 async function shareApp() {
-  if (navigator.share) { try { await navigator.share({ title: 'Table Talk', text: tr('shareText'), url: shareURL() }); } catch (e) {} } else copyLink();
+  if (navigator.share) { try { await navigator.share({ title: 'Table Talk', text: REAL && EVT ? tr('shareTextReal', EVT.names) : tr('shareText'), url: shareURL() }); } catch (e) {} } else copyLink();
 }
 const openShare = () => { renderQR(); $('share').classList.add('open'); $('share').setAttribute('aria-hidden', 'false'); };
 const closeShare = () => { $('share').classList.remove('open'); $('share').setAttribute('aria-hidden', 'true'); };
@@ -3545,7 +3694,7 @@ renderQR();
    Edit WELCOME_NOTE to change the copy. The visitor's reply is local until they finish the quiz; then flushWelcomeReply()
    sends it through `backend.sendMessage` so it shows up in the Chats thread with Ania (and, with a real backend, is stored). */
 const WELCOME_NOTE = {
-  get body() { return tr('welcomeNote'); },
+  get body() { return REAL ? tr('welcomeNoteReal') + (EVT ? ' – ' + EVT.names : '') : tr('welcomeNote'); },
   answer: () => tr('coupleAuto'),   // the couple are busy: same automatic reply as in Messages
 };
 let welcomeReply = null, welcomeFlushed = false, rerenderWelcome = () => {};
@@ -3667,6 +3816,7 @@ function applyLang() {   // static texts via data-i18n / data-i18n-attr, then ev
     el.innerHTML = LANGS.map(l => `<button type="button" data-lang="${l}" lang="${l}" class="${l === LANG ? 'on' : ''}" aria-pressed="${l === LANG}">${l.toUpperCase()}</button>`).join('');
     el.querySelectorAll('button').forEach(b => b.onclick = () => setLang(b.dataset.lang));
   });
+  if (REAL) { applyEvent(); updateManifest(); }
   renderChrome(); drawMini(); mountTabbar(); syncTabbar(); syncWelcome(); rerenderWelcome(); renderQ(); bannerCopy(); updateInstall();
   if ($('s-summary').classList.contains('active')) renderSummary();
   if ($('s-inbox').classList.contains('active')) renderInbox();
@@ -3677,6 +3827,7 @@ function applyLang() {   // static texts via data-i18n / data-i18n-attr, then ev
   refreshUnread();
 }
 applyLang();
+if (REAL) bootReal();
 </script>
 </body>
 </html>
