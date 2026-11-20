@@ -4007,7 +4007,7 @@ function updateManifest() {   // the installed app must open this event (and thi
 }
 async function claimRole() {   // the couple's link opened on a phone that had already joined as a guest
   const p = pendingRole(); if (!p || !token) return;
-  try { adoptMe(await api('/me/role', { method: 'POST', body: p })); try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} syncWelcome(); renderQ(); }
+  try { adoptMe(await api('/me/role', { method: 'POST', body: p })); try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} syncWelcome(); renderQ(); renderPhoto(); }
   catch (e) { if (e.code === 'bad_code' || e.code === 'role_taken') { try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} } toast(errText(e), null, 4000); }
 }
 function applyEvent() {   // couple's names and date on the welcome screen
@@ -4140,7 +4140,7 @@ async function bootStep() {   // true: nothing is left to retry
   }
   if (!token) return true;
   try { adoptMe(await api('/me')); } catch (e) { if (e.status === 401) { forgetMe(); return true; } return false; }
-  syncWelcome(); renderQ(); backend.connect(); await claimRole(); ensureRestore();
+  syncWelcome(); renderQ(); renderPhoto(); backend.connect(); await claimRole(); ensureRestore();   // renderPhoto: a returning bride or groom gets the photo controls
   return true;
 }
 
@@ -4285,7 +4285,8 @@ let welcomeReply = null, welcomeFlushed = false, rerenderWelcome = () => {};
 })();
 async function flushWelcomeReply() {   // called when the guest finishes the quiz: this is the point where, with a real backend, the guest exists
   if (!welcomeReply || welcomeFlushed) return; welcomeFlushed = true;
-  try { await backend.sendMessage(String(guests.find(g => g.couple === 'bride').id), welcomeReply); refreshUnread(); } catch (e) {}
+  const to = guests.find(g => g.couple === 'bride') || guests.find(g => g.couple === 'groom'); if (!to) return;   // a visitor who plays the bride writes to the groom
+  try { await backend.sendMessage(String(to.id), welcomeReply); refreshUnread(); } catch (e) {}
 }
 
 /* ======================= native touches ======================= */
@@ -4381,7 +4382,7 @@ function applyLang() {   // static texts via data-i18n / data-i18n-attr, then ev
   if ($('s-inbox').classList.contains('active')) renderInbox();
   if (nodes.length) { nodes[0].first = myName || tr('you'); mountSeg('seg-graph', 'graph'); }
   if (sheetGuest) select(sheetGuest);
-  if (chatActive() && chat.id) openChat(guestOf(chat.id), chat.from);
+  if (chatActive() && chat.id) { const g = chat.id === 'all' ? ALL_GUESTS() : guestOf(chat.id); if (g) openChat(g, chat.from); }
   if ($('guide').classList.contains('open')) openGuide();
   refreshUnread();
 }

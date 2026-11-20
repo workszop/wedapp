@@ -77,6 +77,18 @@ function normAnswers(a) {
 }
 /** Stored answers in the current shape (events created before multi-select). The bride and the groom are not asked friend-or-family
     or where they met the couple, so for them the first is always "family" and the second empty, whatever was saved earlier. */
+/** The request body as an ArrayBuffer, or null once it grows past max (a body sent without Content-Length is not buffered whole first). */
+async function readCapped(request, max) {
+  if (!request.body) return new ArrayBuffer(0);
+  const reader = request.body.getReader(), parts = []; let n = 0;
+  for (;;) {
+    const { done, value } = await reader.read(); if (done) break;
+    n += value.byteLength; if (n > max) { await reader.cancel().catch(() => {}); return null; }
+    parts.push(value);
+  }
+  const out = new Uint8Array(n); let o = 0; for (const p of parts) { out.set(p, o); o += p.byteLength; }
+  return out.buffer;
+}
 const answersOf = g => { const p = JSON.parse(g.answers), a = normAnswers(p) || p; if (g.role === 'bride' || g.role === 'groom') { a[1] = 1; a[2] = null; } return a; };
 
 export class EventRoom extends DurableObject {
@@ -159,8 +171,8 @@ export class EventRoom extends DurableObject {
   async putPhoto(request) {
     const len = +(request.headers.get('Content-Length') || 0);
     if (len > PHOTO_MAX) return err(413, 'photo_too_big');
-    const buf = await request.arrayBuffer();
-    if (!buf.byteLength || buf.byteLength > PHOTO_MAX) return err(buf.byteLength ? 413 : 400, buf.byteLength ? 'photo_too_big' : 'bad_request');
+    const buf = await readCapped(request, PHOTO_MAX);
+    if (!buf || !buf.byteLength) return err(buf ? 400 : 413, buf ? 'bad_request' : 'photo_too_big');
     const b = new Uint8Array(buf, 0, Math.min(12, buf.byteLength)), mime = imageType(b);
     if (!mime) return err(415, 'not_an_image');
     this.sql.exec('INSERT INTO photo (k, mime, data) VALUES (1, ?, ?) ON CONFLICT(k) DO UPDATE SET mime = excluded.mime, data = excluded.data', mime, buf);
@@ -183,8 +195,8 @@ export class EventRoom extends DurableObject {
   async putAvatar(g, request) {
     if (+(request.headers.get('Content-Length') || 0) > AVATAR_MAX) return err(413, 'photo_too_big');
     if (!rateOk(this.avatarPuts, g.id, AVATAR_LIMIT)) return err(429, 'slow_down');
-    const buf = await request.arrayBuffer();
-    if (!buf.byteLength || buf.byteLength > AVATAR_MAX) return err(buf.byteLength ? 413 : 400, buf.byteLength ? 'photo_too_big' : 'bad_request');
+    const buf = await readCapped(request, AVATAR_MAX);
+    if (!buf || !buf.byteLength) return err(buf ? 400 : 413, buf ? 'bad_request' : 'photo_too_big');
     const mime = imageType(new Uint8Array(buf, 0, Math.min(12, buf.byteLength)));
     if (!mime) return err(415, 'not_an_image');
     this.sql.exec('INSERT INTO avatars (guest_id, mime, data) VALUES (?, ?, ?) ON CONFLICT(guest_id) DO UPDATE SET mime = excluded.mime, data = excluded.data', g.id, mime, buf);
@@ -290,8 +302,9 @@ export class EventRoom extends DurableObject {
     }
     if (path === '/me/restore' && method === 'POST') {   // code for the manifest of the installed app; reusable for a day, so the login token never travels in a URL
       const code = randomString(32, TOKEN_ABC), exp = Date.now() + RESTORE_TTL;
-      this.sql.exec('DELETE FROM restores WHERE guest_id = ? OR exp < ?', g.id, Date.now());
+      this.sql.exec('DELETE FROM restores WHERE exp < ?', Date.now());   // earlier codes of this guest stay valid: one may sit in a home-screen app that was not opened yet
       this.sql.exec('INSERT INTO restores (hash, guest_id, exp) VALUES (?, ?, ?)', await sha256(code), g.id, exp);
+      this.sql.exec('DELETE FROM restores WHERE guest_id = ? AND hash NOT IN (SELECT hash FROM restores WHERE guest_id = ? ORDER BY exp DESC LIMIT 5)', g.id, g.id);   // at most five per guest
       return json({ code, expiresAt: exp });
     }
     if (path === '/me') {
