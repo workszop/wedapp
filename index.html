@@ -3349,6 +3349,7 @@ function go(name) {
   if (name === 'summary') renderSummary();
   if (name === 'inbox') renderInbox();
   if ((name === 'inbox' || name === 'chat') && typeof hideNotif === 'function') hideNotif();
+  if ((name === 'summary' || name === 'graph') && notifOn) notifyUnread();
   if (name === 'welcome') syncWelcome();
   if (name !== 'graph') closeSheet();
   syncTabbar(); if (typeof syncBanner === 'function') syncBanner();
@@ -3662,13 +3663,19 @@ $('p-close').innerHTML = ic('x', 22); $('p-close').onclick = closeSheet;
 function toast(t, onTap, ms = 2200) { const e = $('toast'); e.textContent = t; e.onclick = onTap || null; e.style.cursor = onTap ? 'pointer' : ''; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('show'), ms); }
 /* New-message pill. Unlike a toast it does not time out: it goes away when the guest closes it, taps it (which opens that chat),
    opens the chats, or reads the message on another device. It names neither the sender nor the text; a newer message makes the tap open that newer chat. */
-var notifPeer = null;   // var: go() can run before this line
-function showNotif(g) {
-  notifPeer = String(g.id); $('notif-t').textContent = tr('newMsg'); $('notif-t').onclick = () => openChat(g, 'chats');
+var notifPeer = null, notifSeen = null, notifOn = false;   // var: go() can run before this line. notifSeen: the message the pill was last shown for; notifOn: the backend is ready
+function showNotif(g, msgId) {
+  notifPeer = String(g.id); notifSeen = String(msgId); $('notif-t').textContent = tr('newMsg'); $('notif-t').onclick = () => openChat(g, 'chats');
   const x = $('notif-x'); x.innerHTML = ic('x', 16, 2.4); x.setAttribute('aria-label', tr('close')); x.onclick = hideNotif;
   $('notif').classList.add('show');
 }
 function hideNotif() { notifPeer = null; $('notif').classList.remove('show'); }
+async function notifyUnread() {   // a message that arrived while the app was closed, or one waiting for a guest who has just registered: show the pill once
+  if (!notifOn || (REAL && !token)) return;
+  const th = await refreshUnread(), t = th.find(t => t.unread && guestOf(t.withId));
+  if (!t || String(t.last.id) === notifSeen || !['summary', 'graph'].some(n => $('s-' + n).classList.contains('active'))) return;
+  showNotif(guestOf(t.withId), t.last.id);
+}
 
 /* ======================= messaging =======================
    The UI below talks ONLY to `backend`. Swap the implementation and nothing else changes.
@@ -3974,7 +3981,7 @@ function refreshViews(now) {   // re-render what is on screen, at most every 2.5
   if (now) { clearTimeout(refreshT); run(); } else if (!refreshT) refreshT = setTimeout(run, Math.max(0, 2500 - (Date.now() - refreshLast)));
 }
 function onLive(ev) {   // pushes from the WebSocket
-  if (ev.type === 'sync') { loadGraph(); refreshUnread(); return; }
+  if (ev.type === 'sync') { loadGraph(); notifyUnread(); return; }
   if (ev.type === 'kicked') { forgetMe(true); toast(tr('removed'), null, 5000); return; }
   const id = +(ev.type === 'guest' ? ev.guest.id : ev.id), i = guests.findIndex(g => g.id === id);
   if (ev.type === 'guest') { const g = norm(ev.guest); known.set(String(id), g); if (i >= 0) guests[i] = g; else guests.push(g); } else if (i >= 0) guests.splice(i, 1);
@@ -4063,7 +4070,7 @@ backend.subscribe(ev => {
   if (ev.type === 'message') {
     const m = ev.message, mine = m.from === 'me', peer = mine ? m.to : m.from;
     if (chatActive() && peer === chat.id) { appendMsg(m); if (!mine) backend.markRead(peer); return; }
-    if (!mine) { const g = guestOf(peer); showNotif(g); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }
+    if (!mine) { const g = guestOf(peer); showNotif(g, m.id); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }
     refreshUnread(); if ($('s-inbox').classList.contains('active')) renderInbox();
   }
 });
@@ -4071,7 +4078,7 @@ if (window.visualViewport) visualViewport.addEventListener('resize', () => {   /
   const c = $('s-chat'); if (framed() || !chatActive()) { c.style.height = ''; c.style.bottom = ''; return; }
   c.style.bottom = 'auto'; c.style.height = visualViewport.height + 'px'; scrollChat();
 });
-refreshUnread();
+notifOn = true; refreshUnread();
 
 /* ======================= share the app (QR + share sheet) ======================= */
 const shareURL = () => location.href.split('#')[0].split('?')[0] + (REAL ? '?e=' + EVENT : '');   // keep the event, drop the language
