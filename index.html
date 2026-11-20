@@ -571,7 +571,10 @@
     .phone{transform:none!important;zoom:.8;box-shadow:0 0 0 2px #36343d inset!important}   /* zoom, not transform: a transformed box is still paginated at its full size */
     .phone-wrap{width:312px!important;height:656px!important;break-inside:avoid}
     .intro,.qr-card{break-inside:avoid}
-    .qr-card .qr.sm{width:200px!important}html.real .qr-card .qr.sm{width:260px!important}
+    .qr-card .qr.sm,html.real .qr-card .qr.sm{width:200px!important}
+    html.real .steps{display:grid!important}   /* the printed sheet of a real event carries the instructions too, like the demo */
+    .steps button.on{box-shadow:0 6px 18px -12px rgba(58,53,80,.35)!important}
+    .intro-top .lang{display:none!important}
     #ibanner,.toast{display:none!important}
   }
 </style>
