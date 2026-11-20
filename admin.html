@@ -74,6 +74,7 @@
       <label>Identyfikator wydarzenia<input id="slug" autocomplete="off" spellcheck="false" required></label>
       <label>Kod pary młodej<input id="code" type="password" autocomplete="new-password" required></label>
       <button type="submit">Otwórz</button>
+      <button type="button" class="alt" id="b-close" hidden>Zamknij wydarzenie</button>
     </form>
     <div class="msg" id="m-login" role="status"></div>
     <p style="margin:10px 0 0">Chcesz tylko zobaczyć, jak działa panel? <a class="demo-link" href="admin.html?demo=1">Otwórz demo panelu</a></p>
@@ -123,7 +124,7 @@
     <div class="msg" id="m-wipe" role="status"></div>
   </section>
 
-  <section class="card" id="new-card">
+  <section class="card" id="new-card" hidden>
     <h2>Nowe wydarzenie</h2>
     <p>Dla operatora aplikacji. Kod pary młodej pokaże się tylko raz, zapisz go.</p>
     <form class="row" id="f-new">
@@ -145,13 +146,16 @@ const API = document.querySelector('meta[name="tt-api"]').content.trim().replace
 const APP = new URL('./', location.href).href;
 const ERRORS = { not_an_image: 'To nie jest zdjęcie (JPG, PNG albo WebP).', photo_too_big: 'Zdjęcie jest za duże.', bad_code: 'Nieprawidłowy kod pary młodej.', bad_key: 'Nieprawidłowy klucz operatora.', unknown_event: 'Nie ma takiego wydarzenia.', slow_down: 'Za dużo prób. Spróbuj za kilka minut.', bad_request: 'Sprawdź wpisane dane.', not_configured: 'Serwer nie ma ustawionego klucza operatora.' };
 
-const DEMO = new URLSearchParams(location.search).has('demo');   // admin.html?demo=1: the same panel on made-up data, nothing leaves this browser
+const QUERY = new URLSearchParams(location.search);
+const DEMO = QUERY.has('demo');   // admin.html?demo=1: the same panel on made-up data, nothing leaves this browser
+const OPERATOR = QUERY.has('op') && !DEMO;   // admin.html?op=1: the only address that shows the "new event" form; couples and visitors never get it
+const LINK_SLUG = QUERY.get('e') || '';   // admin.html?e=<event>: the couple's own panel link, with the event already filled in
 // Demo data is shared with the demo app (index.html without an event) through localStorage on this device; keys, guests and helpers live in demo.js
 const { KEYS: DEMO_KEYS, store: ls, oneAm } = DemoShared;
 const DEMO_GUESTS = DemoShared.NAMES.map(name => ({ name, role: null })).concat(DemoShared.COUPLE.map(c => ({ name: c.name, role: c.couple })));   // index = id, as in index.html
 
 // ─── State ───
-const state = { slug: '', code: '', data: null };
+const state = { slug: '', code: '', data: null, created: '', seq: 0 };   // created: the event made with the operator form in this visit
 
 // ─── DOM refs ───
 const $ = id => document.getElementById(id);
@@ -212,6 +216,8 @@ function render(bg) {   // bg: a background refresh, which keeps what is being t
   const d = state.data, on = !!d;
   document.body.dataset.state = on ? 'open' : 'closed';
   for (const id of ['panel', 'photo-card', 'guests-card', 'wipe-card']) $(id).hidden = !on;
+  $('b-close').hidden = !on;
+  $('new-card').hidden = !OPERATOR || (on && state.slug !== state.created);   // operator only, and not over an open event, unless it is the one just created (its code stays readable)
   if (!on) return;
   $('ev-title').textContent = d.event.names;
   for (const [id, v] of [['names', d.event.names], ['dateLine', d.event.dateLine || '']]) { const el = $(id); if (!(bg && el.dataset.shown !== undefined && el.value !== el.dataset.shown)) el.value = v; el.dataset.shown = v; }
@@ -232,7 +238,8 @@ function render(bg) {   // bg: a background refresh, which keeps what is being t
     try { await admin('/guests/' + b.dataset.del, { method: 'DELETE' }); say('m-guests', 'Usunięto gościa.', 'ok'); await load(); } catch (e) { say('m-guests', errText(e), 'err'); }
   }));
 }
-async function load(bg) { state.data = await admin(); render(bg); }
+async function load(bg) { const n = ++state.seq, d = await admin(); if (n !== state.seq) return; state.data = d; render(bg); }   // an answer that arrives after the event was closed or switched is dropped
+function closeEvent() { state.seq++; state.data = null; state.code = ''; render(); }
 
 async function photoCall(method, blob) {
   if (DEMO) {   // kept in this browser; the demo app shows the same photo
@@ -247,8 +254,9 @@ async function photoCall(method, blob) {
 // ─── Listeners ───
 $('f-login').onsubmit = async e => {
   e.preventDefault(); state.slug = $('slug').value.trim().toLowerCase(); state.code = $('code').value.trim();
-  try { await load(); say('m-login', 'Otwarto wydarzenie.', 'ok'); } catch (x) { state.data = null; render(); say('m-login', errText(x), 'err'); }
+  try { await load(); say('m-login', 'Otwarto wydarzenie.', 'ok'); } catch (x) { closeEvent(); say('m-login', errText(x), 'err'); }
 };
+$('b-close').onclick = () => { closeEvent(); $('code').value = ''; say('m-login', 'Zamknięto wydarzenie.', 'ok'); };   // back to the login form (and, for the operator, the new event form)
 $('f-edit').onsubmit = async e => {
   e.preventDefault();
   const box = DEMO ? 'm-edit' : 'm-login';   // the login card is hidden in the demo
@@ -269,13 +277,15 @@ $('b-refresh').onclick = () => load().then(() => say('m-guests', 'Odświeżono.'
 $('b-bride').onclick = () => window.open(DEMO ? `${APP}#demo=bride` : `${guestUrl()}#role=bride&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
 $('b-groom').onclick = () => window.open(DEMO ? `${APP}#demo=groom` : `${guestUrl()}#role=groom&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
 twoTap($('b-wipe'), 'Dotknij jeszcze raz, żeby usunąć wszystko', async () => {
-  try { await admin('', { method: 'DELETE' }); if (DEMO) { await load(); say('m-wipe', 'W demo dane zostały wyczyszczone i panel pokazuje wydarzenie od nowa. Prawdziwe wydarzenie znika na dobre.', 'ok'); return; } state.data = null; render(); say('m-login', 'Wydarzenie i wszystkie dane zostały usunięte.', 'ok'); } catch (e) { say('m-wipe', errText(e), 'err'); }
+  try { await admin('', { method: 'DELETE' }); if (DEMO) { await load(); say('m-wipe', 'W demo dane zostały wyczyszczone i panel pokazuje wydarzenie od nowa. Prawdziwe wydarzenie znika na dobre.', 'ok'); return; } if (state.slug === state.created) { state.created = ''; $('new-out').innerHTML = ''; say('m-new', ''); }   // its code and links are dead now
+    closeEvent(); say('m-login', 'Wydarzenie i wszystkie dane zostały usunięte.', 'ok'); } catch (e) { say('m-wipe', errText(e), 'err'); }
 });
 $('f-new').onsubmit = async e => {
   e.preventDefault();
   try {
     const r = await call('/api/admin/events', { method: 'POST', key: $('master').value.trim(), body: { names: $('n-names').value, dateLine: $('n-date').value } });
     say('m-new', 'Utworzono wydarzenie.', 'ok');
+    state.created = r.slug; if (state.data) closeEvent();   // another event was open: close it, so the new code is not hidden under it
     $('new-out').innerHTML = linkRow('identyfikator', r.slug) + linkRow('kod pary młodej', r.adminCode) + linkRow('goście', `${APP}?e=${r.slug}`) + linkRow('panel', `${APP}admin.html?e=${r.slug}`);
     $('slug').value = r.slug; $('code').value = r.adminCode; $('n-names').value = ''; $('n-date').value = '';
   } catch (x) { say('m-new', errText(x), 'err'); }
@@ -286,9 +296,9 @@ document.addEventListener('click', async e => {
 });
 
 // ─── Init ───
-$('slug').value = new URLSearchParams(location.search).get('e') || '';
+$('slug').value = LINK_SLUG;
 if (DEMO) {   // no login, no operator form: open the made-up event straight away
-  document.title = 'Bee Talk · demo panelu pary młodej'; $('demo-note').hidden = false; $('login').hidden = true; $('new-card').hidden = true;
+  document.title = 'Bee Talk · demo panelu pary młodej'; $('demo-note').hidden = false; $('login').hidden = true;
   load(); addEventListener('storage', () => load(true)); addEventListener('focus', () => load(true));   // the demo app in another tab changed something
 } else render();
 </script>

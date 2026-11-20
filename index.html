@@ -3411,6 +3411,7 @@ function finishQuiz() {   // real event: wait until the answers are saved before
 /* The bride and the groom are not asked whose guest they are, whether they are friends or family, or where they met the couple:
    the first two are filled in for them (their own side, family) because every guest must have them, the third stays empty. */
 const COUPLE_SKIP = 3;
+let advT = null;   // the short pause before the quiz moves on after an answer; one at a time, so a double tap cannot skip a question
 const coupleRole = () => { if (!REAL) return demoRole || null; const r = token ? myRole : (pendingRole() || {}).role; return r === 'bride' || r === 'groom' ? r : null; };
 const hiddenStep = i => steps[i].type === 'q' && steps[i].i < COUPLE_SKIP && !!coupleRole();
 const stepFrom = (i, d) => { do i += d; while (i >= 0 && i < steps.length && hiddenStep(i)); return i; };   // the next (d = 1) or previous (d = -1) step that is shown
@@ -3444,10 +3445,11 @@ function renderQ() {
     + (canMove ? `<button class="btn" id="skip">${tr(stepFrom(si, 1) >= steps.length ? 'toGraph' : 'next')}</button>` : `<span class="name-hint" style="margin:0;text-align:right">${tr('reqHint')}</span>`);
   $('qprev').onclick = stepBack; if (canMove) $('skip').onclick = nextStep;
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    if (advT) return;   // already answered, about to move on
     const i = +b.dataset.i;
     if (q.multi) { const cur = picks(me[qi]); if (!cur.includes(i) && cur.length >= q.max) return; const nx = cur.includes(i) ? cur.filter(x => x !== i) : [...cur, i].sort((a, b) => a - b); me[qi] = nx.length ? nx : null; syncMe(); renderQ(); return; }   // several can be chosen: stay here, "Next" moves on
     if (me[qi] === i && !req) { me[qi] = null; syncMe(); renderQ(); return; }          // optional: tap again to clear
-    me[qi] = i; syncMe(); renderQ(); setTimeout(nextStep, 260);
+    me[qi] = i; syncMe(); renderQ(); const at = si; advT = setTimeout(() => { advT = null; if (si === at) nextStep(); }, 260);   // not if "Next" or "Back" moved on meanwhile
   });
 }
 $('qback').innerHTML = ic('chevron-left', 28, 2);
@@ -3985,14 +3987,14 @@ async function api(path, { method = 'GET', body } = {}) {
 if (REAL) (function readUrl() {   // #r=<restore code> (installed app), #role=bride|groom&code=<admin code> (the couple)
   document.documentElement.classList.add('real');
   const h = new URLSearchParams(location.hash.slice(1));
-  const k = h.get('k'); if (k && /^[A-Za-z0-9_-]{20,80}$/.test(k)) store.set(TOKEN_KEY, k);   // apps installed before restore codes existed
+  const k = h.get('k'); if (k && /^[A-Za-z0-9_-]{20,80}$/.test(k) && !store.get(TOKEN_KEY)) store.set(TOKEN_KEY, k);   // apps installed before restore codes existed; never replaces a login this phone already has
   const r = h.get('r'); if (r && /^[A-Za-z0-9_-]{32}$/.test(r)) restorePending = r;
   const role = h.get('role'), code = h.get('code'); if ((role === 'bride' || role === 'groom') && code) { try { sessionStorage.setItem(ROLE_KEY, JSON.stringify({ role, code })); } catch (e) {} }
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);   // keep secrets out of the address bar and of shared links
   token = store.get(TOKEN_KEY) || '';
 })();
 const pendingRole = () => { try { return JSON.parse(sessionStorage.getItem(ROLE_KEY)); } catch (e) { return null; } };
-function adoptMe(m) { adoptPhoto(m); myRole = m.role || null; myName = m.name; me = m.answers.slice(); mySettings = { allowMessages: m.allowMessages, visible: m.visible }; lastSaved = JSON.stringify({ name: m.name, answers: m.answers }); }
+function adoptMe(m) { adopted = true; adoptPhoto(m); myRole = m.role || null; myName = m.name; me = m.answers.slice(); mySettings = { allowMessages: m.allowMessages, visible: m.visible }; lastSaved = JSON.stringify({ name: m.name, answers: m.answers }); }
 /* The installed app has its own storage (iOS), so its start_url carries a restore code: reusable for a day, traded for a login
    of its own on first launch. The login token itself never appears in a URL. */
 const restoreCode = () => { try { const r = JSON.parse(store.get(RESTORE_KEY)); return r && r.exp - Date.now() > 12 * 3600e3 ? r.code : ''; } catch (e) { return ''; } };
@@ -4056,9 +4058,9 @@ document.addEventListener('click', async e => {
   if (!REAL && b.dataset.photo === 'remove') { store.set(CP_DEMO_KEY, 'none'); store.set(CP_DEMO_AT, String(Date.now())); renderPhoto(); return; }   // demo: removing brings up the question, so it can be added again
   try { await sendPhoto('DELETE'); toast(tr('photoRemoved'), null, 4000); } catch (x) { toast(errText(x), null, 4000); }   // "no" and "remove" both mean: no photo
 });
-let saveRetry = 0;
+let saveRetry = 0, adopted = false;   // adopted: the server's copy of this guest is loaded (or was just created); before that nothing is saved over it
 async function pushMe() {   // join on the first save, update afterwards; always sends the whole state, so a lost request heals itself
-  if (!REAL || !mandatoryDone() || !nameOk()) return;
+  if (!REAL || !mandatoryDone() || !nameOk() || (token && !adopted)) return;
   const p = token ? null : pendingRole(); if (p) me[0] = p.role === 'bride' ? 0 : 1;
   coupleFill();
   const body = { name: myName.trim(), answers: me.slice() }, sig = JSON.stringify(body);
@@ -4067,7 +4069,7 @@ async function pushMe() {   // join on the first save, update afterwards; always
     if (!token) {
       let jt = store.get(JOIN_KEY) || joinToken; if (!jt) { jt = joinToken = randomToken(); store.set(JOIN_KEY, jt); }   // kept until the join is confirmed: repeating it cannot create a second guest
       const r = await api('/join', { method: 'POST', body: { ...body, token: jt, ...(p || {}) } });
-      token = r.token; store.set(TOKEN_KEY, token); store.set(JOIN_KEY, null); joinToken = ''; try { sessionStorage.removeItem(ROLE_KEY); } catch (e) {}
+      token = r.token; adopted = true; store.set(TOKEN_KEY, token); store.set(JOIN_KEY, null); joinToken = ''; try { sessionStorage.removeItem(ROLE_KEY); } catch (e) {}
       mySettings = { allowMessages: r.me.allowMessages, visible: r.me.visible }; myRole = r.me.role || null; myId = +r.me.id; lastSaved = sig; updateManifest(); backend.connect(); ensureRestore(); renderPhoto();
       if (pendingAvatar) { const b = pendingAvatar; pendingAvatar = null; sendAvatar('PUT', b).then(adoptPhoto, x => { myAvatar = ''; youImg = null; renderAvPick(); toast(errText(x), null, 4000); }); }   // the photo chosen before joining   // connect -> 'sync' -> loadGraph
     } else { await api('/me', { method: 'PUT', body }); lastSaved = sig; if (pendingRole()) await claimRole(); }
@@ -4110,19 +4112,36 @@ function onLive(ev) {   // pushes from the WebSocket
   refreshViews();
 }
 function forgetMe(reset) {   // drop the token; with reset also the local answers (after "delete my data" or removal by the couple)
-  hideNotif(); token = ''; joinToken = ''; store.set(TOKEN_KEY, null); store.set(JOIN_KEY, null); store.set(RESTORE_KEY, null); lastSaved = ''; backend.close(); updateManifest();
+  hideNotif(); token = ''; adopted = false; joinToken = ''; store.set(TOKEN_KEY, null); store.set(JOIN_KEY, null); store.set(RESTORE_KEY, null); lastSaved = ''; backend.close(); updateManifest();
   myRole = null; renderPhoto();
   if (reset) { myId = null; pendingAvatar = null; myAvatar = ''; youImg = null; myName = ''; me = blank(); guests.length = 0; closeSheet(); si = 0; renderQ(); go('welcome'); }
 }
-async function bootReal() {
+let bootDone = false, booting = false, bootTry = 0, bootT = null;
+async function bootReal() {   // runs again (with a growing pause, when the network returns, when the app comes back to the front) until the event and this guest are loaded
+  if (bootDone || booting) return; booting = true; clearTimeout(bootT);
+  let ok = false; try { ok = await bootStep(); } catch (e) {}
+  booting = false;
+  if (ok) bootDone = true; else bootT = setTimeout(bootReal, Math.min(30000, 2000 * 2 ** bootTry++));
+}
+async function bootStep() {   // true: nothing is left to retry
   updateManifest();
-  try { EVT = await api('/event'); } catch (e) { toast(tr(e.status === 404 ? 'eventMissing' : 'netFail'), null, 9000); if (e.status === 404) $('start').disabled = true; return; }
-  applyEvent();
-  if (!token && restorePending) {   // first launch of the installed app: log in as the guest who installed it
-    const t = randomToken(); try { await api('/restore', { method: 'POST', body: { code: restorePending, token: t } }); token = t; store.set(TOKEN_KEY, t); } catch (e) {}
+  if (!EVT) {
+    try { EVT = await api('/event'); } catch (e) {
+      if (e.status === 404) { toast(tr('eventMissing'), null, 9000); $('start').disabled = true; return true; }
+      if (!bootTry) toast(tr('netFail'), null, 9000);
+      return false;
+    }
+    applyEvent();
   }
-  if (!token) return;
-  try { adoptMe(await api('/me')); syncWelcome(); renderQ(); backend.connect(); await claimRole(); ensureRestore(); } catch (e) { if (e.status === 401) forgetMe(); }
+  if (!token && restorePending) {   // first launch of the installed app: log in as the guest who installed it
+    const t = randomToken();
+    try { await api('/restore', { method: 'POST', body: { code: restorePending, token: t } }); token = t; store.set(TOKEN_KEY, t); restorePending = ''; }
+    catch (e) { if (!e.status || e.status >= 500) return false; restorePending = ''; }   // a refused code is dropped, a failed request is tried again
+  }
+  if (!token) return true;
+  try { adoptMe(await api('/me')); } catch (e) { if (e.status === 401) { forgetMe(); return true; } return false; }
+  syncWelcome(); renderQ(); backend.connect(); await claimRole(); ensureRestore();
+  return true;
 }
 
 const backend = REAL ? LiveBackend() : MockBackend({ getGuest: guestById });
@@ -4279,7 +4298,7 @@ function sheetDrag(el, close) {   // swipe a sheet down to dismiss it
   const end = () => { if (y0 === null) return; y0 = null; el.style.transition = ''; el.style.transform = ''; if (dy > 90) close(); dy = 0; };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 }
-sheetDrag($('sheet'), closeSheet); sheetDrag(document.querySelector('.share-card'), closeShare);
+sheetDrag($('sheet'), closeSheet); sheetDrag(document.querySelector('#share .share-card'), closeShare);
 document.addEventListener('click', e => { if (e.target.closest('button, .opt, .prow')) { try { navigator.vibrate && navigator.vibrate(6); } catch (_) {} } }, true);   // light haptic tick where supported (Android)
 // --- install guide: Safari on iPhone cannot hide its address bar in a normal tab, only the installed app can ---
 const inApp = /FBAN|FBAV|Instagram|Line\/|WhatsApp|Snapchat|Twitter|MicroMessenger|LinkedInApp|GSA\//i.test(navigator.userAgent);
@@ -4367,7 +4386,7 @@ function applyLang() {   // static texts via data-i18n / data-i18n-attr, then ev
   refreshUnread();
 }
 applyLang();
-if (REAL) bootReal(); else renderPhoto();
+if (REAL) { bootReal(); addEventListener('online', bootReal); document.addEventListener('visibilitychange', () => { if (!document.hidden) bootReal(); }); } else renderPhoto();
 </script>
 </body>
 </html>

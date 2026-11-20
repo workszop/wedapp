@@ -145,6 +145,9 @@ export class EventRoom extends DurableObject {
   // ---------- views ----------
   me(g) { return { id: String(g.id), name: g.name, answers: answersOf(g), role: g.role, photo: g.photo || 0, allowMessages: !!g.allow_messages, visible: !!g.visible }; }
   card(g) { return { id: String(g.id), name: g.name, answers: answersOf(g), role: g.role, photo: g.photo || 0, msg: !!g.allow_messages }; }
+  /** What guest `forId` may see of g: the full card, unless g is hidden from the graph and has never written to them (then only the name they already knew). */
+  cardFor(g, forId) { const c = this.card(g); return g.visible || this.wroteTo(g.id, forId) ? c : { ...c, answers: c.answers.map(() => null), photo: 0 }; }
+  wroteTo(fromId, toId) { return !!this.one('SELECT 1 AS x FROM messages WHERE from_id = ? AND to_id = ? LIMIT 1', fromId, toId); }
   msg(m, meId) { const who = id => id === meId ? 'me' : String(id); return { id: String(m.id), from: who(m.from_id), to: who(m.to_id), body: m.body, at: m.at, readAt: m.read_at, ...(m.bulk ? { all: true } : {}) }; }
   bulkMsg(b) { return { id: 'a' + b.id, from: 'me', to: 'all', body: b.body, at: b.at, readAt: null, all: true, sent: b.n }; }
   eventInfo() {
@@ -304,7 +307,7 @@ export class EventRoom extends DurableObject {
       for (const m of this.all('SELECT * FROM messages WHERE from_id = ? OR to_id = ? ORDER BY id', g.id, g.id)) {
         if (m.bulk && m.from_id === g.id) continue;   // the sender's own messages to all guests live under "All guests", not in one thread per guest
         const peer = String(m.from_id === g.id ? m.to_id : m.from_id), t = by.get(peer) || { withId: peer, last: null, unread: 0 };
-        if (!t.peer) { const p = this.one('SELECT * FROM guests WHERE id = ?', +peer); if (!p) continue; t.peer = this.card(p); }   // lets the app name chat partners who are hidden from the graph
+        if (!t.peer) { const p = this.one('SELECT * FROM guests WHERE id = ?', +peer); if (!p) continue; t.peer = this.cardFor(p, g.id); }   // lets the app name chat partners who are hidden from the graph
         t.last = this.msg(m, g.id); if (m.to_id === g.id && !m.read_at) t.unread++; by.set(peer, t);
       }
       return json([...by.values()].sort((a, b) => b.last.at.localeCompare(a.last.at)));
@@ -332,8 +335,8 @@ export class EventRoom extends DurableObject {
     if (path === '/messages' && method === 'POST') {
       const b = await readJson(request), to = parseInt(b && b.to, 10), body = cleanText(b && b.body, MAX_BODY);
       if (!Number.isInteger(to) || !body || to === g.id) return err(400, 'bad_request');
-      const peer = this.one('SELECT id, allow_messages FROM guests WHERE id = ?', to);
-      if (!peer) return err(404, 'guest_gone');
+      const peer = this.one('SELECT id, allow_messages, visible FROM guests WHERE id = ?', to);
+      if (!peer || (!peer.visible && !this.wroteTo(to, g.id))) return err(404, 'guest_gone');   // a guest hidden from the graph can be answered, never found by guessing ids
       if (!peer.allow_messages) return err(403, 'messages_off');
       if (!g.allow_messages) return err(403, 'own_messages_off');   // you cannot write to people who cannot answer you
       if (!rateOk(this.sends, g.id, SEND_LIMIT)) return err(429, 'slow_down');
@@ -446,6 +449,7 @@ export class EventRoom extends DurableObject {
       const b = await readJson(request); if (!b) return err(400, 'bad_request');
       if ('names' in b) { const v = cleanText(b.names, 60); if (!v) return err(400, 'bad_request'); this.setMeta('names', v); }
       if ('dateLine' in b) this.setMeta('dateLine', cleanText(b.dateLine, 80));
+      this.broadcast({ type: 'event' });   // open apps refetch /event
       return json(this.eventInfo());
     }
     if (path === '/admin' && method === 'DELETE') { await this.wipe(); return json({ deleted: true }); }
