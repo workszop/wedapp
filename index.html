@@ -3100,7 +3100,7 @@ const T = {
     start: 'Poznajmy się', sample: 'Podgląd',
     backMatches: 'Wróć do moich dopasowań', startOver: 'Zacznij od nowa z nowymi odpowiedziami', addGuest: 'Dodaj kolejnego gościa',
     demoRoleT: 'Demo: sprawdź aplikację jako', demoGuest: 'Gość',
-    demoClear: 'Wyczyść', demoClearSure: 'Na pewno?', demoCleared: 'Goście demo wyczyszczeni', demoLimit: n => `Limit ${n} gości w demo został osiągnięty. Wyczyść, aby dodać kolejnych.`,
+    demoClear: 'Wyczyść', demoClearSure: 'Na pewno?', demoCleared: 'Goście demo wyczyszczeni', demoAsBride: 'Teraz w demo jesteś panną młodą', demoAsGroom: 'Teraz w demo jesteś panem młodym', demoLimit: n => `Limit ${n} gości w demo został osiągnięty. Wyczyść, aby dodać kolejnych.`,
     foot: 'Twoje odpowiedzi służą tylko do narysowania dzisiejszego grafu.',
     you: 'Ty', youCap: 'TY',
     loadT: 'Rysujemy Twoje połączenia…', loadP: 'Porównujemy odpowiedzi ze wszystkimi gośćmi, także z parą młodą',
@@ -3215,7 +3215,7 @@ const T = {
     start: 'Find my people', sample: 'Preview',
     backMatches: 'Back to my matches', startOver: 'Start over with new answers', addGuest: 'Add another attendee',
     demoRoleT: 'Demo: try the app as', demoGuest: 'Guest',
-    demoClear: 'Clear', demoClearSure: 'Sure?', demoCleared: 'Demo attendees cleared', demoLimit: n => `The demo limit of ${n} attendees has been reached. Clear to add more.`,
+    demoClear: 'Clear', demoClearSure: 'Sure?', demoCleared: 'Demo attendees cleared', demoAsBride: 'You are now the bride in the demo', demoAsGroom: 'You are now the groom in the demo', demoLimit: n => `The demo limit of ${n} attendees has been reached. Clear to add more.`,
     foot: 'Your answers are only used to draw tonight’s graph.',
     you: 'You', youCap: 'YOU',
     loadT: 'Weaving your connections…', loadP: 'Comparing answers with every guest – the couple included',
@@ -3964,7 +3964,10 @@ if (!REAL) {
   }
   if (+store.get(CP_DEMO_AT) < cut) { store.set(CP_DEMO_KEY, null); store.set(CP_DEMO_AT, null); }   // a couple photo changed before the last 1:00
   const hd = new URLSearchParams(location.hash.slice(1)).get('demo');   // the demo panel's "join as the bride / the groom" buttons
-  if (hd === 'bride' || hd === 'groom') { history.replaceState(null, '', location.pathname + location.search); if (!mandatoryDone()) { demoRole = hd; demoRoleSync(); } }
+  if (hd === 'bride' || hd === 'groom') {   // the panel's link stands for the couple's code, so like a real event it also turns someone who already answered into the bride or the groom
+    history.replaceState(null, '', location.pathname + location.search);
+    if (hd !== demoRole) { const done = mandatoryDone(); demoRole = hd; demoRoleSync(); if (done) { me[0] = hd === 'bride' ? 0 : 1; demoSave(); setTimeout(() => toast(tr(hd === 'bride' ? 'demoAsBride' : 'demoAsGroom'), null, 4000), 600); } }   // their own side, as POST /me/role sets it
+  }
   addEventListener('storage', e => { if ([DEMO_KEY, CP_DEMO_KEY, DEMO_GONE_KEY, MSG_DEMO_KEY].includes(e.key) || e.key === null) demoExternal(); });
   demoNext = oneAm(true); setInterval(demoNightly, 30e3); document.addEventListener('visibilitychange', () => { if (!document.hidden) demoNightly(); });
   $('demo-clear').onclick = e => {
