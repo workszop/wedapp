@@ -3154,7 +3154,7 @@ const T = {
     welcomeNoteReal: 'Cześć! Bardzo się cieszymy, że jesteś z nami. Poszukaj dziś ludzi, z którymi znajdziesz wspólny język.',
     shareTextReal: n => `Poznajmy się na brunchu ślubnym: ${n}`,
     err_messages_off: 'Ten gość ma wyłączone wiadomości', err_own_messages_off: 'Włącz wiadomości u siebie, żeby pisać do innych', err_slow_down: 'Za szybko. Spróbuj za chwilę.',
-    err_guest_gone: 'Tego gościa nie ma już w wydarzeniu', err_event_full: 'Lista gości jest już pełna', err_bad_code: 'Kod pary młodej jest nieprawidłowy',
+    err_guest_gone: 'Tego gościa nie ma już w wydarzeniu', err_event_full: 'Lista gości jest już pełna', err_bad_code: 'Kod pary młodej jest nieprawidłowy', err_role_taken: 'Ta rola jest już zajęta. Odpowiedz na pytania jako gość.',
     cropT: 'Ustaw zdjęcie', cropHint: 'Przesuń zdjęcie palcem, żeby wybrać kadr. Rozsuń palce albo użyj suwaka, żeby powiększyć.', cropZoom: 'Powiększenie', cropCancel: 'Anuluj', cropSave: 'Zapisz',
     photoAskT: 'Wasze zdjęcie pod imionami', photoAskP: 'Goście zobaczą je na ekranie powitalnym, pod waszymi imionami. Możecie też zrezygnować.',
     multiHint: 'Możesz wybrać kilka.', pickTwo: 'Możesz wybrać dwie odpowiedzi.',
@@ -3269,7 +3269,7 @@ const T = {
     welcomeNoteReal: 'Welcome! We’re so happy you’re here. Find people you’ll click with tonight.',
     shareTextReal: n => `Find your people at the wedding brunch: ${n}`,
     err_messages_off: 'Messages are turned off for this guest', err_own_messages_off: 'Turn your own messages on to write to others', err_slow_down: 'Too fast. Try again in a moment.',
-    err_guest_gone: 'This guest is no longer in the event', err_event_full: 'The guest list is full', err_bad_code: 'The couple’s code is not valid',
+    err_guest_gone: 'This guest is no longer in the event', err_event_full: 'The guest list is full', err_bad_code: 'The couple’s code is not valid', err_role_taken: 'This role is already taken. Answer the questions as a guest.',
     cropT: 'Frame your photo', cropHint: 'Drag the photo to choose what shows. Pinch or use the slider to zoom.', cropZoom: 'Zoom', cropCancel: 'Cancel', cropSave: 'Save',
     photoAskT: 'Your photo under your names', photoAskP: 'Guests will see it on the welcome screen, under your names. You can also skip it.',
     multiHint: 'You can pick more than one.', pickTwo: 'You can pick up to two.',
@@ -4005,7 +4005,7 @@ function updateManifest() {   // the installed app must open this event (and thi
 async function claimRole() {   // the couple's link opened on a phone that had already joined as a guest
   const p = pendingRole(); if (!p || !token) return;
   try { adoptMe(await api('/me/role', { method: 'POST', body: p })); try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} syncWelcome(); renderQ(); }
-  catch (e) { if (e.code === 'bad_code') { try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} } toast(errText(e), null, 4000); }
+  catch (e) { if (e.code === 'bad_code' || e.code === 'role_taken') { try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} } toast(errText(e), null, 4000); }
 }
 function applyEvent() {   // couple's names and date on the welcome screen
   const names = EVT ? EVT.names : '', caps = names.split(/\s+/).filter(w => /^\p{Lu}/u.test(w)).map(w => w[0]).slice(0, 2);
@@ -4076,6 +4076,7 @@ async function pushMe() {   // join on the first save, update afterwards; always
     if (e.status === 401 && token) { forgetMe(); return pushMe(); }   // the token died (profile removed): join again
     if (e.code === 'bad_name') { si = 0; renderQ(); go('quiz'); toast(tr('badName'), null, 5000); return; }
     if (e.code === 'bad_code') { try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} }
+    if (e.code === 'role_taken') { try { sessionStorage.removeItem(ROLE_KEY); } catch (_) {} me[0] = null; me[1] = null; me[2] = null; si = 0; renderQ(); go('quiz'); toast(tr('err_role_taken'), null, 6000); return; }   // the guest questions were skipped for the role: ask them now (name and other answers kept)
     toast(errText(e), null, 4000);
   }
 }

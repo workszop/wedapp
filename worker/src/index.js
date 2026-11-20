@@ -13,15 +13,16 @@
 //   GET    /me   PUT /me   DELETE /me      own profile, answers and settings; delete = erase my data
 //   PUT    /me/avatar  DELETE /me/avatar  own profile photo: raw image body (the app sends a small square JPEG) / remove
 //   GET    /avatar/:id?v=N     a guest's profile photo (no auth, but only with the current version N, which only the guest list reveals)
-//   POST   /me/role {role, code}           take the bride/groom role on an existing guest
+//   POST   /me/role {role, code}           take the bride/groom role on an existing guest (409 role_taken while someone else holds it)
 //   POST   /me/restore -> {code}   POST /restore {code, token}     log the installed app in as the same guest
 //   GET    /graph               every visible guest except me: id, name, role, answers, msg, photo (version, 0 = none)
 //   GET    /inbox   GET /messages?with=ID   POST /messages {to, body}   POST /messages/read {with}
 //   GET    /messages/all   POST /messages/all {body}     bride or groom only: their messages to all guests / send one (each guest gets it in the chat with the sender)
 //   GET    /ws                  WebSocket (token in Sec-WebSocket-Protocol: "tt, <token>")
-//   GET    /admin   PUT /admin   DELETE /admin   DELETE /admin/guests/:id   PUT|DELETE /admin/photo     couple only (Bearer admin code)
+//   GET    /admin   PUT /admin   DELETE /admin   DELETE /admin/guests/:id   PUT /admin/guests/:id {role: bride|groom|null}   PUT|DELETE /admin/photo     couple only (Bearer admin code)
 // Operator route:
 //   POST   /api/admin/events    {names, dateLine, adminCode?} with Bearer MASTER_KEY -> {slug, adminCode}   (adminCode lets the operator reuse a couple's code)
+//   POST   /api/admin/events/:slug/code {adminCode?} with Bearer MASTER_KEY -> {adminCode}   a new couple's code; the old one and links with it stop working
 import { DurableObject } from 'cloudflare:workers';
 
 const OPT_COUNTS = [3, 2, 5, 4, 12, 4, 4, 6, 6, 6];   // number of options per question, same order as Q in index.html
@@ -114,6 +115,8 @@ export class EventRoom extends DurableObject {
   all(q, ...a) { return this.sql.exec(q, ...a).toArray(); }
 
   /** Called once by the operator route. Returns false if the event already exists. */
+  /** A new couple's code (operator only): the old code, and every link carrying it, stops working. */
+  async setAdminHash(adminHash) { if (!this.ready()) return false; this.setMeta('adminHash', adminHash); return true; }
   async init({ slug, names, dateLine, adminHash }) {
     if (this.ready()) return false;
     this.sql.exec(`
@@ -228,7 +231,9 @@ export class EventRoom extends DurableObject {
     return fails.length > ADMIN_FAILS[0] ? null : false;
   }
   isAdmin(req) { return this.checkCode(bearer(req), req.headers.get('CF-Connecting-IP') || '?'); }
-  /** Give the bride/groom role to this guest; whoever held it before loses it, and the other phones are told. */
+  /** There is one bride and one groom: a role someone else holds cannot be taken with the couple's link, only the panel can move it. */
+  roleHolder(role, exceptId) { return this.one('SELECT id FROM guests WHERE role = ? AND id != ?', role, exceptId); }
+  /** Give the bride/groom role to this guest (the panel only); whoever held it before loses it, and the other phones are told. */
   takeRole(role, exceptId) { for (const old of this.all('UPDATE guests SET role = NULL WHERE role = ? AND id != ? RETURNING *', role, exceptId)) this.announce(old); }
 
   // ---------- HTTP ----------
@@ -265,7 +270,7 @@ export class EventRoom extends DurableObject {
       const ok = await this.checkCode(b.code, request.headers.get('CF-Connecting-IP') || '?');
       if (ok === null) return err(429, 'slow_down');
       if (!ok) return err(403, 'bad_code');
-      this.takeRole(b.role, g.id);
+      if (this.roleHolder(b.role, g.id)) return err(409, 'role_taken');
       const a = answersOf(g); a[0] = b.role === 'bride' ? 0 : 1;
       const u = this.one('UPDATE guests SET role = ?, answers = ?, updated_at = ? WHERE id = ? RETURNING *', b.role, JSON.stringify(a), now(), g.id);
       this.announce(u);
@@ -380,7 +385,7 @@ export class EventRoom extends DurableObject {
       const ok = await this.checkCode(b.code, ip);
       if (ok === null) return err(429, 'slow_down');
       if (!ok) return err(403, 'bad_code');
-      this.takeRole(b.role, 0);   // a re-join (new phone) takes the role over
+      if (this.roleHolder(b.role, 0)) return err(409, 'role_taken');   // a re-join on a new phone: the panel first removes the old entry or makes it a guest
       role = b.role;
     }
     const t = now();
@@ -448,6 +453,14 @@ export class EventRoom extends DurableObject {
     if (path === '/admin/photo' && method === 'DELETE') return this.dropPhoto();
     const m = path.match(/^\/admin\/guests\/(\d+)$/);
     if (m && method === 'DELETE') { this.removeGuest(parseInt(m[1], 10)); return json({ deleted: true }); }
+    if (m && method === 'PUT') {   // the couple make a guest the bride or the groom (the previous holder becomes a guest), or an ordinary guest
+      const b = await readJson(request); if (!b || !(b.role === 'bride' || b.role === 'groom' || b.role === null)) return err(400, 'bad_request');
+      const g = this.one('SELECT * FROM guests WHERE id = ?', parseInt(m[1], 10)); if (!g) return err(404, 'not_found');
+      if (b.role) this.takeRole(b.role, g.id);
+      const a = answersOf(g); if (b.role) a[0] = b.role === 'bride' ? 0 : 1;   // their own side, as POST /me/role sets it
+      const u = this.one('UPDATE guests SET role = ?, answers = ?, updated_at = ? WHERE id = ? RETURNING *', b.role, JSON.stringify(a), now(), g.id);
+      this.announce(u); return json(this.card(u));
+    }
     return err(404, 'not_found');
   }
 }
@@ -478,6 +491,18 @@ async function route(request, env, url) {
     const created = await env.ROOM.get(env.ROOM.idFromName(slug)).init({ slug, names, dateLine, adminHash: await sha256(adminCode) });
     if (!created) return err(409, 'exists');
     return json({ slug, adminCode, url: `${appFor(request, env)}?e=${slug}` }, 201);
+  }
+  const rc = url.pathname.match(/^\/api\/admin\/events\/([^/]+)\/code$/);
+  if (rc && request.method === 'POST') {   // operator: a new couple's code for an existing event
+    if (!env.MASTER_KEY) return err(503, 'not_configured');
+    const key = bearer(request);
+    if (!key || await sha256(key) !== await sha256(env.MASTER_KEY)) return err(403, 'bad_key');
+    if (!SLUG_RE.test(rc[1])) return err(404, 'unknown_event');
+    const b = await readJson(request), wanted = b && b.adminCode != null ? String(b.adminCode).toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+    if (wanted && !/^[A-Z0-9]{10,32}$/.test(wanted)) return err(400, 'bad_code_format');
+    const adminCode = wanted || randomString(12, CODE_ABC);
+    if (!await env.ROOM.get(env.ROOM.idFromName(rc[1])).setAdminHash(await sha256(adminCode))) return err(404, 'unknown_event');
+    return json({ adminCode });
   }
   const m = url.pathname.match(/^\/api\/e\/([^/]+)(\/|$)/);
   if (m) {
