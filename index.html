@@ -3093,7 +3093,7 @@ const T = {
     welcome: 'Witaj', required: 'WYMAGANE', optional: 'OPCJONALNE',
     nameQ: 'Jak masz na imię?', namePh: 'Imię', nameHint: 'Widoczne dla innych gości na grafie.', continue: 'Dalej',
     qOf: (i, n) => `Pytanie ${i} z ${n}`, reqHint: 'Potrzebne, żeby pokazać Cię na grafie.',
-    next: 'Dalej', backBtn: 'Cofnij',
+    next: 'Dalej', toGraph: 'Pokaż graf', backBtn: 'Cofnij',
     tab_home: 'Start', tab_summary: 'Podsumowanie', tab_names: 'Osoby', tab_graph: 'Graf', tab_chats: 'Rozmowy',
     smTitle: 'Twoje dopasowania', smTitleName: n => `${n}, oto Twoje dopasowania`,
     smSub: (d, n) => `Na podstawie ${d} odpowiedzi · ${n} ${plForm(n, 'gość', 'goście', 'gości')} na brunchu`,
@@ -3205,7 +3205,7 @@ const T = {
     welcome: 'Welcome', required: 'REQUIRED', optional: 'OPTIONAL',
     nameQ: 'What’s your name?', namePh: 'First name', nameHint: 'Shown to other guests on the graph.', continue: 'Continue',
     qOf: (i, n) => `Question ${i} of ${n}`, reqHint: 'Needed to place you on the graph.',
-    next: 'Next', backBtn: 'Back',
+    next: 'Next', toGraph: 'Show graph', backBtn: 'Back',
     tab_home: 'Home', tab_summary: 'Summary', tab_names: 'Names', tab_graph: 'Graph', tab_chats: 'Chats',
     smTitle: 'Your matches', smTitleName: n => `${n}, here are your matches`,
     smSub: (d, n) => `Based on ${d} answer${d === 1 ? '' : 's'} · ${n} guests tonight`,
@@ -3408,7 +3408,7 @@ function renderQ() {
   $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${has(me[qi], i) ? 'sel' : full ? 'off' : ''}" data-i="${i}"><span>${ic(o[0], 30, 1.75)}</span>${o[1]}</button>`).join('');
   const canMove = !req || me[qi] !== null;   // a required question can be passed once it has an answer (editing earlier answers)
   act.innerHTML = `<button class="btn ghost" id="qprev">${ic('chevron-left', 18, 2.2)}${tr('backBtn')}</button>`
-    + (canMove ? `<button class="btn" id="skip">${tr('next')}</button>` : `<span class="name-hint" style="margin:0;text-align:right">${tr('reqHint')}</span>`);
+    + (canMove ? `<button class="btn" id="skip">${tr(si === steps.length - 1 ? 'toGraph' : 'next')}</button>` : `<span class="name-hint" style="margin:0;text-align:right">${tr('reqHint')}</span>`);
   $('qprev').onclick = stepBack; if (canMove) $('skip').onclick = nextStep;
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => {
     const i = +b.dataset.i;
