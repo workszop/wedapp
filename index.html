@@ -420,6 +420,9 @@
   .welcome>div:first-child,.welcome .lang,.demo-clear{transition:padding .3s,top .3s}
   .demo-clear{position:absolute;top:4px;left:0;z-index:2;border:0;border-radius:999px;background:#ffe1e6;color:#c22548;font:800 11px var(--sans);letter-spacing:.02em;padding:6px 11px;min-height:28px;cursor:pointer}
   .demo-clear[hidden]{display:none}
+  .demo-role{margin-top:16px;text-align:left}.demo-role small{display:block;margin:0 4px 6px;color:var(--mute);font:700 12px var(--sans)}
+  .demo-role div{display:flex;gap:6px}.demo-role button{flex:1;min-height:40px;border:0;border-radius:14px;background:var(--paper);box-shadow:inset 0 0 0 1.5px var(--line);font:700 13px var(--sans);color:var(--ink);cursor:pointer;padding:6px 4px}
+  .demo-role button.on{background:#ece5ff;box-shadow:inset 0 0 0 2px var(--lav-d)}
   html.ib-on .demo-clear{top:70px}
   html.ib-on .welcome>div:first-child{padding-top:112px}html.ib-on .welcome .lang{top:66px}   /* install banner on top: keep the language switch visible below it */
   .btn.alt.share-open .ic{color:var(--lav-d)}
@@ -3094,6 +3097,7 @@ const T = {
     wnDone: 'Rozmowa będzie czekać w Wiadomościach, gdy dołączysz.',
     start: 'Poznajmy się', sample: 'Podgląd',
     backMatches: 'Wróć do moich dopasowań', startOver: 'Zacznij od nowa z nowymi odpowiedziami', addGuest: 'Dodaj kolejnego gościa',
+    demoRoleT: 'Demo: sprawdź aplikację jako', demoGuest: 'Gość',
     demoClear: 'Wyczyść', demoClearSure: 'Na pewno?', demoCleared: 'Goście demo wyczyszczeni', demoLimit: n => `Limit ${n} gości w demo został osiągnięty. Wyczyść, aby dodać kolejnych.`,
     foot: 'Twoje odpowiedzi służą tylko do narysowania dzisiejszego grafu.',
     you: 'Ty', youCap: 'TY',
@@ -3208,6 +3212,7 @@ const T = {
     wnDone: 'Your chat continues in Messages once you join.',
     start: 'Find my people', sample: 'Preview',
     backMatches: 'Back to my matches', startOver: 'Start over with new answers', addGuest: 'Add another attendee',
+    demoRoleT: 'Demo: try the app as', demoGuest: 'Guest',
     demoClear: 'Clear', demoClearSure: 'Sure?', demoCleared: 'Demo attendees cleared', demoLimit: n => `The demo limit of ${n} attendees has been reached. Clear to add more.`,
     foot: 'Your answers are only used to draw tonight’s graph.',
     you: 'You', youCap: 'YOU',
@@ -3408,7 +3413,7 @@ function finishQuiz() {   // real event: wait until the answers are saved before
 /* The bride and the groom are not asked whose guest they are, whether they are friends or family, or where they met the couple:
    the first two are filled in for them (their own side, family) because every guest must have them, the third stays empty. */
 const COUPLE_SKIP = 3;
-const coupleRole = () => { if (!REAL) return null; const r = token ? myRole : (pendingRole() || {}).role; return r === 'bride' || r === 'groom' ? r : null; };
+const coupleRole = () => { if (!REAL) return demoRole || null; const r = token ? myRole : (pendingRole() || {}).role; return r === 'bride' || r === 'groom' ? r : null; };
 const hiddenStep = i => steps[i].type === 'q' && steps[i].i < COUPLE_SKIP && !!coupleRole();
 const stepFrom = (i, d) => { do i += d; while (i >= 0 && i < steps.length && hiddenStep(i)); return i; };   // the next (d = 1) or previous (d = -1) step that is shown
 function coupleFill() { const r = coupleRole(); if (r) { me[0] = r === 'bride' ? 0 : 1; me[1] = 1; me[2] = null; } }
@@ -3420,7 +3425,9 @@ function renderQ() {
   if (st.type === 'name') {
     $('qn').innerHTML = `${tr('welcome')} <span class="req r">${tr('required')}</span>`; $('qt').textContent = tr('nameQ');
     $('opts').style.display = 'block'; $('opts').classList.remove('multi');
-    $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="${tr('namePh')}" autocomplete="off" value="${esc(myName)}"><div class="name-hint">${tr(REAL ? 'consent' : 'nameHint')}</div><div class="avpick" id="avpick"></div>`;
+    $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="${tr('namePh')}" autocomplete="off" value="${esc(myName)}"><div class="name-hint">${tr(REAL ? 'consent' : 'nameHint')}</div><div class="avpick" id="avpick"></div>`
+      + (REAL ? '' : `<div class="demo-role" id="demo-role"><small>${tr('demoRoleT')}</small><div>${[['', tr('demoGuest')], ['bride', tr('role_bride')], ['groom', tr('role_groom')]].map(([v, t]) => `<button type="button" data-role="${v}" class="${v === demoRole ? 'on' : ''}">${t}</button>`).join('')}</div></div>`);
+    if (!REAL) $('demo-role').querySelectorAll('button').forEach(b => b.onclick = () => demoSetRole(b.dataset.role));
     renderAvPick();
     const inp = $('name-in'), upd = () => { myName = inp.value.trim(); $('name-next').disabled = !nameOk(); };
     act.innerHTML = `<button class="btn ghost" id="qprev">${ic('chevron-left', 18, 2.2)}${tr('backBtn')}</button><button class="btn" id="name-next">${tr('continue')}</button>`; $('qprev').onclick = stepBack; $('name-next').disabled = !nameOk(); $('name-next').onclick = nextStep;
@@ -3501,7 +3508,7 @@ function renderSummary() {
   const byCount = {}; sc.forEach(x => { if (x.s > 0) (byCount[x.s] ||= []).push(x.g); });
   const counts = Object.keys(byCount).map(Number).sort((a, b) => b - a), maxPeople = Math.max(1, ...counts.map(c => byCount[c].length));
   const hero = guests.length ? `<div class="hero"><div class="big">${close}</div><p>${tr('liveShare', close, k, done)}</p><small>${tr('smTop', top, done, any)}</small></div>` : `<div class="hero"><p>${tr('emptyEvent')}</p></div>`;
-  $('pn-summary').innerHTML = (REAL ? '<div id="cpask-s"></div>' : '') + `
+  $('pn-summary').innerHTML = '<div id="cpask-s"></div>' + `
     ${hero}
     <div class="grp-t">${tr('byCount')}</div>
     ${counts.length ? counts.map((c, i) => `<div class="grp ${c >= k ? 'close' : ''} ${i === 0 ? 'open' : ''}" data-c="${c}">
@@ -3510,7 +3517,7 @@ function renderSummary() {
     <div class="cta"><button class="btn alt" id="cta-names">${ic('users', 18)}${tr('showNames')}</button><button class="btn" id="cta-graph">${ic('network', 18)}${tr('seeGraph')}</button></div>`;
   $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}">${avHTML(g)}<div>${esc(g.name)}<small>${tr('tier')[lvl(score(g))]}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
     + `<div class="cta"><button class="btn" id="cta-graph2">${ic('network', 18)}${tr('seeGraph')}</button></div>`;
-  if (REAL) renderPhoto();
+  renderPhoto();
   $('pn-summary').classList.toggle('on', view !== 'names'); $('pn-names').classList.toggle('on', view === 'names'); syncTabbar();
   $('pn-summary').querySelectorAll('.grp-h').forEach(h => h.onclick = () => h.parentElement.classList.toggle('open'));
   document.querySelectorAll('#s-summary .person, #s-summary .prow').forEach(b => b.onclick = () => select(guestById(b.dataset.id)));
@@ -3796,11 +3803,17 @@ function MockBackend({ getGuest }) {
   return {
     kind: 'mock',
     getThreads() {
-      const by = new Map(); msgs.forEach(m => { const k = other(m); const t = by.get(k) || { withId: k, last: m, unread: 0 }; t.last = m; if (m.to === 'me' && !m.readAt) t.unread++; by.set(k, t); });
+      const by = new Map(); msgs.forEach(m => { const k = other(m); if (!getGuest(k)) return;   // a guest who is gone (cleared, or replaced by the visitor playing that role) has no thread
+      const t = by.get(k) || { withId: k, last: m, unread: 0 }; t.last = m; if (m.to === 'me' && !m.readAt) t.unread++; by.set(k, t); });
       return wait([...by.values()].sort((a, b) => b.last.at.localeCompare(a.last.at)));
     },
-    getMessages(withId) { return wait(msgs.filter(m => other(m) === String(withId))); },
+    getMessages(withId) { const g = getGuest(withId); return wait(msgs.filter(m => other(m) === String(withId) || (m.to === 'all' && g && g.msg !== false))); },   // a message to all guests also shows in the chat with each guest
+    sendAll(body) {   // demo bride or groom writes to everyone: a couple of guests answer, like at a real wedding
+      const to = guests.filter(g => g.msg !== false), m = { id: 'm' + seq++, from: 'me', to: 'all', all: true, sent: to.length, body: String(body).slice(0, 500), at: new Date().toISOString(), readAt: null };
+      msgs.push(m); persist(); to.filter(g => !g.couple).slice(0, 2).forEach((g, i) => setTimeout(() => scheduleReply(String(g.id)), 600 + i * 3200)); return wait(m, 120);
+    },
     sendMessage(toId, body) {
+      if (String(toId) === 'all') return this.sendAll(body);
       const g = getGuest(toId);
       if (!g || g.msg === false) return Promise.reject(new Error(tr('msgOff')));
       const m = { id: 'm' + seq++, from: 'me', to: String(toId), body: String(body).slice(0, 500), at: new Date().toISOString(), readAt: null };
@@ -3901,36 +3914,42 @@ if (!REAL) myAvatar = store.get(AV_DEMO_KEY) || '';
 /* ─── Demo: attendees made on this device ───
    Finishing the questions makes an attendee; "Add another attendee" keeps that one as a guest in the list and the graph and starts a new one,
    up to DEMO_MAX. They live in this browser only and are cleared at 1:00 every night, or with the small "Clear" button on the welcome screen. */
-const DEMO_KEY = 'tt_demo_made_v1', DEMO_SEQ = 'tt_demo_seq', DEMO_MAX = 100;
+const DEMO_KEY = 'tt_demo_made_v1', DEMO_SEQ = 'tt_demo_seq', DEMO_MAX = 100, CP_DEMO_KEY = 'tt_demo_cphoto';
+let demoRole = '';   // '' = guest, 'bride' or 'groom': the demo visitor tries the couple's view (shorter questions, All guests chat, couple photo)
+const DEMO_COUPLE = REAL ? [] : guests.filter(g => g.couple);   // the fictional bride and groom
+function demoRoleSync() { DEMO_COUPLE.forEach(c => { const i = guests.indexOf(c), hide = c.couple === demoRole; if (hide && i >= 0) guests.splice(i, 1); else if (!hide && i < 0) guests.push(c); }); }   // whoever plays the bride replaces the fictional one
+function demoSetRole(r) { if (r === demoRole) return; if (demoRole && !r) { me[0] = null; me[1] = null; } demoRole = r; demoRoleSync(); if (mandatoryDone()) demoSave(); renderQ(); renderPhoto(); }   // back to a guest: the two required questions are asked again
 let demoMade = [], demoCurAt = 0, demoNext = 0;   // kept attendees [{ id, name, answers, pic, at }]; when the current one was made; the next 1:00
 const oneAm = next => { const d = new Date(); d.setHours(1, 0, 0, 0); if (next ? d <= new Date() : d > new Date()) d.setDate(d.getDate() + (next ? 1 : -1)); return d.getTime(); };
 const demoGuest = g => ({ id: g.id, name: g.name, first: g.name.split(' ')[0], msg: true, answers: g.answers, pic: g.pic || '', made: true });
 function demoSave() {
-  const data = () => JSON.stringify({ cur: mandatoryDone() ? { name: myName, answers: me, at: demoCurAt } : null, list: demoMade });
+  const data = () => JSON.stringify({ cur: mandatoryDone() ? { name: myName, answers: me, at: demoCurAt, role: demoRole } : null, list: demoMade });
   try { localStorage.setItem(DEMO_KEY, data()); } catch (e) { demoMade.forEach(g => { g.pic = ''; }); try { localStorage.setItem(DEMO_KEY, data()); } catch (_) {} }   // storage full: keep the attendees, drop their photos
 }
 function demoKeepMe() {   // the attendee just made becomes a guest; false when the limit is reached
   if (demoMade.length + 1 >= DEMO_MAX) { toast(tr('demoLimit', DEMO_MAX), null, 6000); return false; }
   const n = +store.get(DEMO_SEQ) || 0; store.set(DEMO_SEQ, String(n + 1));   // ids are never reused, so old chats cannot attach to a new attendee
   const g = { id: 1000 + n, name: myName, answers: me, pic: myAvatar || '', at: demoCurAt || Date.now() };
-  demoMade.push(g); guests.push(demoGuest(g)); demoCurAt = 0; myAvatar = ''; youImg = null; store.set(AV_DEMO_KEY, null);
+  demoMade.push(g); guests.push(demoGuest(g)); demoCurAt = 0; myAvatar = ''; youImg = null; store.set(AV_DEMO_KEY, null); demoRole = ''; demoRoleSync(); renderPhoto();   // the kept one stays as an ordinary guest
   return true;
 }
 function demoWipe(say) {
   for (let i = guests.length - 1; i >= 0; i--) if (guests[i].made) guests.splice(i, 1);
   demoMade = []; demoCurAt = 0; store.set(DEMO_KEY, null); store.set(AV_DEMO_KEY, null); myAvatar = ''; youImg = null; myName = ''; me = blank(); editName = '';
-  closeSheet(); si = 0; renderQ(); go('welcome'); if (say) toast(tr('demoCleared'));
+  demoRole = ''; demoRoleSync(); store.set(CP_DEMO_KEY, null); store.set(CP_DEMO_KEY + '_at', null);
+  closeSheet(); si = 0; renderQ(); renderPhoto(); go('welcome'); if (say) toast(tr('demoCleared'));
 }
 function demoClearSync() { const b = $('demo-clear'); b.hidden = !(demoMade.length || mandatoryDone()); b.textContent = tr(b.dataset.armed ? 'demoClearSure' : 'demoClear'); }
-function demoNightly() { if (Date.now() < demoNext) return; demoNext = oneAm(true); if (demoMade.length || mandatoryDone()) demoWipe(true); }   // 1:00 has passed while the app was open
+function demoNightly() { if (Date.now() < demoNext) return; demoNext = oneAm(true); if (demoMade.length || mandatoryDone() || store.get(CP_DEMO_KEY)) demoWipe(true); }   // 1:00 has passed while the app was open
 if (!REAL) {
   let d = null; try { d = JSON.parse(store.get(DEMO_KEY)); } catch (e) {}
   const cut = oneAm(false), okA = x => x && typeof x.name === 'string' && x.name && Array.isArray(x.answers) && x.answers.length === N && x.at >= cut;   // made before the last 1:00: gone
   if (d) {
     demoMade = (Array.isArray(d.list) ? d.list : []).filter(okA).slice(0, DEMO_MAX - 1); guests.push(...demoMade.map(demoGuest));
-    if (okA(d.cur)) { myName = d.cur.name; me = d.cur.answers; demoCurAt = d.cur.at; } else if (d.cur) { myAvatar = ''; store.set(AV_DEMO_KEY, null); }
+    if (okA(d.cur)) { myName = d.cur.name; me = d.cur.answers; demoCurAt = d.cur.at; demoRole = d.cur.role === 'bride' || d.cur.role === 'groom' ? d.cur.role : ''; demoRoleSync(); } else if (d.cur) { myAvatar = ''; store.set(AV_DEMO_KEY, null); }
     demoSave();
   }
+  if (+store.get(CP_DEMO_KEY + '_at') < cut) { store.set(CP_DEMO_KEY, null); store.set(CP_DEMO_KEY + '_at', null); }   // a couple photo changed before the last 1:00
   demoNext = oneAm(true); setInterval(demoNightly, 30e3); document.addEventListener('visibilitychange', () => { if (!document.hidden) demoNightly(); });
   $('demo-clear').onclick = e => {
     const b = e.currentTarget; if (!b.dataset.armed) { b.dataset.armed = '1'; demoClearSync(); setTimeout(() => { delete b.dataset.armed; demoClearSync(); }, 3000); return; }   // second tap confirms
@@ -3978,10 +3997,17 @@ function applyEvent() {   // couple's names and date on the welcome screen
   rerenderWelcome(); renderPhoto();
 }
 /* ─── the couple's photo: shown to everyone under the names; the bride or groom can add, change or decline it ─── */
-const isCouple = () => REAL && !!token && (myRole === 'bride' || myRole === 'groom');
+const isCouple = () => REAL ? !!token && (myRole === 'bride' || myRole === 'groom') : !!demoRole;   // demo: the role picked on the name step
 const photoAskHTML = () => `<div class="cpask"><div class="cp-ic">${ic('camera', 24)}</div><b>${tr('photoAskT')}</b><p>${tr('photoAskP')}</p><div class="row2"><button class="btn alt" type="button" data-photo="no">${tr('photoNo')}</button><button class="btn" type="button" data-photo="add">${ic('image-plus', 18)}${tr('photoAdd')}</button></div></div>`;
 function renderPhoto() {
-  if (!REAL) { const fig = $('cphoto'), img = $('cphoto-img'); if (!img.getAttribute('src')) img.src = 'img/couple.jpg'; img.alt = ''; fig.hidden = false; return; }   // demo: a cartoon couple stands in for the couple's photo
+  if (!REAL) {   // demo: a cartoon couple stands in for the couple's photo; someone trying the bride or groom view can change or remove it (kept on this device)
+    const fig = $('cphoto'), img = $('cphoto-img'), v = store.get(CP_DEMO_KEY) || '', gone = v === 'none' || v === 'declined', src = gone || !v ? 'img/couple.jpg' : v;
+    if (img.getAttribute('src') !== src) img.src = src; img.alt = ''; fig.hidden = gone;
+    $('cp-ctl').innerHTML = isCouple() && !gone ? `<button type="button" data-photo="add">${tr('photoChange')}</button><button type="button" data-photo="remove">${tr('photoRemove')}</button>` : '';
+    const ask = isCouple() && v === 'none', sa = document.getElementById('cpask-s');   // removed and not decided yet: the same question a real couple gets
+    $('cpask-w').innerHTML = ask ? photoAskHTML() : ''; if (sa) sa.innerHTML = ask ? photoAskHTML() : '';
+    return;
+  }
   const has = !!(EVT && EVT.photo), fig = $('cphoto'), img = $('cphoto-img');
   fig.hidden = !has;
   if (has) { const src = `${API}/api/e/${EVENT}/photo?v=${EVT.photo}`; if (img.getAttribute('src') !== src) img.src = src; img.alt = tr('photoAlt', EVT.names); }
@@ -3991,6 +4017,7 @@ function renderPhoto() {
   const sa = document.getElementById('cpask-s'); if (sa) sa.innerHTML = ask ? photoAskHTML() : '';
 }
 async function sendPhoto(method, blob) {
+  if (!REAL) { const v = blob ? await new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = no; fr.readAsDataURL(blob); }) : 'declined'; store.set(CP_DEMO_KEY, v); if (store.get(CP_DEMO_KEY) !== v) throw new Error('photo'); store.set(CP_DEMO_KEY + '_at', String(Date.now())); renderPhoto(); return; }
   const r = await fetch(`${API}/api/e/${EVENT}/me/photo`, { method, headers: { Authorization: 'Bearer ' + token, ...(blob ? { 'Content-Type': blob.type } : {}) }, body: blob || undefined });
   const j = await r.json().catch(() => null);
   if (!r.ok) { const e = new Error('photo'); e.status = r.status; e.code = (j && j.error) || 'http'; throw e; }
@@ -4006,6 +4033,7 @@ $('cp-file').onchange = async e => {
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-photo]'); if (!b || !isCouple()) return;
   if (b.dataset.photo === 'add') { $('cp-file').click(); return; }
+  if (!REAL && b.dataset.photo === 'remove') { store.set(CP_DEMO_KEY, 'none'); store.set(CP_DEMO_KEY + '_at', String(Date.now())); renderPhoto(); return; }   // demo: removing brings up the question, so it can be added again
   try { await sendPhoto('DELETE'); toast(tr('photoRemoved'), null, 4000); } catch (x) { toast(errText(x), null, 4000); }   // "no" and "remove" both mean: no photo
 });
 let saveRetry = 0;
