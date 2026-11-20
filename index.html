@@ -218,6 +218,7 @@
   .bub{max-width:80%;padding:9px 13px;border-radius:18px;font-size:15px;line-height:1.4;overflow-wrap:anywhere}
   .bub.me{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:6px}
   .bub.them{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:6px}
+  .av-all{background:var(--ink)!important;color:#fff!important;display:grid;place-items:center}
   .bub .auto{display:block;font:700 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--rose);margin-bottom:3px;font-style:normal}
   .bub small{display:block;font-size:10.5px;opacity:.6;margin-top:3px}
   .chat-note{align-self:center;text-align:center;color:var(--mute);font-size:12px;margin:6px 10px 10px;max-width:260px}
@@ -3084,7 +3085,8 @@ const T = {
     qrCard: '<b>Otwórz na telefonie</b><span>Zeskanuj kod aparatem. Aplikacja jest zrobiona pod telefony.</span>',
     banner: '<b>Aplikacja na pełnym ekranie</b><small>Bez paska adresu · działa offline</small>',
     how: 'Jak?', install: 'Zainstaluj', installApp: 'Zainstaluj aplikację', gotIt: 'Jasne',
-    close: 'Zamknij', newMsg: 'Nowa wiadomość', back: 'Wstecz', navMain: 'Główna nawigacja', guideAria: 'Instalacja aplikacji',
+    close: 'Zamknij', newMsg: 'Nowa wiadomość', allGuests: 'Wszyscy goście', allSub: 'Jedna wiadomość do wszystkich gości', allTag: 'Do wszystkich', allSent: n => `Wysłano. Liczba odbiorców: ${n}`,
+    allNote: 'Każdy gość dostanie tę wiadomość w rozmowie z Tobą. Odpowiedzi znajdziesz w zwykłych rozmowach. Goście z wyłączonymi wiadomościami jej nie dostaną.', err_not_couple: 'Do wszystkich może pisać tylko para młoda', back: 'Wstecz', navMain: 'Główna nawigacja', guideAria: 'Instalacja aplikacji',
     shareOpen: 'Udostępnij aplikację', shareT: 'Udostępnij Bee Talk', shareP: 'Zeskanuj aparatem telefonu, aby otworzyć aplikację',
     shareLink: 'Udostępnij link', copyLink: 'Kopiuj link', linkCopied: 'Skopiowano link', shareText: 'Poznajmy się na brunchu ślubnym Ani i Marka',
     date: 'SOBOTA, 14 CZERWCA · VILLA RÓŻANA',
@@ -3197,7 +3199,8 @@ const T = {
     qrCard: '<b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span>',
     banner: '<b>Get the full-screen app</b><small>No address bar · works offline</small>',
     how: 'How', install: 'Install', installApp: 'Install the app', gotIt: 'Got it',
-    close: 'Close', newMsg: 'New message', back: 'Back', navMain: 'Main', guideAria: 'Install the app',
+    close: 'Close', newMsg: 'New message', allGuests: 'All guests', allSub: 'One message to every guest', allTag: 'To everyone', allSent: n => `Sent. Recipients: ${n}`,
+    allNote: 'Every guest gets this message in their chat with you. Replies arrive in your ordinary chats. Guests who turned messages off will not get it.', err_not_couple: 'Only the couple can write to all guests', back: 'Back', navMain: 'Main', guideAria: 'Install the app',
     shareOpen: 'Share the app', shareT: 'Share Bee Talk', shareP: 'Scan with a phone camera to open the app',
     shareLink: 'Share link', copyLink: 'Copy link', linkCopied: 'Link copied', shareText: 'Find your people at Ania & Marek’s wedding brunch',
     date: 'SATURDAY 14 JUNE · VILLA RÓŻANA',
@@ -3806,8 +3809,8 @@ function LiveBackend() {
     kind: 'live', connect,
     close() { clearTimeout(timer); clearInterval(ping); const s = ws; ws = null; threads = null; if (s) { try { s.close(); } catch (e) {} } },
     getThreads() { if (!token) return Promise.resolve([]); if (!threads) threads = api('/inbox').then(l => { l.forEach(t => remember(t.peer)); return l; }).catch(e => { threads = null; throw e; }); return threads; },
-    getMessages: id => api('/messages?with=' + encodeURIComponent(id)),
-    async sendMessage(to, body) { const m = await api('/messages', { method: 'POST', body: { to: String(to), body } }); threads = null; return m; },
+    getMessages: id => api(id === 'all' ? '/messages/all' : '/messages?with=' + encodeURIComponent(id)),   // 'all': what the bride or the groom sent to all guests
+    async sendMessage(to, body) { const m = await api(to === 'all' ? '/messages/all' : '/messages', { method: 'POST', body: to === 'all' ? { body } : { to: String(to), body } }); threads = null; return m; },
     async markRead(id) {
       const l = await this.getThreads().catch(() => []), t = l.find(x => x.withId === String(id));
       if (t && !t.unread) return;   // nothing unread: no request
@@ -4066,11 +4069,11 @@ async function renderInbox() {
   const [th, st] = await Promise.all([backend.getThreads(), backend.getSettings()]);
   $('pn-inbox').innerHTML = `<label class="toggle"><input type="checkbox" id="allow-msg" ${st.allowMessages ? 'checked' : ''}><span>${tr('allowMsg')}</span></label>`
     + (REAL ? `<label class="toggle"><input type="checkbox" id="vis-me" ${st.visible ? 'checked' : ''}><span>${tr('visibleMe')}</span></label>` : '')
-    + (th.length ? `<div class="plist">${th.filter(t => guestOf(t.withId)).map(t => { const g = guestOf(t.withId); return `<button class="prow ${t.unread ? 'unread' : ''}" data-id="${t.withId}">${avHTML(g)}<div>${esc(g.name)}<small class="pv">${t.last.from === 'me' ? tr('youPrefix') : ''}${esc(bodyOf(t.last))}</small></div><span class="meta">${agoOf(t.last.at)}${t.unread ? '<i class="dot"></i>' : ''}</span></button>`; }).join('')}</div>`
+    + (th.length || isCouple() ? `<div class="plist">${isCouple() ? `<button class="prow" data-id="all"><span class="av av-all">${ic('users', 20)}</span><div>${tr('allGuests')}<small class="pv">${tr('allSub')}</small></div><span class="meta"></span></button>` : ''}${th.filter(t => guestOf(t.withId)).map(t => { const g = guestOf(t.withId); return `<button class="prow ${t.unread ? 'unread' : ''}" data-id="${t.withId}">${avHTML(g)}<div>${esc(g.name)}<small class="pv">${t.last.from === 'me' ? tr('youPrefix') : ''}${esc(bodyOf(t.last))}</small></div><span class="meta">${agoOf(t.last.at)}${t.unread ? '<i class="dot"></i>' : ''}</span></button>`; }).join('')}</div>`
       : `<div class="empty">${tr('inboxEmpty')}<br><button class="btn" id="ib-graph">${ic('network', 18)}${tr('seeGraph')}</button></div>`)
     + (REAL ? `<button class="btn ghost danger" id="del-me">${tr('deleteMe')}</button>` : '');
   $('allow-msg').onchange = e => backend.setSettings({ allowMessages: e.target.checked }).then(() => toast(tr(e.target.checked ? 'canMsgOn' : 'canMsgOff')));
-  $('pn-inbox').querySelectorAll('.prow').forEach(b => b.onclick = () => openChat(guestOf(b.dataset.id), 'chats'));
+  $('pn-inbox').querySelectorAll('.prow').forEach(b => b.onclick = () => openChat(b.dataset.id === 'all' ? ALL_GUESTS() : guestOf(b.dataset.id), 'chats'));
   const gbtn = $('ib-graph'); if (gbtn) gbtn.onclick = () => showView('graph');
   const vm = $('vis-me'); if (vm) vm.onchange = e => backend.setSettings({ visible: e.target.checked }).then(() => toast(tr(e.target.checked ? 'visOn' : 'visOff'))).catch(x => toast(errText(x)));
   const dm = $('del-me'); if (dm) dm.onclick = async () => {   // two taps instead of a browser confirm dialog
@@ -4078,22 +4081,24 @@ async function renderInbox() {
     try { await api('/me', { method: 'DELETE' }); forgetMe(true); toast(tr('deleted'), null, 4000); } catch (x) { toast(errText(x)); }
   };
 }
-function bubble(m) { return `<div class="bub ${m.from === 'me' ? 'me' : 'them'}" data-id="${m.id}">${m.auto ? `<em class="auto">${tr('autoReply')}</em>` : ''}${esc(bodyOf(m))}<small>${clockOf(m.at)}</small></div>`; }
+function bubble(m) { return `<div class="bub ${m.from === 'me' ? 'me' : 'them'}" data-id="${m.id}">${m.auto ? `<em class="auto">${tr('autoReply')}</em>` : m.all && m.from !== 'me' ? `<em class="auto">${tr('allTag')}</em>` : ''}${esc(bodyOf(m))}<small>${clockOf(m.at)}</small></div>`; }
 function scrollChat() { const b = $('chat-msgs'); b.scrollTop = b.scrollHeight; }
 function appendMsg(m) { if (shown.has(m.id)) return; shown.add(m.id); const t = $('typing'); if (t) t.remove(); $('chat-msgs').insertAdjacentHTML('beforeend', bubble(m)); $('chat-sugg').innerHTML = ''; scrollChat(); }
 function suggestionsFor(g) {
   const sh = shared(g).filter(i => i >= 2).slice(0, 2);
   return [...sh.map(i => tr('suggShared', g.first, Q[i].opts[common(me[i], g.answers[i])[0]][1], Q[i].label)), tr('suggHi', g.first, myName)];
 }
+const ALL_GUESTS = () => ({ id: 'all', all: true, name: tr('allGuests') });   // the couple's address for a message to every guest
 async function openChat(g, from) {
   chat = { id: String(g.id), from: from || 'chats' }; shown = new Set();
-  const av = $('chat-av'); setAv(av, g);
-  $('chat-name').textContent = g.name; $('chat-sub').textContent = g.couple ? tr('role_' + g.couple) : tr('nInCommon', score(g), answeredCount());
+  const av = $('chat-av'); if (g.all) { av.innerHTML = ic('users', 20); av.style.background = ''; } else setAv(av, g); av.classList.toggle('av-all', !!g.all);
+  $('chat-name').textContent = g.name; $('chat-sub').textContent = g.all ? tr('allSub') : g.couple ? tr('role_' + g.couple) : tr('nInCommon', score(g), answeredCount());
   const list = await backend.getMessages(chat.id);
-  $('chat-msgs').innerHTML = `<div class="chat-note">${tr('chatNote')}</div>` + list.map(m => { shown.add(m.id); return bubble(m); }).join('');
-  $('chat-sugg').innerHTML = list.length ? '' : suggestionsFor(g).map(t => `<button class="sugg" type="button">${esc(t)}</button>`).join('');
+  $('chat-msgs').innerHTML = `<div class="chat-note">${tr(g.all ? 'allNote' : 'chatNote')}</div>` + list.map(m => { shown.add(m.id); return bubble(m); }).join('');
+  $('chat-sugg').innerHTML = list.length || g.all ? '' : suggestionsFor(g).map(t => `<button class="sugg" type="button">${esc(t)}</button>`).join('');
   $('chat-sugg').querySelectorAll('.sugg').forEach(b => b.onclick = () => { $('chat-input').value = b.textContent; $('chat-input').focus(); updateSend(); });
   $('chat-input').value = ''; updateSend(); go('chat'); scrollChat();
+  if (g.all) return;   // nothing to mark as read: this thread only holds what the couple sent
   await backend.markRead(chat.id); refreshUnread();
 }
 const updateSend = () => { $('chat-send').disabled = !$('chat-input').value.trim(); };
@@ -4103,7 +4108,7 @@ $('chat-back').onclick = () => showView(chat.from === 'chats' ? 'chats' : chat.f
 $('chat-form').onsubmit = async e => {
   e.preventDefault(); const v = $('chat-input').value.trim(); if (!v) return;
   $('chat-input').value = ''; updateSend();
-  try { appendMsg(await backend.sendMessage(chat.id, v)); } catch (err) { if (!$('chat-input').value) { $('chat-input').value = v; updateSend(); } toast(errText(err)); }   // keep the unsent text
+  try { const m = await backend.sendMessage(chat.id, v); appendMsg(m); if (m.to === 'all') toast(tr('allSent', m.sent), null, 3500); } catch (err) { if (!$('chat-input').value) { $('chat-input').value = v; updateSend(); } toast(errText(err)); }   // keep the unsent text
 };
 backend.subscribe(ev => {
   if (ev.type === 'guest' || ev.type === 'gone' || ev.type === 'sync' || ev.type === 'kicked') { onLive(ev); return; }

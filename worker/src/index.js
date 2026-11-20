@@ -17,6 +17,7 @@
 //   POST   /me/restore -> {code}   POST /restore {code, token}     log the installed app in as the same guest
 //   GET    /graph               every visible guest except me: id, name, role, answers, msg, photo (version, 0 = none)
 //   GET    /inbox   GET /messages?with=ID   POST /messages {to, body}   POST /messages/read {with}
+//   GET    /messages/all   POST /messages/all {body}     bride or groom only: their messages to all guests / send one (each guest gets it in the chat with the sender)
 //   GET    /ws                  WebSocket (token in Sec-WebSocket-Protocol: "tt, <token>")
 //   GET    /admin   PUT /admin   DELETE /admin   DELETE /admin/guests/:id   PUT|DELETE /admin/photo     couple only (Bearer admin code)
 // Operator route:
@@ -30,6 +31,7 @@ const NAME_RE = /^[\p{L}\p{M}\d .'’-]{1,24}$/u;
 const MAX_GUESTS = 200, MAX_BODY = 500, KEEP_DAYS = 60;
 const JOIN_LIMIT = [300, 10 * 60e3];  // joins per IP per window – above the guest cap, because the whole venue shares one Wi-Fi address
 const SEND_LIMIT = [20, 60e3];        // messages per guest per window
+const BULK_LIMIT = [5, 60e3];         // messages to all guests, per bride/groom per window
 const ADMIN_FAILS = [8, 10 * 60e3];   // wrong couple codes per IP per window before further wrong ones get 429
 const PHOTO_MAX = 1500 * 1024;   // the app shrinks photos to ~200 KB before upload; this is only a safety cap
 const AVATAR_MAX = 150 * 1024;   // profile photos arrive as ~320 px JPEGs of 15-30 KB; this is only a safety cap
@@ -78,7 +80,7 @@ export class EventRoom extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
-    this.joins = new Map(); this.sends = new Map(); this.adminFails = new Map(); this.avatarPuts = new Map();
+    this.joins = new Map(); this.sends = new Map(); this.adminFails = new Map(); this.avatarPuts = new Map(); this.bulks = new Map();
     this.isReady = null;
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));   // keep-alive without waking the object
   }
@@ -99,6 +101,10 @@ export class EventRoom extends DurableObject {
       CREATE TABLE IF NOT EXISTS avatars (guest_id INTEGER PRIMARY KEY, mime TEXT NOT NULL, data BLOB NOT NULL);`);
     // guests.photo = version of the guest's profile photo (0 = none); added here so events created earlier get it too
     if (!this.sql.exec('PRAGMA table_info(guests)').toArray().some(c => c.name === 'photo')) this.sql.exec('ALTER TABLE guests ADD COLUMN photo INTEGER NOT NULL DEFAULT 0');
+    // A message from the bride or the groom to all guests: one row in bulks (what the sender sees under "All guests") and one ordinary
+    // message per guest, marked with messages.bulk, so every guest gets it in the chat with the sender and can answer there.
+    this.sql.exec('CREATE TABLE IF NOT EXISTS bulks (id INTEGER PRIMARY KEY AUTOINCREMENT, from_id INTEGER NOT NULL, body TEXT NOT NULL, at TEXT NOT NULL, n INTEGER NOT NULL)');
+    if (!this.sql.exec('PRAGMA table_info(messages)').toArray().some(c => c.name === 'bulk')) this.sql.exec('ALTER TABLE messages ADD COLUMN bulk INTEGER');
   }
   meta(k) { const r = this.sql.exec('SELECT v FROM meta WHERE k = ?', k).toArray()[0]; return r ? r.v : null; }
   setMeta(k, v) { this.sql.exec('INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, String(v)); }
@@ -134,7 +140,8 @@ export class EventRoom extends DurableObject {
   // ---------- views ----------
   me(g) { return { id: String(g.id), name: g.name, answers: answersOf(g), role: g.role, photo: g.photo || 0, allowMessages: !!g.allow_messages, visible: !!g.visible }; }
   card(g) { return { id: String(g.id), name: g.name, answers: answersOf(g), role: g.role, photo: g.photo || 0, msg: !!g.allow_messages }; }
-  msg(m, meId) { const who = id => id === meId ? 'me' : String(id); return { id: String(m.id), from: who(m.from_id), to: who(m.to_id), body: m.body, at: m.at, readAt: m.read_at }; }
+  msg(m, meId) { const who = id => id === meId ? 'me' : String(id); return { id: String(m.id), from: who(m.from_id), to: who(m.to_id), body: m.body, at: m.at, readAt: m.read_at, ...(m.bulk ? { all: true } : {}) }; }
+  bulkMsg(b) { return { id: 'a' + b.id, from: 'me', to: 'all', body: b.body, at: b.at, readAt: null, all: true, sent: b.n }; }
   eventInfo() {
     const ps = this.meta('photoState') || '';   // '' = not decided yet, 'set', 'declined'
     return { slug: this.meta('slug'), names: this.meta('names'), dateLine: this.meta('dateLine'), guests: this.one('SELECT COUNT(*) AS n FROM guests').n, photo: ps === 'set' ? +(this.meta('photoV') || 1) : 0, photoState: ps };
@@ -288,11 +295,27 @@ export class EventRoom extends DurableObject {
     if (path === '/inbox' && method === 'GET') {
       const by = new Map();
       for (const m of this.all('SELECT * FROM messages WHERE from_id = ? OR to_id = ? ORDER BY id', g.id, g.id)) {
+        if (m.bulk && m.from_id === g.id) continue;   // the sender's own messages to all guests live under "All guests", not in one thread per guest
         const peer = String(m.from_id === g.id ? m.to_id : m.from_id), t = by.get(peer) || { withId: peer, last: null, unread: 0 };
         if (!t.peer) { const p = this.one('SELECT * FROM guests WHERE id = ?', +peer); if (!p) continue; t.peer = this.card(p); }   // lets the app name chat partners who are hidden from the graph
         t.last = this.msg(m, g.id); if (m.to_id === g.id && !m.read_at) t.unread++; by.set(peer, t);
       }
       return json([...by.values()].sort((a, b) => b.last.at.localeCompare(a.last.at)));
+    }
+    if (path === '/messages/all' && method === 'GET') return json(this.all('SELECT * FROM bulks WHERE from_id = ? ORDER BY id', g.id).map(b => this.bulkMsg(b)));
+    if (path === '/messages/all' && method === 'POST') {   // the bride or the groom writes to every guest at once
+      if (g.role !== 'bride' && g.role !== 'groom') return err(403, 'not_couple');
+      const b = await readJson(request), body = cleanText(b && b.body, MAX_BODY);
+      if (!body) return err(400, 'bad_request');
+      if (!g.allow_messages) return err(403, 'own_messages_off');
+      if (!rateOk(this.bulks, g.id, BULK_LIMIT)) return err(429, 'slow_down');
+      const to = this.all('SELECT id FROM guests WHERE id != ? AND allow_messages = 1', g.id), at = now(), peer = this.card(g);   // guests who turned messages off are left out
+      const bulk = this.one('INSERT INTO bulks (from_id, body, at, n) VALUES (?, ?, ?, ?) RETURNING *', g.id, body, at, to.length);
+      for (const r of to) {
+        const m = this.one('INSERT INTO messages (from_id, to_id, body, at, bulk) VALUES (?, ?, ?, ?, ?) RETURNING *', g.id, r.id, body, at, bulk.id);
+        this.sendTo(r.id, { type: 'message', message: this.msg(m, r.id), peer });
+      }
+      return json(this.bulkMsg(bulk), 201);
     }
     if (path === '/messages' && method === 'GET') {
       const peer = parseInt(url.searchParams.get('with'), 10);
@@ -391,7 +414,7 @@ export class EventRoom extends DurableObject {
   }
 
   removeGuest(id) {
-    this.sql.exec('DELETE FROM messages WHERE from_id = ? OR to_id = ?', id, id);
+    this.sql.exec('DELETE FROM messages WHERE from_id = ? OR to_id = ?', id, id); this.sql.exec('DELETE FROM bulks WHERE from_id = ?', id);
     this.sql.exec('DELETE FROM sessions WHERE guest_id = ?', id); this.sql.exec('DELETE FROM restores WHERE guest_id = ?', id);
     this.sql.exec('DELETE FROM avatars WHERE guest_id = ?', id);
     this.sql.exec('DELETE FROM guests WHERE id = ?', id);
