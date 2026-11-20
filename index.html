@@ -3509,6 +3509,12 @@ function renderSummary() {
 /* ======================= graph ======================= */
 const cv = $('cv'), ctx = cv.getContext('2d');
 let W = 340, H = 400, nodes = [], links = [], t0 = 0, selected = null, filter = null, drag = null, raf = null, dpr = 1;
+/* Zoom: the picture is drawn at screen = world * Z + (PX, PY). Nodes and the layout stay in world units (the unzoomed canvas),
+   so the physics does not know about zoom. Z is 1 to 4 and the pan is clamped, so the picture always covers the canvas. */
+let Z = 1, PX = 0, PY = 0;
+const Z_MAX = 4;
+function clampView() { Z = Math.max(1, Math.min(Z_MAX, Z)); PX = Math.min(0, Math.max(W - W * Z, PX)); PY = Math.min(0, Math.max(H - H * Z, PY)); }
+function zoomAt(sx, sy, z) { const wx = (sx - PX) / Z, wy = (sy - PY) / Z; Z = Math.max(1, Math.min(Z_MAX, z)); PX = sx - wx * Z; PY = sy - wy * Z; clampView(); }   // keeps the point under the finger in place
 let LR = { x0: 0, y0: 0, x1: 350, y1: 558 };   // area the layout fills: the whole canvas minus the floating header/footer (nodes may slide partly under their soft edges)
 function layoutRect() {
   const k = $('phone')._scale || 1, cb = $('cbox').getBoundingClientRect(), t = $('gtop').getBoundingClientRect(), b = $('gbot').getBoundingClientRect();
@@ -3516,7 +3522,7 @@ function layoutRect() {
   LR = { x0: 0, x1: W, y0: top * 0.7, y1: H - (H - bot) * 0.7 };
   if (LR.y1 - LR.y0 < 150) LR = { x0: 0, x1: W, y0: 0, y1: H };
 }
-function fitCanvas() { const r = $('cbox').getBoundingClientRect(), k = $('phone')._scale || 1; W = r.width / k; H = r.height / k; dpr = Math.min(2, (window.devicePixelRatio || 1) * k); cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); layoutRect(); }
+function fitCanvas() { const r = $('cbox').getBoundingClientRect(), k = $('phone')._scale || 1; W = r.width / k; H = r.height / k; dpr = Math.min(2, (window.devicePixelRatio || 1) * k); cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); layoutRect(); clampView(); }
 function targetR(s) { const max = Math.min(W, H) / 2 - 26; return Math.min(max, 52 + (5 - s) * 29); }
 function startGraph() {
   fitCanvas();
@@ -3579,6 +3585,7 @@ function loop() {
   if (!$('s-graph').classList.contains('active')) { raf = requestAnimationFrame(loop); return; }
   step(); const t = (performance.now() - t0) / 1000;
   ctx.clearRect(0, 0, W, H);
+  ctx.save(); ctx.translate(PX, PY); ctx.scale(Z, Z);
   ctx.fillStyle = 'rgba(247,168,198,.12)'; ctx.fillRect(0, 0, W / 2, H); ctx.fillStyle = 'rgba(169,205,245,.16)'; ctx.fillRect(W / 2, 0, W / 2, H);   // bride's half | groom's half
   const faded = n => filter !== null && !n.you && !n.couple && !same(n.answers[filter], me[filter]);
   // guest ↔ guest community links
@@ -3623,16 +3630,52 @@ function loop() {
       if (n.top) { const txt = `${n.raw}/${answeredCount()}`, y = n.y + n.r * sc + 28, w = ctx.measureText(txt).width + 12; ctx.fillStyle = n.cat; ctx.beginPath(); ctx.roundRect(n.x - w / 2, y - 8, w, 15, 7.5); ctx.fill(); ctx.fillStyle = '#3a3550'; ctx.font = '800 10px Nunito, system-ui'; ctx.fillText(txt, n.x, y); } }
     ctx.globalAlpha = 1;
   }
+  ctx.restore();
   raf = requestAnimationFrame(loop);
 }
-/* pointer: drag nodes, tap to open profile */
-function pt(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height)]; }
-function hit(x, y) { for (let i = nodes.length - 1; i > 0; i--) { const n = nodes[i]; if (Math.hypot(n.x - x, n.y - y) < n.r + 7) return n; } return null; }
-let down = null;
-cv.addEventListener('pointerdown', e => { const [x, y] = pt(e), n = hit(x, y); down = { x, y, n, moved: false }; if (n) { drag = n; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; } });
-cv.addEventListener('pointermove', e => { const [x, y] = pt(e); if (down && drag) { if (Math.hypot(x - down.x, y - down.y) > 5) down.moved = true; drag.x = Math.max(drag.r, Math.min(W - drag.r, x)); drag.y = Math.max(drag.r, Math.min(H - drag.r, y)); drag.vx = drag.vy = 0; } else cv.style.cursor = hit(x, y) ? 'pointer' : 'grab'; });
-const up = () => { if (down && down.n && !down.moved) select(down.n); drag = null; down = null; cv.style.cursor = 'grab'; };
-cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () => { drag = null; down = null; });
+/* pointer: drag a node, tap it to open the profile; two fingers pinch-zoom and move the picture; one finger on empty space moves it
+   when zoomed in; a double tap on empty space zooms in or back out; the mouse wheel (or a trackpad pinch) zooms on desktop */
+function pt(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height)]; }   // screen units of the canvas
+const toWorld = (sx, sy) => [(sx - PX) / Z, (sy - PY) / Z];
+function hit(x, y) { for (let i = nodes.length - 1; i > 0; i--) { const n = nodes[i]; if (Math.hypot(n.x - x, n.y - y) < n.r + 7 / Z) return n; } return null; }
+let down = null, pinch = null, lastTap = 0;
+const ptrs = new Map();   // fingers on the canvas: pointerId -> [sx, sy]
+cv.addEventListener('pointerdown', e => {
+  const [sx, sy] = pt(e); ptrs.set(e.pointerId, [sx, sy]); try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  if (ptrs.size === 2) {   // second finger: whatever the first one was doing becomes a pinch
+    const [a, b] = [...ptrs.values()], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    drag = null; down = null; pinch = { d: Math.max(1, Math.hypot(a[0] - b[0], a[1] - b[1])), z: Z, w: toWorld(mx, my) }; return;
+  }
+  if (ptrs.size > 2) return;
+  const [x, y] = toWorld(sx, sy), n = hit(x, y); down = { sx, sy, px: PX, py: PY, n, moved: false };
+  if (n) drag = n; cv.style.cursor = 'grabbing';
+});
+cv.addEventListener('pointermove', e => {
+  const [sx, sy] = pt(e), [x, y] = toWorld(sx, sy);
+  if (!ptrs.has(e.pointerId)) { cv.style.cursor = hit(x, y) ? 'pointer' : 'grab'; return; }   // mouse moving with no button down
+  ptrs.set(e.pointerId, [sx, sy]);
+  if (pinch) {
+    if (ptrs.size < 2) return;
+    const [a, b] = [...ptrs.values()], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    Z = Math.max(1, Math.min(Z_MAX, pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d)); PX = mx - pinch.w[0] * Z; PY = my - pinch.w[1] * Z; clampView(); return;   // the point between the fingers stays between them
+  }
+  if (!down) return;
+  if (Math.hypot(sx - down.sx, sy - down.sy) > 5) down.moved = true;
+  if (drag) { drag.x = Math.max(drag.r, Math.min(W - drag.r, x)); drag.y = Math.max(drag.r, Math.min(H - drag.r, y)); drag.vx = drag.vy = 0; }
+  else if (down.moved && Z > 1) { PX = down.px + sx - down.sx; PY = down.py + sy - down.sy; clampView(); }
+});
+const up = e => {
+  ptrs.delete(e.pointerId);
+  if (pinch) { if (ptrs.size < 2) pinch = null; return; }   // the finger that stays down does nothing until it is lifted
+  if (down && !down.moved && e.type === 'pointerup') {
+    if (down.n) select(down.n);
+    else if (performance.now() - lastTap < 320) { lastTap = 0; zoomAt(down.sx, down.sy, Z > 1 ? 1 : 2.2); }
+    else lastTap = performance.now();
+  }
+  drag = null; down = null; cv.style.cursor = 'grab';
+};
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+cv.addEventListener('wheel', e => { e.preventDefault(); const [sx, sy] = pt(e); zoomAt(sx, sy, Z * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .002))); }, { passive: false });
 
 /* ======================= profile sheet ======================= */
 let sheetGuest = null;   // guest shown in the profile sheet (re-rendered on a language switch)
