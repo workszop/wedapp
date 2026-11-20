@@ -3405,10 +3405,17 @@ function finishQuiz() {   // real event: wait until the answers are saved before
   if (!REAL) { demoCurAt = demoCurAt || Date.now(); demoSave(); }
   (REAL ? flushMe() : Promise.resolve()).then(() => setTimeout(() => showView('summary'), Math.max(0, 1900 - (Date.now() - t))));
 }
-function nextStep() { syncMe(); if (si < steps.length - 1) { si++; renderQ(); } else finishQuiz(); }
+/* The bride and the groom are not asked whose guest they are, whether they are friends or family, or where they met the couple:
+   the first two are filled in for them (their own side, family) because every guest must have them, the third stays empty. */
+const COUPLE_SKIP = 3;
+const coupleRole = () => { if (!REAL) return null; const r = token ? myRole : (pendingRole() || {}).role; return r === 'bride' || r === 'groom' ? r : null; };
+const hiddenStep = i => steps[i].type === 'q' && steps[i].i < COUPLE_SKIP && !!coupleRole();
+const stepFrom = (i, d) => { do i += d; while (i >= 0 && i < steps.length && hiddenStep(i)); return i; };   // the next (d = 1) or previous (d = -1) step that is shown
+function coupleFill() { const r = coupleRole(); if (r) { me[0] = r === 'bride' ? 0 : 1; me[1] = 1; me[2] = null; } }
+function nextStep() { coupleFill(); syncMe(); const n = stepFrom(si, 1); if (n < steps.length) { si = n; renderQ(); } else finishQuiz(); }
 function renderQ() {
   const st = steps[si], act = $('qact');
-  $('dots').innerHTML = steps.map((_, i) => `<i class="${i < si ? 'done' : i === si ? 'cur' : ''}"></i>`).join('');
+  $('dots').innerHTML = steps.map((_, i) => hiddenStep(i) ? '' : `<i class="${i < si ? 'done' : i === si ? 'cur' : ''}"></i>`).join('');
   $('live').style.display = st.type === 'name' ? 'none' : 'flex';
   if (st.type === 'name') {
     $('qn').innerHTML = `${tr('welcome')} <span class="req r">${tr('required')}</span>`; $('qt').textContent = tr('nameQ');
@@ -3422,13 +3429,14 @@ function renderQ() {
   }
   renderLive();
   const qi = st.i, q = Q[qi], req = qi < REQUIRED_Q;
-  $('qn').innerHTML = `${tr('qOf', qi + 1, Q.length)} <span class="req ${req ? 'r' : 'o'}">${tr(req ? 'required' : 'optional')}</span>`; $('qt').textContent = q.q; if (q.multi) $('qt').insertAdjacentHTML('beforeend', `<small>${tr(q.max === 2 ? 'pickTwo' : 'multiHint')}</small>`);
+  const shownQ = steps.map((s, i) => s.type === 'q' && !hiddenStep(i) ? s.i : -1).filter(i => i >= 0);   // the couple see fewer questions, numbered 1 to 7
+  $('qn').innerHTML = `${tr('qOf', shownQ.indexOf(qi) + 1, shownQ.length)} <span class="req ${req ? 'r' : 'o'}">${tr(req ? 'required' : 'optional')}</span>`; $('qt').textContent = q.q; if (q.multi) $('qt').insertAdjacentHTML('beforeend', `<small>${tr(q.max === 2 ? 'pickTwo' : 'multiHint')}</small>`);
   $('opts').style.display = ''; $('opts').classList.toggle('multi', q.multi && q.opts.length > 6);   // the long music list uses the compact two-column grid
   const full = q.multi && picks(me[qi]).length >= q.max;   // limit reached: the other options are dimmed until one is unticked
   $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${has(me[qi], i) ? 'sel' : full ? 'off' : ''}" data-i="${i}"><span>${ic(o[0], 30, 1.75)}</span>${o[1]}</button>`).join('');
   const canMove = !req || me[qi] !== null;   // a required question can be passed once it has an answer (editing earlier answers)
   act.innerHTML = `<button class="btn ghost" id="qprev">${ic('chevron-left', 18, 2.2)}${tr('backBtn')}</button>`
-    + (canMove ? `<button class="btn" id="skip">${tr(si === steps.length - 1 ? 'toGraph' : 'next')}</button>` : `<span class="name-hint" style="margin:0;text-align:right">${tr('reqHint')}</span>`);
+    + (canMove ? `<button class="btn" id="skip">${tr(stepFrom(si, 1) >= steps.length ? 'toGraph' : 'next')}</button>` : `<span class="name-hint" style="margin:0;text-align:right">${tr('reqHint')}</span>`);
   $('qprev').onclick = stepBack; if (canMove) $('skip').onclick = nextStep;
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => {
     const i = +b.dataset.i;
@@ -3440,7 +3448,7 @@ function renderQ() {
 $('qback').innerHTML = ic('chevron-left', 28, 2);
 $('qback').onclick = stepBack;
 function stepBack() {
-  if (si > 0) { si--; renderQ(); return; }
+  if (si > 0) { si = stepFrom(si, -1); renderQ(); return; }
   if (editName) { if (!nameOk()) myName = editName; finishQuiz(); return; }   // editing: back from the first step returns to the matches, never with an empty name
   go('welcome');
 }
@@ -4004,6 +4012,7 @@ let saveRetry = 0;
 async function pushMe() {   // join on the first save, update afterwards; always sends the whole state, so a lost request heals itself
   if (!REAL || !mandatoryDone() || !nameOk()) return;
   const p = token ? null : pendingRole(); if (p) me[0] = p.role === 'bride' ? 0 : 1;
+  coupleFill();
   const body = { name: myName.trim(), answers: me.slice() }, sig = JSON.stringify(body);
   if (token && sig === lastSaved) return;
   try {

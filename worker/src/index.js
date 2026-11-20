@@ -74,7 +74,9 @@ function normAnswers(a) {
   }
   return out[0] !== null && out[1] !== null ? out : null;   // bride-or-groom and friend-or-family are required
 }
-const answersOf = g => { const a = JSON.parse(g.answers); return normAnswers(a) || a; };   // stored answers of events created before multi-select
+/** Stored answers in the current shape (events created before multi-select). The bride and the groom are not asked friend-or-family
+    or where they met the couple, so for them the first is always "family" and the second empty, whatever was saved earlier. */
+const answersOf = g => { const p = JSON.parse(g.answers), a = normAnswers(p) || p; if (g.role === 'bride' || g.role === 'groom') { a[1] = 1; a[2] = null; } return a; };
 
 export class EventRoom extends DurableObject {
   constructor(ctx, env) {
