@@ -409,7 +409,10 @@
   #sample{min-height:40px;margin-top:4px;padding:8px;font:700 12.5px var(--sans);color:var(--mute)}
   .welcome>div:first-child{padding-top:46px}
   @media (min-width:900px) and (min-height:600px){.welcome>div:first-child{padding-top:18px}}
-  .welcome>div:first-child,.welcome .lang{transition:padding .3s,top .3s}
+  .welcome>div:first-child,.welcome .lang,.demo-clear{transition:padding .3s,top .3s}
+  .demo-clear{position:absolute;top:4px;left:0;z-index:2;border:0;border-radius:999px;background:#ffe1e6;color:#c22548;font:800 11px var(--sans);letter-spacing:.02em;padding:6px 11px;min-height:28px;cursor:pointer}
+  .demo-clear[hidden]{display:none}
+  html.ib-on .demo-clear{top:70px}
   html.ib-on .welcome>div:first-child{padding-top:112px}html.ib-on .welcome .lang{top:66px}   /* install banner on top: keep the language switch visible below it */
   .btn.alt.share-open .ic{color:var(--lav-d)}
   .back{color:var(--lav-d)}
@@ -542,7 +545,7 @@
     .tabbar{height:48px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px)}
   }
   /* overlays */
-  .toast{background:var(--ink)}
+  .toast{background:var(--ink);width:max-content;max-width:calc(100% - 24px);white-space:normal;text-align:center;border-radius:20px;line-height:1.35;pointer-events:none}   /* long messages wrap instead of running off the screen; a hidden toast must not swallow taps */
   .ibanner{border:0;border-radius:20px;box-shadow:var(--soft)}
   .ib-ic{background:linear-gradient(135deg,var(--pink),var(--lav));color:var(--ink)}
   .ib-go{background:var(--ink)}
@@ -639,6 +642,7 @@
         <div class="screen welcome active" id="s-welcome">
           <div>
             <div class="lang" data-lang-switch></div>
+            <button class="demo-clear" id="demo-clear" hidden></button>
             <h2>Ania &amp; Marek</h2>
             <figure class="cphoto" id="cphoto" hidden><img id="cphoto-img" alt="" decoding="async"><figcaption class="cp-ctl" id="cp-ctl"></figcaption></figure>
             <div class="cpask-slot" id="cpask-w"></div>
@@ -3079,7 +3083,8 @@ const T = {
     messages: 'Wiadomości', wnPh: 'Odpowiedz Ani i Markowi…', wnAria: 'Odpowiedź', wnSend: 'Wyślij odpowiedź',
     wnDone: 'Rozmowa będzie czekać w Wiadomościach, gdy dołączysz.',
     start: 'Poznajmy się', sample: 'Podgląd',
-    backMatches: 'Wróć do moich dopasowań', startOver: 'Zacznij od nowa z nowymi odpowiedziami',
+    backMatches: 'Wróć do moich dopasowań', startOver: 'Zacznij od nowa z nowymi odpowiedziami', addGuest: 'Dodaj kolejnego gościa',
+    demoClear: 'Wyczyść', demoClearSure: 'Na pewno?', demoCleared: 'Goście demo wyczyszczeni', demoLimit: n => `Limit ${n} gości w demo został osiągnięty. Wyczyść, aby dodać kolejnych.`,
     foot: 'Twoje odpowiedzi służą tylko do narysowania dzisiejszego grafu.',
     you: 'Ty', youCap: 'TY',
     loadT: 'Rysujemy Twoje połączenia…', loadP: 'Porównujemy odpowiedzi ze wszystkimi gośćmi, także z parą młodą',
@@ -3191,7 +3196,8 @@ const T = {
     messages: 'Messages', wnPh: 'Reply to Ania & Marek…', wnAria: 'Reply', wnSend: 'Send reply',
     wnDone: 'Your chat continues in Messages once you join.',
     start: 'Find my people', sample: 'Preview',
-    backMatches: 'Back to my matches', startOver: 'Start over with new answers',
+    backMatches: 'Back to my matches', startOver: 'Start over with new answers', addGuest: 'Add another attendee',
+    demoClear: 'Clear', demoClearSure: 'Sure?', demoCleared: 'Demo attendees cleared', demoLimit: n => `The demo limit of ${n} attendees has been reached. Clear to add more.`,
     foot: 'Your answers are only used to draw tonight’s graph.',
     you: 'You', youCap: 'YOU',
     loadT: 'Weaving your connections…', loadP: 'Comparing answers with every guest – the couple included',
@@ -3349,7 +3355,7 @@ document.querySelectorAll('#steps button').forEach(b => b.onclick = () => {
 });
 function ensureAnswers() { if (!myName) myName = 'Alex'; me = me.map((a, i) => a === null ? (Q[i].multi ? [0] : 0) : a); }
 $('start').onclick = () => { if (mandatoryDone()) { showView('summary'); return; } me = blank(); si = 0; renderQ(); go('quiz'); };
-$('sample').onclick = () => { if (mandatoryDone()) { myName = ''; me = blank(); si = 0; renderQ(); go('quiz'); return; } myName = 'Alex'; me = Q.map(q => q.multi ? [0] : 0); flushWelcomeReply(); go('loading'); setTimeout(() => showView('summary'), 1500); };
+$('sample').onclick = () => { if (mandatoryDone()) { if (!REAL && !demoKeepMe()) return; myName = ''; me = blank(); if (!REAL) demoSave(); si = 0; renderQ(); go('quiz'); return; } myName = 'Alex'; me = Q.map(q => q.multi ? [0] : 0); flushWelcomeReply(); go('loading'); setTimeout(() => showView('summary'), 1500); };
 
 /* ======================= quiz =======================
    Required: name, bride-or-groom, friend-or-family. Everything else is optional (skip, or tap a chosen card again to clear it). */
@@ -3383,6 +3389,7 @@ function renderLive() {
 }
 function finishQuiz() {   // real event: wait until the answers are saved before showing the results
   editName = ''; flushWelcomeReply(); go('loading'); const t = Date.now();
+  if (!REAL) { demoCurAt = demoCurAt || Date.now(); demoSave(); }
   (REAL ? flushMe() : Promise.resolve()).then(() => setTimeout(() => showView('summary'), Math.max(0, 1900 - (Date.now() - t))));
 }
 function nextStep() { syncMe(); if (si < steps.length - 1) { si++; renderQ(); } else finishQuiz(); }
@@ -3446,7 +3453,8 @@ const TABS = [['home', 'house'], ['summary', 'layout-list'], ['names', 'users'],
 function syncWelcome() {   // returning from the results: keep their answers unless they choose to start over
   const back = !!mandatoryDone();
   $('start').textContent = tr(back ? 'backMatches' : 'start');
-  $('sample').textContent = tr(back ? 'startOver' : 'sample');
+  $('sample').textContent = tr(back ? (REAL ? 'startOver' : 'addGuest') : 'sample');
+  if (!REAL) demoClearSync();
   $('sample').style.display = REAL && !back ? 'none' : '';   // no fake sample answers in a real event
 }
 function mountTabbar() {
@@ -3756,7 +3764,7 @@ const norm = c => ({ id: +c.id, name: c.name, first: c.name.split(' ')[0], answe
    Mine: saved on the server once I have joined; before that it waits in pendingAvatar; in the demo it stays on this phone. ─── */
 const AV_DEMO_KEY = 'tt_demo_avatar', AV_SIZE = 320, AV_QUALITY = 0.8;   // 320 px square JPEG, about 15-30 KB: sharp at avatar sizes on any phone, light on mobile data
 let myId = null, pendingAvatar = null;
-const avatarUrl = g => REAL && g && g.photo ? `${API}/api/e/${EVENT}/avatar/${g.id}?v=${g.photo}` : '';
+const avatarUrl = g => g && g.pic ? g.pic : REAL && g && g.photo ? `${API}/api/e/${EVENT}/avatar/${g.id}?v=${g.photo}` : '';
 const avIn = g => esc(initials(g.name)) + (avatarUrl(g) ? `<img src="${esc(avatarUrl(g))}" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : '');
 const avHTML = g => `<span class="av" style="background:${avatarColor(g)}">${avIn(g)}</span>`;
 function setAv(el, g) { el.innerHTML = avIn(g); el.style.background = avatarColor(g); }
@@ -3792,6 +3800,46 @@ $('av-file').onchange = async e => {
   try { await setAvatar(blob); toast(tr('avSaved')); } catch (x) { toast(errText(x), null, 4000); }
 };
 if (!REAL) myAvatar = store.get(AV_DEMO_KEY) || '';
+
+/* ─── Demo: attendees made on this device ───
+   Finishing the questions makes an attendee; "Add another attendee" keeps that one as a guest in the list and the graph and starts a new one,
+   up to DEMO_MAX. They live in this browser only and are cleared at 1:00 every night, or with the small "Clear" button on the welcome screen. */
+const DEMO_KEY = 'tt_demo_made_v1', DEMO_SEQ = 'tt_demo_seq', DEMO_MAX = 100;
+let demoMade = [], demoCurAt = 0, demoNext = 0;   // kept attendees [{ id, name, answers, pic, at }]; when the current one was made; the next 1:00
+const oneAm = next => { const d = new Date(); d.setHours(1, 0, 0, 0); if (next ? d <= new Date() : d > new Date()) d.setDate(d.getDate() + (next ? 1 : -1)); return d.getTime(); };
+const demoGuest = g => ({ id: g.id, name: g.name, first: g.name.split(' ')[0], msg: true, answers: g.answers, pic: g.pic || '', made: true });
+function demoSave() {
+  const data = () => JSON.stringify({ cur: mandatoryDone() ? { name: myName, answers: me, at: demoCurAt } : null, list: demoMade });
+  try { localStorage.setItem(DEMO_KEY, data()); } catch (e) { demoMade.forEach(g => { g.pic = ''; }); try { localStorage.setItem(DEMO_KEY, data()); } catch (_) {} }   // storage full: keep the attendees, drop their photos
+}
+function demoKeepMe() {   // the attendee just made becomes a guest; false when the limit is reached
+  if (demoMade.length + 1 >= DEMO_MAX) { toast(tr('demoLimit', DEMO_MAX), null, 6000); return false; }
+  const n = +store.get(DEMO_SEQ) || 0; store.set(DEMO_SEQ, String(n + 1));   // ids are never reused, so old chats cannot attach to a new attendee
+  const g = { id: 1000 + n, name: myName, answers: me, pic: myAvatar || '', at: demoCurAt || Date.now() };
+  demoMade.push(g); guests.push(demoGuest(g)); demoCurAt = 0; myAvatar = ''; youImg = null; store.set(AV_DEMO_KEY, null);
+  return true;
+}
+function demoWipe(say) {
+  for (let i = guests.length - 1; i >= 0; i--) if (guests[i].made) guests.splice(i, 1);
+  demoMade = []; demoCurAt = 0; store.set(DEMO_KEY, null); store.set(AV_DEMO_KEY, null); myAvatar = ''; youImg = null; myName = ''; me = blank(); editName = '';
+  closeSheet(); si = 0; renderQ(); go('welcome'); if (say) toast(tr('demoCleared'));
+}
+function demoClearSync() { const b = $('demo-clear'); b.hidden = !(demoMade.length || mandatoryDone()); b.textContent = tr(b.dataset.armed ? 'demoClearSure' : 'demoClear'); }
+function demoNightly() { if (Date.now() < demoNext) return; demoNext = oneAm(true); if (demoMade.length || mandatoryDone()) demoWipe(true); }   // 1:00 has passed while the app was open
+if (!REAL) {
+  let d = null; try { d = JSON.parse(store.get(DEMO_KEY)); } catch (e) {}
+  const cut = oneAm(false), okA = x => x && typeof x.name === 'string' && x.name && Array.isArray(x.answers) && x.answers.length === N && x.at >= cut;   // made before the last 1:00: gone
+  if (d) {
+    demoMade = (Array.isArray(d.list) ? d.list : []).filter(okA).slice(0, DEMO_MAX - 1); guests.push(...demoMade.map(demoGuest));
+    if (okA(d.cur)) { myName = d.cur.name; me = d.cur.answers; demoCurAt = d.cur.at; } else if (d.cur) { myAvatar = ''; store.set(AV_DEMO_KEY, null); }
+    demoSave();
+  }
+  demoNext = oneAm(true); setInterval(demoNightly, 30e3); document.addEventListener('visibilitychange', () => { if (!document.hidden) demoNightly(); });
+  $('demo-clear').onclick = e => {
+    const b = e.currentTarget; if (!b.dataset.armed) { b.dataset.armed = '1'; demoClearSync(); setTimeout(() => { delete b.dataset.armed; demoClearSync(); }, 3000); return; }   // second tap confirms
+    delete b.dataset.armed; demoWipe(true);
+  };
+}
 async function api(path, { method = 'GET', body } = {}) {
   const r = await fetch(`${API}/api/e/${EVENT}${path}`, { method, headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => null);
