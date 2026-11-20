@@ -543,6 +543,7 @@
   .opts.multi .opt.sel{background:#ece5ff;box-shadow:inset 0 0 0 2.5px var(--lav-d)}
   .opts.multi .opt.sel span{background:var(--lav-d)}.opts.multi .opt.sel span .ic{color:#fff}
   .quiz h3 small{display:block;margin-top:8px;font:600 13px/1.3 var(--sans);font-variation-settings:normal;letter-spacing:0;color:var(--mute)}
+  .edit-link[hidden]{display:none}#sm-panel{margin-left:14px;text-decoration:none}
   .edit-link{display:inline-flex;align-items:center;gap:6px;min-height:40px;margin:2px 0 -6px;padding:0;border:0;background:none;color:var(--lav-d);font:800 13px var(--sans);cursor:pointer}
   /* floating tab bar */
   .tabbar{left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);height:64px;padding:6px;border-radius:24px;border:0;background:rgba(255,255,255,.92);box-shadow:var(--soft);transform:translateY(160%)}
@@ -699,7 +700,7 @@
 
         <!-- 3 summary / names -->
         <div class="screen summary" id="s-summary">
-          <div class="ghead"><h3 id="sm-title">Your matches</h3><p id="sm-sub"></p><button type="button" class="edit-link" id="sm-edit"></button></div>
+          <div class="ghead"><h3 id="sm-title">Your matches</h3><p id="sm-sub"></p><button type="button" class="edit-link" id="sm-edit"></button><a class="edit-link" id="sm-panel" href="admin.html?demo=1" target="_blank" rel="noopener" hidden></a></div>
           <div class="seg" id="seg-summary"></div>
           <div class="panel on" id="pn-summary"></div>
           <div class="panel" id="pn-names"></div>
@@ -3156,7 +3157,7 @@ const T = {
     cropT: 'Ustaw zdjęcie', cropHint: 'Przesuń zdjęcie palcem, żeby wybrać kadr. Rozsuń palce albo użyj suwaka, żeby powiększyć.', cropZoom: 'Powiększenie', cropCancel: 'Anuluj', cropSave: 'Zapisz',
     photoAskT: 'Wasze zdjęcie pod imionami', photoAskP: 'Goście zobaczą je na ekranie powitalnym, pod waszymi imionami. Możecie też zrezygnować.',
     multiHint: 'Możesz wybrać kilka.', pickTwo: 'Możesz wybrać dwie odpowiedzi.',
-    avAdd: 'Dodaj swoje zdjęcie', avSub: 'Opcjonalne. Inni goście łatwiej Cię rozpoznają.', avRemove: 'Usuń', avSaved: 'Zdjęcie zapisane', avRemoved: 'Zdjęcie usunięte', editAnswers: 'Zmień odpowiedzi lub zdjęcie',
+    avAdd: 'Dodaj swoje zdjęcie', avSub: 'Opcjonalne. Inni goście łatwiej Cię rozpoznają.', avRemove: 'Usuń', avSaved: 'Zdjęcie zapisane', avRemoved: 'Zdjęcie usunięte', editAnswers: 'Zmień odpowiedzi lub zdjęcie', demoPanel: 'Panel pary (demo)',
     photoAdd: 'Dodaj zdjęcie', photoNo: 'Bez zdjęcia', photoChange: 'Zmień zdjęcie', photoRemove: 'Usuń zdjęcie',
     photoBusy: 'Wysyłam zdjęcie…', photoSaved: 'Zdjęcie dodane', photoRemoved: 'Bez zdjęcia – możecie je dodać później w panelu pary', photoAlt: n => `Zdjęcie: ${n}`,
     err_not_an_image: 'To nie jest zdjęcie (JPG, PNG albo WebP)', err_photo_too_big: 'Zdjęcie jest za duże', err_couple_only: 'Zdjęcie może dodać tylko para młoda', photoReadFail: 'Nie udało się odczytać tego zdjęcia',
@@ -3271,7 +3272,7 @@ const T = {
     cropT: 'Frame your photo', cropHint: 'Drag the photo to choose what shows. Pinch or use the slider to zoom.', cropZoom: 'Zoom', cropCancel: 'Cancel', cropSave: 'Save',
     photoAskT: 'Your photo under your names', photoAskP: 'Guests will see it on the welcome screen, under your names. You can also skip it.',
     multiHint: 'You can pick more than one.', pickTwo: 'You can pick up to two.',
-    avAdd: 'Add your photo', avSub: 'Optional. Helps other guests recognise you.', avRemove: 'Remove', avSaved: 'Photo saved', avRemoved: 'Photo removed', editAnswers: 'Edit answers or photo',
+    avAdd: 'Add your photo', avSub: 'Optional. Helps other guests recognise you.', avRemove: 'Remove', avSaved: 'Photo saved', avRemoved: 'Photo removed', editAnswers: 'Edit answers or photo', demoPanel: 'Couple panel (demo)',
     photoAdd: 'Add a photo', photoNo: 'No photo', photoChange: 'Change photo', photoRemove: 'Remove photo',
     photoBusy: 'Uploading the photo…', photoSaved: 'Photo added', photoRemoved: 'No photo – you can add one later in the couple panel', photoAlt: n => `Photo: ${n}`,
     err_not_an_image: 'That is not a photo (JPG, PNG or WebP)', err_photo_too_big: 'The photo is too big', err_couple_only: 'Only the couple can add the photo', photoReadFail: 'Could not read this photo',
@@ -3503,6 +3504,7 @@ function renderSummary() {
   mountSeg('seg-summary', view === 'names' ? 'names' : 'summary');
   $('sm-title').textContent = myName ? tr('smTitleName', myName) : tr('smTitle');
   $('sm-edit').innerHTML = ic('pencil', 14, 2.2) + tr('editAnswers'); $('sm-edit').onclick = editAnswers;
+  $('sm-panel').hidden = REAL || !demoRole; $('sm-panel').innerHTML = ic('layout-list', 14, 2.2) + tr('demoPanel');   // demo bride or groom: the couple's panel on the same made-up data
   $('sm-sub').textContent = tr('smSub', done, guests.length + (REAL ? 1 : 0));
   // grouped: how many answers in common -> how many people
   const byCount = {}; sc.forEach(x => { if (x.s > 0) (byCount[x.s] ||= []).push(x.g); });
@@ -3783,7 +3785,7 @@ function MockBackend({ getGuest }) {
   let msgs = saved.msgs, settings = saved.settings || { allowMessages: true }, seq = 1;
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ msgs, settings })); } catch (e) {} };
   if (!msgs) {   // first run: a welcome note from the bride so the unread badge has something to show
-    const bride = guests.find(g => g.couple === 'bride');
+    const bride = guests.find(g => g.couple === 'bride') || { id: 22 };   // 22: the fictional bride, also when she was removed in the demo panel
     msgs = [{ id: 'm0', from: String(bride.id), to: 'me', k: 'welcomeNote', body: tr('welcomeNote'), at: new Date().toISOString(), readAt: null }]; persist();
   }
   msgs.forEach(m => { if (!m.k) { if (m.id === 'm0' && m.from !== 'me') m.k = 'welcomeNote'; else if (m.auto) m.k = 'coupleAuto'; } });   // messages saved before the language switch existed
@@ -3916,8 +3918,19 @@ if (!REAL) myAvatar = store.get(AV_DEMO_KEY) || '';
    up to DEMO_MAX. They live in this browser only and are cleared at 1:00 every night, or with the small "Clear" button on the welcome screen. */
 const DEMO_KEY = 'tt_demo_made_v1', DEMO_SEQ = 'tt_demo_seq', DEMO_MAX = 100, CP_DEMO_KEY = 'tt_demo_cphoto';
 let demoRole = '';   // '' = guest, 'bride' or 'groom': the demo visitor tries the couple's view (shorter questions, All guests chat, couple photo)
-const DEMO_COUPLE = REAL ? [] : guests.filter(g => g.couple);   // the fictional bride and groom
-function demoRoleSync() { DEMO_COUPLE.forEach(c => { const i = guests.indexOf(c), hide = c.couple === demoRole; if (hide && i >= 0) guests.splice(i, 1); else if (!hide && i < 0) guests.push(c); }); }   // whoever plays the bride replaces the fictional one
+const DEMO_FIX = REAL ? [] : guests.slice();   // the fictional guests, bride and groom included
+let demoGone = [];   // fictional guests removed in the demo panel (admin.html?demo=1), by id
+function demoReadGone() { let rm = null; try { rm = JSON.parse(store.get('tt_demo_removed')); } catch (e) {} demoGone = rm && rm.at >= oneAm(false) && Array.isArray(rm.ids) ? rm.ids : []; }
+function demoRoleSync() {   // who of the fictional guests is in the list: not the removed ones, and not the bride or groom whose part the visitor plays
+  DEMO_FIX.forEach(c => { const i = guests.indexOf(c), hide = demoGone.includes(c.id) || (!!c.couple && c.couple === demoRole); if (hide && i >= 0) guests.splice(i, 1); else if (!hide && i < 0) guests.push(c); });
+}
+function demoExternal() {   // the demo panel in another tab removed a guest, changed the couple photo or cleared everything
+  demoReadGone(); let d = null; try { d = JSON.parse(store.get(DEMO_KEY)); } catch (e) {}
+  const ids = new Set(((d && Array.isArray(d.list) && d.list) || []).map(g => g.id));
+  demoMade = demoMade.filter(g => ids.has(g.id)); for (let i = guests.length - 1; i >= 0; i--) if (guests[i].made && !ids.has(guests[i].id)) guests.splice(i, 1);
+  if (demoCurAt && !(d && d.cur)) { demoCurAt = 0; demoRole = ''; myName = ''; me = blank(); myAvatar = ''; youImg = null; editName = ''; closeSheet(); si = 0; renderQ(); go('welcome'); }   // the visitor's own attendee was removed
+  demoRoleSync(); renderPhoto(); syncWelcome(); refreshViews(true);
+}
 function demoSetRole(r) { if (r === demoRole) return; if (demoRole && !r) { me[0] = null; me[1] = null; } demoRole = r; demoRoleSync(); if (mandatoryDone()) demoSave(); renderQ(); renderPhoto(); }   // back to a guest: the two required questions are asked again
 let demoMade = [], demoCurAt = 0, demoNext = 0;   // kept attendees [{ id, name, answers, pic, at }]; when the current one was made; the next 1:00
 const oneAm = next => { const d = new Date(); d.setHours(1, 0, 0, 0); if (next ? d <= new Date() : d > new Date()) d.setDate(d.getDate() + (next ? 1 : -1)); return d.getTime(); };
@@ -3936,12 +3949,13 @@ function demoKeepMe() {   // the attendee just made becomes a guest; false when 
 function demoWipe(say) {
   for (let i = guests.length - 1; i >= 0; i--) if (guests[i].made) guests.splice(i, 1);
   demoMade = []; demoCurAt = 0; store.set(DEMO_KEY, null); store.set(AV_DEMO_KEY, null); myAvatar = ''; youImg = null; myName = ''; me = blank(); editName = '';
-  demoRole = ''; demoRoleSync(); store.set(CP_DEMO_KEY, null); store.set(CP_DEMO_KEY + '_at', null);
+  demoRole = ''; demoGone = []; demoRoleSync(); for (const k of [CP_DEMO_KEY, CP_DEMO_KEY + '_at', 'tt_demo_removed', 'tt_demo_event']) store.set(k, null);
   closeSheet(); si = 0; renderQ(); renderPhoto(); go('welcome'); if (say) toast(tr('demoCleared'));
 }
 function demoClearSync() { const b = $('demo-clear'); b.hidden = !(demoMade.length || mandatoryDone()); b.textContent = tr(b.dataset.armed ? 'demoClearSure' : 'demoClear'); }
-function demoNightly() { if (Date.now() < demoNext) return; demoNext = oneAm(true); if (demoMade.length || mandatoryDone() || store.get(CP_DEMO_KEY)) demoWipe(true); }   // 1:00 has passed while the app was open
+function demoNightly() { if (Date.now() < demoNext) return; demoNext = oneAm(true); if (demoMade.length || mandatoryDone() || store.get(CP_DEMO_KEY) || demoGone.length) demoWipe(true); }   // 1:00 has passed while the app was open
 if (!REAL) {
+  demoReadGone(); demoRoleSync();
   let d = null; try { d = JSON.parse(store.get(DEMO_KEY)); } catch (e) {}
   const cut = oneAm(false), okA = x => x && typeof x.name === 'string' && x.name && Array.isArray(x.answers) && x.answers.length === N && x.at >= cut;   // made before the last 1:00: gone
   if (d) {
@@ -3950,6 +3964,9 @@ if (!REAL) {
     demoSave();
   }
   if (+store.get(CP_DEMO_KEY + '_at') < cut) { store.set(CP_DEMO_KEY, null); store.set(CP_DEMO_KEY + '_at', null); }   // a couple photo changed before the last 1:00
+  const hd = new URLSearchParams(location.hash.slice(1)).get('demo');   // the demo panel's "join as the bride / the groom" buttons
+  if (hd === 'bride' || hd === 'groom') { history.replaceState(null, '', location.pathname + location.search); if (!mandatoryDone()) { demoRole = hd; demoRoleSync(); } }
+  addEventListener('storage', e => { if ([DEMO_KEY, CP_DEMO_KEY, 'tt_demo_removed'].includes(e.key) || e.key === null) demoExternal(); });
   demoNext = oneAm(true); setInterval(demoNightly, 30e3); document.addEventListener('visibilitychange', () => { if (!document.hidden) demoNightly(); });
   $('demo-clear').onclick = e => {
     const b = e.currentTarget; if (!b.dataset.armed) { b.dataset.armed = '1'; demoClearSync(); setTimeout(() => { delete b.dataset.armed; demoClearSync(); }, 3000); return; }   // second tap confirms

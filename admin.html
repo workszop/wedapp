@@ -21,6 +21,7 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--bg);line-height:1.5}
   main{max-width:960px;margin:0 auto;padding:28px 20px 60px;display:grid;gap:18px}
+  main>*{min-width:0}   /* a wide guest table scrolls inside its card instead of widening the whole page on a phone */
   h1{font:500 34px/1.1 var(--serif);font-variation-settings:"SOFT" 100;margin:0}
   h2{font:500 22px/1.2 var(--serif);font-variation-settings:"SOFT" 100;margin:0 0 12px}
   p{margin:0 0 10px;color:var(--mute)}
@@ -50,6 +51,7 @@
   .photo-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
   .photo-box{width:200px;aspect-ratio:4/3;border-radius:20px;background:#f6f2fb;display:grid;place-items:center;overflow:hidden;color:var(--mute);font-size:13px;text-align:center;padding:0}
   .photo-box img{width:100%;height:100%;object-fit:cover;object-position:50% 35%;display:block}
+  .demo-note{background:#fff6dc;color:var(--ink)}.demo-note p{color:var(--ink);margin:0}.demo-note a,.demo-link{color:var(--lav-d);font-weight:800}
   [hidden]{display:none!important}
   @media (max-width:768px){main{padding:18px 14px 40px}h1{font-size:28px}}
 </style>
@@ -61,6 +63,10 @@
     <p>Lista gości, linki do aplikacji i usuwanie danych po brunchu. Treści rozmów między gośćmi nie są tu widoczne.</p>
   </header>
 
+  <section class="card demo-note" id="demo-note" hidden>
+    <p><b>To jest demo panelu.</b> Goście są fikcyjni albo utworzeni przez Ciebie w aplikacji demo. Wszystko zostaje tylko w tej przeglądarce i czyści się o 1:00 w nocy. <a href="admin.html">Wyjdź z demo</a></p>
+  </section>
+
   <section class="card" id="login">
     <h2>Wydarzenie</h2>
     <form class="row" id="f-login">
@@ -69,6 +75,7 @@
       <button type="submit">Otwórz</button>
     </form>
     <div class="msg" id="m-login" role="status"></div>
+    <p style="margin:10px 0 0">Chcesz tylko zobaczyć, jak działa panel? <a class="demo-link" href="admin.html?demo=1">Otwórz demo panelu</a></p>
   </section>
 
   <section class="card" id="panel" hidden>
@@ -78,6 +85,7 @@
       <label>Data i miejsce (wiersz pod imionami)<input id="dateLine" maxlength="80"></label>
       <button type="submit" class="alt">Zapisz</button>
     </form>
+    <div class="msg" id="m-edit" role="status"></div>
     <div class="stats" id="stats"></div>
     <h2>Linki</h2>
     <p>Link dla gości, do kodu QR.</p>
@@ -113,7 +121,7 @@
     <div class="msg" id="m-wipe" role="status"></div>
   </section>
 
-  <section class="card">
+  <section class="card" id="new-card">
     <h2>Nowe wydarzenie</h2>
     <p>Dla operatora aplikacji. Kod pary młodej pokaże się tylko raz, zapisz go.</p>
     <form class="row" id="f-new">
@@ -134,6 +142,13 @@ const API = document.querySelector('meta[name="tt-api"]').content.trim().replace
 const APP = new URL('./', location.href).href;
 const ERRORS = { not_an_image: 'To nie jest zdjęcie (JPG, PNG albo WebP).', photo_too_big: 'Zdjęcie jest za duże.', bad_code: 'Nieprawidłowy kod pary młodej.', bad_key: 'Nieprawidłowy klucz operatora.', unknown_event: 'Nie ma takiego wydarzenia.', slow_down: 'Za dużo prób. Spróbuj za kilka minut.', bad_request: 'Sprawdź wpisane dane.', not_configured: 'Serwer nie ma ustawionego klucza operatora.' };
 
+const DEMO = new URLSearchParams(location.search).has('demo');   // admin.html?demo=1: the same panel on made-up data, nothing leaves this browser
+/* Demo data is shared with the demo app (index.html without an event), through localStorage on this device:
+   tt_demo_made_v1 = attendees the visitor made { cur, list }, tt_demo_removed = fictional guests removed here, tt_demo_cphoto = couple photo
+   ('' cartoon, a data URL, 'none' or 'declined'), tt_demo_event = names and date line changed here, tt_mock_messages_v1 = demo chats. */
+const DEMO_NAMES = ['Zosia W.', 'Piotr K.', 'Kasia M.', 'Tomek B.', 'Magda L.', 'Bartek N.', 'Ewa R.', 'Jakub S.', 'Natalia P.', 'Michał D.', 'Agnieszka T.', 'Paweł G.', 'Ida F.', 'Kuba Z.', 'Marta C.', 'Szymon H.', 'Julia O.', 'Adam V.', 'Karolina J.', 'Filip A.', 'Basia E.', 'Olek Y.', 'Ania W.', 'Marek W.'];   // same order and ids as NAMES + COUPLE in index.html
+const DEMO_KEYS = { made: 'tt_demo_made_v1', removed: 'tt_demo_removed', photo: 'tt_demo_cphoto', photoAt: 'tt_demo_cphoto_at', event: 'tt_demo_event', msgs: 'tt_mock_messages_v1', avatar: 'tt_demo_avatar' };
+
 // ─── State ───
 const state = { slug: '', code: '', data: null };
 
@@ -150,8 +165,40 @@ async function call(path, { method = 'GET', key, body } = {}) {
   if (!r.ok) { const e = new Error('api'); e.code = (j && j.error) || 'http_' + r.status; throw e; }
   return j;
 }
-const admin = (path = '', opts = {}) => call(`/api/e/${state.slug}/admin${path}`, { ...opts, key: state.code });
-const guestUrl = () => `${APP}?e=${state.slug}`;
+const admin = (path = '', opts = {}) => DEMO ? demoAdmin(path, opts) : call(`/api/e/${state.slug}/admin${path}`, { ...opts, key: state.code });
+
+// ─── Demo backend (no network) ───
+const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); return true; } catch (e) { return false; } }, json(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v === null || v === undefined ? d : v; } catch (e) { return d; } } };
+const oneAm = next => { const d = new Date(); d.setHours(1, 0, 0, 0); if (next ? d <= new Date() : d > new Date()) d.setDate(d.getDate() + (next ? 1 : -1)); return d.getTime(); };   // the last / the next 1:00, when demo data is cleared
+function demoData() {
+  const cut = oneAm(false), fresh = x => x && typeof x.name === 'string' && Array.isArray(x.answers) && x.at >= cut;
+  const made = ls.json(DEMO_KEYS.made, {}) || {}, cur = fresh(made.cur) ? made.cur : null, list = (Array.isArray(made.list) ? made.list : []).filter(fresh);
+  const rm = ls.json(DEMO_KEYS.removed, {}) || {}, gone = rm.at >= cut && Array.isArray(rm.ids) ? rm.ids : [];
+  const role = cur && (cur.role === 'bride' || cur.role === 'groom') ? cur.role : '';   // the visitor plays the bride or the groom: the fictional one is not there
+  const start = new Date(); start.setHours(10, 0, 0, 0); if (start > new Date()) start.setDate(start.getDate() - 1);
+  const count = a => a.filter(v => v !== null && v !== undefined).length;
+  const guests = DEMO_NAMES.map((name, id) => ({ id: 'f' + id, n: id, name, role: id === 22 ? 'bride' : id === 23 ? 'groom' : null, answered: 10, visible: true, createdAt: new Date(start.getTime() + id * 7 * 60e3).toISOString() }))
+    .filter(g => !gone.includes(g.n) && g.role !== (role || 'x'))
+    .concat(list.map(g => ({ id: 'm' + g.id, name: g.name, role: null, answered: count(g.answers), visible: true, createdAt: new Date(g.at).toISOString() })))
+    .concat(cur ? [{ id: 'cur', name: cur.name, role: role || null, answered: count(cur.answers), visible: true, createdAt: new Date(cur.at).toISOString() }] : []);
+  const ev = ls.json(DEMO_KEYS.event, {}) || {}, ph = +ls.get(DEMO_KEYS.photoAt) >= cut ? ls.get(DEMO_KEYS.photo) || '' : '', off = ph === 'none' || ph === 'declined';
+  const msgs = (ls.json(DEMO_KEYS.msgs, {}) || {}).msgs;
+  return { event: { names: ev.at >= cut && ev.names ? ev.names : 'Ania & Marek', dateLine: ev.at >= cut ? ev.dateLine || '' : 'SOBOTA, 14 CZERWCA · VILLA RÓŻANA', purgeAt: new Date(oneAm(true)).toISOString(), photo: off ? 0 : 1, photoSrc: off ? '' : ph || 'img/couple.jpg', photoState: ph === 'declined' ? 'declined' : off ? '' : 'set' },
+    guests, online: Math.min(guests.length, 7), messages: Array.isArray(msgs) ? msgs.length : 1 };
+}
+async function demoAdmin(path, { method = 'GET', body } = {}) {
+  const now = Date.now();
+  if (path === '' && method === 'PUT') { const names = String(body.names || '').trim().slice(0, 60); if (!names) { const e = new Error('api'); e.code = 'bad_request'; throw e; } ls.set(DEMO_KEYS.event, JSON.stringify({ names, dateLine: String(body.dateLine || '').trim().slice(0, 80), at: now })); }
+  else if (path === '' && method === 'DELETE') { for (const k of [DEMO_KEYS.made, DEMO_KEYS.removed, DEMO_KEYS.photo, DEMO_KEYS.photoAt, DEMO_KEYS.event, DEMO_KEYS.msgs, DEMO_KEYS.avatar]) ls.set(k, null); }
+  else if (path.startsWith('/guests/') && method === 'DELETE') {
+    const id = path.slice(8), made = ls.json(DEMO_KEYS.made, {}) || {};
+    if (id === 'cur') { made.cur = null; ls.set(DEMO_KEYS.made, JSON.stringify(made)); ls.set(DEMO_KEYS.avatar, null); }
+    else if (id[0] === 'm') { made.list = (made.list || []).filter(g => 'm' + g.id !== id); ls.set(DEMO_KEYS.made, JSON.stringify(made)); }
+    else { const rm = ls.json(DEMO_KEYS.removed, {}) || {}, ids = rm.at >= oneAm(false) && Array.isArray(rm.ids) ? rm.ids : []; ids.push(+id.slice(1)); ls.set(DEMO_KEYS.removed, JSON.stringify({ ids, at: now })); }
+  }
+  return demoData();
+}
+const guestUrl = () => DEMO ? APP : `${APP}?e=${state.slug}`;
 const linkRow = (label, url) => `<div class="link"><span class="tag">${esc(label)}</span><code>${esc(url)}</code><button type="button" class="alt" data-copy="${esc(url)}">Kopiuj</button></div>`;
 function twoTap(btn, label, action) {   // second tap within 4 s confirms; avoids a browser dialog
   btn.onclick = () => {
@@ -173,7 +220,7 @@ function render() {
     .map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
   $('links').innerHTML = linkRow('goście', guestUrl());
   const ev = d.event;
-  $('photo-box').innerHTML = ev.photo ? `<img src="${API}/api/e/${state.slug}/photo?v=${ev.photo}" alt="Zdjęcie pary">`
+  $('photo-box').innerHTML = ev.photo ? `<img src="${esc(ev.photoSrc || `${API}/api/e/${state.slug}/photo?v=${ev.photo}`)}" alt="Zdjęcie pary">`
     : `<span>${ev.photoState === 'declined' ? 'Bez zdjęcia (wybór pary)' : 'Brak zdjęcia'}</span>`;
   $('b-photo').textContent = ev.photo ? 'Zmień zdjęcie' : 'Wgraj zdjęcie';
   $('b-photo-x').textContent = ev.photo ? 'Usuń zdjęcie' : 'Bez zdjęcia';
@@ -187,6 +234,10 @@ function render() {
 async function load() { state.data = await admin(); render(); }
 
 async function photoCall(method, blob) {
+  if (DEMO) {   // kept in this browser; the demo app shows the same photo
+    const v = blob ? await new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = no; fr.readAsDataURL(blob); }) : 'declined';
+    if (!ls.set(DEMO_KEYS.photo, v)) { const e = new Error('api'); e.code = 'photo_too_big'; throw e; } ls.set(DEMO_KEYS.photoAt, String(Date.now())); return;
+  }
   const r = await fetch(`${API}/api/e/${state.slug}/admin/photo`, { method, headers: { Authorization: 'Bearer ' + state.code, ...(blob ? { 'Content-Type': blob.type } : {}) }, body: blob || undefined });
   const j = await r.json().catch(() => null);
   if (!r.ok) { const e = new Error('api'); e.code = (j && j.error) || 'http_' + r.status; throw e; }
@@ -199,7 +250,7 @@ $('f-login').onsubmit = async e => {
 };
 $('f-edit').onsubmit = async e => {
   e.preventDefault();
-  try { await admin('', { method: 'PUT', body: { names: $('names').value, dateLine: $('dateLine').value } }); await load(); say('m-login', 'Zapisano.', 'ok'); } catch (x) { say('m-login', errText(x), 'err'); }
+  try { await admin('', { method: 'PUT', body: { names: $('names').value, dateLine: $('dateLine').value } }); await load(); say(DEMO ? 'm-edit' : 'm-login', DEMO ? 'Zapisano w demo panelu. Aplikacja demo nadal pokazuje Anię i Marka.' : 'Zapisano.', 'ok'); } catch (x) { say('m-login', errText(x), 'err'); }
 };
 $('b-photo').onclick = () => $('photo-file').click();
 $('photo-file').onchange = async e => {
@@ -213,10 +264,10 @@ $('b-photo-x').onclick = async () => {
   try { await photoCall('DELETE'); await load(); say('m-photo', 'Bez zdjęcia. Możecie je dodać w każdej chwili.', 'ok'); } catch (x) { say('m-photo', errText(x), 'err'); }
 };
 $('b-refresh').onclick = () => load().then(() => say('m-guests', 'Odświeżono.', 'ok'), x => say('m-guests', errText(x), 'err'));
-$('b-bride').onclick = () => window.open(`${guestUrl()}#role=bride&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
-$('b-groom').onclick = () => window.open(`${guestUrl()}#role=groom&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
+$('b-bride').onclick = () => window.open(DEMO ? `${APP}#demo=bride` : `${guestUrl()}#role=bride&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
+$('b-groom').onclick = () => window.open(DEMO ? `${APP}#demo=groom` : `${guestUrl()}#role=groom&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
 twoTap($('b-wipe'), 'Dotknij jeszcze raz, żeby usunąć wszystko', async () => {
-  try { await admin('', { method: 'DELETE' }); state.data = null; render(); say('m-login', 'Wydarzenie i wszystkie dane zostały usunięte.', 'ok'); } catch (e) { say('m-wipe', errText(e), 'err'); }
+  try { await admin('', { method: 'DELETE' }); if (DEMO) { await load(); say('m-wipe', 'W demo dane zostały wyczyszczone i panel pokazuje wydarzenie od nowa. Prawdziwe wydarzenie znika na dobre.', 'ok'); return; } state.data = null; render(); say('m-login', 'Wydarzenie i wszystkie dane zostały usunięte.', 'ok'); } catch (e) { say('m-wipe', errText(e), 'err'); }
 });
 $('f-new').onsubmit = async e => {
   e.preventDefault();
@@ -234,7 +285,10 @@ document.addEventListener('click', async e => {
 
 // ─── Init ───
 $('slug').value = new URLSearchParams(location.search).get('e') || '';
-render();
+if (DEMO) {   // no login, no operator form: open the made-up event straight away
+  document.title = 'Bee Talk · demo panelu pary młodej'; $('demo-note').hidden = false; $('login').hidden = true; $('new-card').hidden = true;
+  load(); addEventListener('storage', () => load()); addEventListener('focus', () => load());   // the demo app in another tab changed something
+} else render();
 </script>
 </body>
 </html>
