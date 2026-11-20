@@ -34,6 +34,7 @@
   button.alt{background:var(--ivory);color:var(--ink);border:0;box-shadow:inset 0 0 0 1.5px var(--line)}
   button.danger{background:#ffe7f1;color:var(--rose-d);border:0}
   button:disabled{opacity:.5;cursor:not-allowed}
+  #purge{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(13px,4vw,16px)}   /* one plain line, also on a narrow phone */
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
   .stat{background:#f6f2fb;border:0;border-radius:18px;padding:12px 14px}
   .stat b{display:block;font:500 28px/1 var(--serif);font-variation-settings:"SOFT" 100;color:var(--lav-d)}
@@ -116,7 +117,8 @@
 
   <section class="card" id="wipe-card" hidden>
     <h2>Usuń wszystko</h2>
-    <p>Usuwa wydarzenie razem z gośćmi, odpowiedziami i wiadomościami. Tego nie da się cofnąć. Bez tego dane znikają same w dniu podanym wyżej.</p>
+    <p>Usuwa wydarzenie razem z gośćmi, odpowiedziami i wiadomościami. Tego nie da się cofnąć.</p>
+    <p id="purge"></p>
     <button type="button" class="danger" id="b-wipe">Usuń wydarzenie i wszystkie dane</button>
     <div class="msg" id="m-wipe" role="status"></div>
   </section>
@@ -214,8 +216,9 @@ function render(bg) {   // bg: a background refresh, which keeps what is being t
   $('ev-title').textContent = d.event.names;
   for (const [id, v] of [['names', d.event.names], ['dateLine', d.event.dateLine || '']]) { const el = $(id); if (!(bg && el.dataset.shown !== undefined && el.value !== el.dataset.shown)) el.value = v; el.dataset.shown = v; }
   const day = iso => new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
-  $('stats').innerHTML = [[d.guests.length, 'gości'], [d.online, 'teraz w aplikacji'], [d.messages, 'wiadomości'], [day(d.event.purgeAt), 'automatyczne usunięcie danych']]
+  $('stats').innerHTML = [[d.guests.length, 'gości'], [d.online, 'teraz w aplikacji'], [d.messages, 'wiadomości']]
     .map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
+  $('purge').textContent = DEMO ? 'Dane demo znikną same o 1:00 w nocy.' : `Dane znikną same ${day(d.event.purgeAt)}.`;   // plain text next to the delete button, so it is not mistaken for the wedding date
   $('links').innerHTML = linkRow('goście', guestUrl());
   const ev = d.event;
   $('photo-box').innerHTML = ev.photo ? `<img src="${esc(ev.photoSrc || `${API}/api/e/${state.slug}/photo?v=${ev.photo}`)}" alt="Zdjęcie pary">`
