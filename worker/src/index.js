@@ -9,11 +9,11 @@
 //   GET    /photo               the couple's photo (no auth; guests see it on the welcome screen)
 //   PUT    /me/photo  DELETE /me/photo   bride or groom only: raw image body / remove (= no photo)
 //   GET    /manifest            web app manifest whose start_url keeps the event (and, with ?r=, a restore code)
-//   POST   /join                {name, answers[10], token?, table?, role?, code?} -> {token, me}   (same token again = same guest)
+//   POST   /join                {name, answers[10], token?, role?, code?} -> {token, me}   (same token again = same guest)
 //   GET    /me   PUT /me   DELETE /me      own profile, answers and settings; delete = erase my data
 //   POST   /me/role {role, code}           take the bride/groom role on an existing guest
 //   POST   /me/restore -> {code}   POST /restore {code, token}     log the installed app in as the same guest
-//   GET    /graph               every visible guest except me: id, name, table, role, answers, msg
+//   GET    /graph               every visible guest except me: id, name, role, answers, msg
 //   GET    /inbox   GET /messages?with=ID   POST /messages {to, body}   POST /messages/read {with}
 //   GET    /ws                  WebSocket (token in Sec-WebSocket-Protocol: "tt, <token>")
 //   GET    /admin   PUT /admin   DELETE /admin   DELETE /admin/guests/:id   PUT|DELETE /admin/photo     couple only (Bearer admin code)
@@ -54,7 +54,6 @@ function validAnswers(a) {
   if (!a.every((v, i) => v === null || (Number.isInteger(v) && v >= 0 && v < OPT_COUNTS[i]))) return false;
   return a[0] !== null && a[1] !== null;   // bride-or-groom and friend-or-family are required
 }
-function validTable(t) { return t === null || t === undefined || (Number.isInteger(t) && t >= 1 && t <= 200); }
 
 export class EventRoom extends DurableObject {
   constructor(ctx, env) {
@@ -90,7 +89,7 @@ export class EventRoom extends DurableObject {
     this.sql.exec(`
       CREATE TABLE meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
       CREATE TABLE guests (id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL UNIQUE, name TEXT NOT NULL, answers TEXT NOT NULL,
-        tbl INTEGER, role TEXT, allow_messages INTEGER NOT NULL DEFAULT 1, visible INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+        tbl INTEGER /* unused: table numbers were removed, the column stays for events created earlier */, role TEXT, allow_messages INTEGER NOT NULL DEFAULT 1, visible INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE messages (id INTEGER PRIMARY KEY AUTOINCREMENT, from_id INTEGER NOT NULL, to_id INTEGER NOT NULL, body TEXT NOT NULL, at TEXT NOT NULL, read_at TEXT);
       CREATE INDEX messages_to ON messages (to_id, from_id);
       CREATE INDEX messages_from ON messages (from_id, to_id);`);
@@ -111,8 +110,8 @@ export class EventRoom extends DurableObject {
   }
 
   // ---------- views ----------
-  me(g) { return { id: String(g.id), name: g.name, answers: JSON.parse(g.answers), table: g.tbl, role: g.role, allowMessages: !!g.allow_messages, visible: !!g.visible }; }
-  card(g) { return { id: String(g.id), name: g.name, answers: JSON.parse(g.answers), table: g.tbl, role: g.role, msg: !!g.allow_messages }; }
+  me(g) { return { id: String(g.id), name: g.name, answers: JSON.parse(g.answers), role: g.role, allowMessages: !!g.allow_messages, visible: !!g.visible }; }
+  card(g) { return { id: String(g.id), name: g.name, answers: JSON.parse(g.answers), role: g.role, msg: !!g.allow_messages }; }
   msg(m, meId) { const who = id => id === meId ? 'me' : String(id); return { id: String(m.id), from: who(m.from_id), to: who(m.to_id), body: m.body, at: m.at, readAt: m.read_at }; }
   eventInfo() {
     const ps = this.meta('photoState') || '';   // '' = not decided yet, 'set', 'declined'
@@ -283,9 +282,9 @@ export class EventRoom extends DurableObject {
     if (!rateOk(this.joins, ip, JOIN_LIMIT)) return err(429, 'slow_down');
     const b = await readJson(request);
     if (!b) return err(400, 'bad_request');
-    const name = cleanText(b.name, 40), table = b.table ?? null;
+    const name = cleanText(b.name, 40);
     if (!NAME_RE.test(name)) return err(400, 'bad_name');
-    if (!validAnswers(b.answers) || !validTable(table)) return err(400, 'bad_request');
+    if (!validAnswers(b.answers)) return err(400, 'bad_request');
     // The app sends a token it generated itself, so a join whose reply was lost can be repeated without creating a second guest.
     const token = TOKEN_RE.test(b.token || '') ? b.token : randomString(43, TOKEN_ABC), hash = await sha256(token);
     const again = this.one('SELECT * FROM guests WHERE token_hash = ?', hash);
@@ -304,7 +303,7 @@ export class EventRoom extends DurableObject {
       role = b.role;
     }
     const t = now();
-    const g = this.one('INSERT INTO guests (token_hash, name, answers, tbl, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *', hash, name, JSON.stringify(b.answers), table, role, t, t);
+    const g = this.one('INSERT INTO guests (token_hash, name, answers, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING *', hash, name, JSON.stringify(b.answers), role, t, t);
     this.announce(g);
     return json({ token, me: this.me(g) }, 201);
   }
@@ -323,15 +322,14 @@ export class EventRoom extends DurableObject {
 
   updateMe(g, b) {
     if (!b) return err(400, 'bad_request');
-    const next = { name: g.name, answers: g.answers, tbl: g.tbl, allow_messages: g.allow_messages, visible: g.visible };
+    const next = { name: g.name, answers: g.answers, allow_messages: g.allow_messages, visible: g.visible };
     if ('name' in b) { const n = cleanText(b.name, 40); if (!NAME_RE.test(n)) return err(400, 'bad_name'); next.name = n; }
     if ('answers' in b) { if (!validAnswers(b.answers)) return err(400, 'bad_request'); next.answers = JSON.stringify(b.answers); }
-    if ('table' in b) { if (!validTable(b.table)) return err(400, 'bad_request'); next.tbl = b.table ?? null; }
     if ('allowMessages' in b) next.allow_messages = b.allowMessages ? 1 : 0;
     if ('visible' in b) next.visible = b.visible ? 1 : 0;
     const changed = Object.keys(next).some(k => next[k] !== g[k]);
     if (!changed) return json(this.me(g));
-    const u = this.one('UPDATE guests SET name = ?, answers = ?, tbl = ?, allow_messages = ?, visible = ?, updated_at = ? WHERE id = ? RETURNING *', next.name, next.answers, next.tbl, next.allow_messages, next.visible, now(), g.id);
+    const u = this.one('UPDATE guests SET name = ?, answers = ?, allow_messages = ?, visible = ?, updated_at = ? WHERE id = ? RETURNING *', next.name, next.answers, next.allow_messages, next.visible, now(), g.id);
     this.announce(u);
     return json(this.me(u));
   }

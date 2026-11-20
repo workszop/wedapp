@@ -80,13 +80,8 @@
     </form>
     <div class="stats" id="stats"></div>
     <h2>Linki</h2>
-    <p>Link dla gości, do kodu QR na stołach. Wersja ze stołem zapisuje numer stołu przy gościu.</p>
+    <p>Link dla gości, do kodu QR.</p>
     <div id="links"></div>
-    <div class="row" style="margin-top:8px">
-      <label style="flex:0 1 220px">Liczba stołów<input id="tables" type="number" min="1" max="200" inputmode="numeric" placeholder="np. 12"></label>
-      <button type="button" class="alt" id="b-tables">Pokaż linki dla stołów</button>
-    </div>
-    <div id="table-links"></div>
     <p style="margin-top:14px">Para młoda dołącza przez własne linki, wtedy jest oznaczona na grafie. Te linki zawierają kod pary młodej, więc nie udostępniaj ich gościom.</p>
     <div class="row"><button type="button" class="alt" id="b-bride">Dołącz jako panna młoda</button><button type="button" class="alt" id="b-groom">Dołącz jako pan młody</button></div>
   </section>
@@ -107,7 +102,7 @@
 
   <section class="card" id="guests-card" hidden>
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Goście</h2><button type="button" class="alt" id="b-refresh">Odśwież</button></div>
-    <div class="scroll"><table><thead><tr><th>Imię</th><th>Stół</th><th>Odpowiedzi</th><th>Widoczność</th><th>Dołączył(a)</th><th></th></tr></thead><tbody id="guests"></tbody></table></div>
+    <div class="scroll"><table><thead><tr><th>Imię</th><th>Odpowiedzi</th><th>Widoczność</th><th>Dołączył(a)</th><th></th></tr></thead><tbody id="guests"></tbody></table></div>
     <div class="msg" id="m-guests" role="status"></div>
   </section>
 
@@ -156,7 +151,7 @@ async function call(path, { method = 'GET', key, body } = {}) {
   return j;
 }
 const admin = (path = '', opts = {}) => call(`/api/e/${state.slug}/admin${path}`, { ...opts, key: state.code });
-const guestUrl = t => `${APP}?e=${state.slug}` + (t ? `&t=${t}` : '');
+const guestUrl = () => `${APP}?e=${state.slug}`;
 const linkRow = (label, url) => `<div class="link"><span class="tag">${esc(label)}</span><code>${esc(url)}</code><button type="button" class="alt" data-copy="${esc(url)}">Kopiuj</button></div>`;
 function twoTap(btn, label, action) {   // second tap within 4 s confirms; avoids a browser dialog
   btn.onclick = () => {
@@ -183,7 +178,7 @@ function render() {
   $('b-photo').textContent = ev.photo ? 'Zmień zdjęcie' : 'Wgraj zdjęcie';
   $('b-photo-x').textContent = ev.photo ? 'Usuń zdjęcie' : 'Bez zdjęcia';
   $('b-photo-x').hidden = !ev.photo && ev.photoState === 'declined';
-  $('guests').innerHTML = d.guests.map(g => `<tr data-id="${esc(g.id)}"><td>${esc(g.name)} ${g.role ? `<span class="tag">${g.role === 'bride' ? 'panna młoda' : 'pan młody'}</span>` : ''}</td><td>${esc(g.table ?? '–')}</td><td>${esc(g.answered)}/10</td><td>${g.visible ? 'na grafie' : 'ukryty(-a)'}</td><td>${esc(new Date(g.createdAt).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td><td><button type="button" class="danger" data-del="${esc(g.id)}">Usuń</button></td></tr>`).join('')
+  $('guests').innerHTML = d.guests.map(g => `<tr data-id="${esc(g.id)}"><td>${esc(g.name)} ${g.role ? `<span class="tag">${g.role === 'bride' ? 'panna młoda' : 'pan młody'}</span>` : ''}</td><td>${esc(g.answered)}/10</td><td>${g.visible ? 'na grafie' : 'ukryty(-a)'}</td><td>${esc(new Date(g.createdAt).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td><td><button type="button" class="danger" data-del="${esc(g.id)}">Usuń</button></td></tr>`).join('')
     || '<tr><td colspan="6">Nikt jeszcze nie dołączył.</td></tr>';
   $('guests').querySelectorAll('[data-del]').forEach(b => twoTap(b, 'Na pewno?', async () => {
     try { await admin('/guests/' + b.dataset.del, { method: 'DELETE' }); say('m-guests', 'Usunięto gościa.', 'ok'); await load(); } catch (e) { say('m-guests', errText(e), 'err'); }
@@ -218,7 +213,6 @@ $('b-photo-x').onclick = async () => {
   try { await photoCall('DELETE'); await load(); say('m-photo', 'Bez zdjęcia. Możecie je dodać w każdej chwili.', 'ok'); } catch (x) { say('m-photo', errText(x), 'err'); }
 };
 $('b-refresh').onclick = () => load().then(() => say('m-guests', 'Odświeżono.', 'ok'), x => say('m-guests', errText(x), 'err'));
-$('b-tables').onclick = () => { const n = Math.min(200, Math.max(0, parseInt($('tables').value, 10) || 0)); $('table-links').innerHTML = Array.from({ length: n }, (_, i) => linkRow('stół ' + (i + 1), guestUrl(i + 1))).join(''); };
 $('b-bride').onclick = () => window.open(`${guestUrl()}#role=bride&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
 $('b-groom').onclick = () => window.open(`${guestUrl()}#role=groom&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
 twoTap($('b-wipe'), 'Dotknij jeszcze raz, żeby usunąć wszystko', async () => {
