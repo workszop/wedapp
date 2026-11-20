@@ -277,6 +277,13 @@
   .btn.done{background:var(--sage-d)}
   .toast{position:absolute;left:50%;top:calc(var(--pt) + 4px);transform:translate(-50%,-20px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:40;white-space:nowrap}
   .toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  /* new-message pill: stays until it is closed, tapped, or the chats are opened */
+  .notif{position:absolute;left:50%;top:calc(var(--pt) + 4px);transform:translate(-50%,-20px);display:flex;align-items:center;max-width:calc(100% - 24px);background:var(--ink);color:#fff;border-radius:999px;opacity:0;pointer-events:none;transition:all .3s;z-index:40}
+  .notif.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  .notif button{border:0;background:none;color:inherit;font:600 13px var(--sans);cursor:pointer}
+  .notif-t{min-width:0;padding:11px 2px 11px 16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+  .notif-x{flex:none;display:grid;place-items:center;width:42px;height:40px;padding:0 4px 0 0;opacity:.7}
+  .notif.show~.toast{top:calc(var(--pt) + 52px)}   /* a short toast drops below the pill instead of covering it */
   /* short phones (iPhone SE, landscape): tighten the quiz so it fits without scrolling */
   @media (max-height:720px){
     .opt{padding:12px 8px}.opt span{font-size:24px;margin-bottom:4px}
@@ -580,7 +587,7 @@
     html.real .steps{display:grid!important}   /* the printed sheet of a real event carries the instructions too, like the demo */
     .steps button.on{box-shadow:0 6px 18px -12px rgba(58,53,80,.35)!important}
     .intro-top .lang{display:none!important}
-    #ibanner,.toast{display:none!important}
+    #ibanner,.toast,.notif{display:none!important}
   }
 </style>
 </head>
@@ -606,6 +613,7 @@
       <div class="screen-area">
         <div class="notch"></div>
         <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+        <div class="notif" id="notif"><button type="button" class="notif-t" id="notif-t"></button><button type="button" class="notif-x" id="notif-x"></button></div>
         <div class="toast" id="toast"></div>
         <div class="ibanner" id="ibanner"><span class="ib-ic" id="ib-ic"></span><div class="ib-t" data-i18n="banner"><b>Get the full-screen app</b><small>No address bar · works offline</small></div><button class="ib-go" id="ib-go">How</button><button class="ib-x" id="ib-x" aria-label="Dismiss" data-i18n-attr="aria-label:close"></button></div>
         <nav class="tabbar" id="tabbar" aria-label="Main" data-i18n-attr="aria-label:navMain"></nav>
@@ -3340,6 +3348,7 @@ function go(name) {
   if (name === 'graph') startGraph();
   if (name === 'summary') renderSummary();
   if (name === 'inbox') renderInbox();
+  if ((name === 'inbox' || name === 'chat') && typeof hideNotif === 'function') hideNotif();
   if (name === 'welcome') syncWelcome();
   if (name !== 'graph') closeSheet();
   syncTabbar(); if (typeof syncBanner === 'function') syncBanner();
@@ -3651,6 +3660,15 @@ function select(g) {
 function closeSheet() { $('sheet').classList.remove('open'); $('scrim').classList.remove('on'); selected = null; sheetGuest = null; }
 $('p-close').innerHTML = ic('x', 22); $('p-close').onclick = closeSheet;
 function toast(t, onTap, ms = 2200) { const e = $('toast'); e.textContent = t; e.onclick = onTap || null; e.style.cursor = onTap ? 'pointer' : ''; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('show'), ms); }
+/* New-message pill. Unlike a toast it does not time out: it goes away when the guest closes it, taps it (which opens that chat),
+   opens the chats, or reads the message on another device. A newer message replaces the text. */
+var notifPeer = null;   // var: go() can run before this line
+function showNotif(g, text) {
+  notifPeer = String(g.id); $('notif-t').textContent = `${g.first}: ${text}`; $('notif-t').onclick = () => openChat(g, 'chats');
+  const x = $('notif-x'); x.innerHTML = ic('x', 16, 2.4); x.setAttribute('aria-label', tr('close')); x.onclick = hideNotif;
+  $('notif').classList.add('show');
+}
+function hideNotif() { notifPeer = null; $('notif').classList.remove('show'); }
 
 /* ======================= messaging =======================
    The UI below talks ONLY to `backend`. Swap the implementation and nothing else changes.
@@ -3963,7 +3981,7 @@ function onLive(ev) {   // pushes from the WebSocket
   refreshViews();
 }
 function forgetMe(reset) {   // drop the token; with reset also the local answers (after "delete my data" or removal by the couple)
-  token = ''; joinToken = ''; store.set(TOKEN_KEY, null); store.set(JOIN_KEY, null); store.set(RESTORE_KEY, null); lastSaved = ''; backend.close(); updateManifest();
+  hideNotif(); token = ''; joinToken = ''; store.set(TOKEN_KEY, null); store.set(JOIN_KEY, null); store.set(RESTORE_KEY, null); lastSaved = ''; backend.close(); updateManifest();
   myRole = null; renderPhoto();
   if (reset) { myId = null; pendingAvatar = null; myAvatar = ''; youImg = null; myName = ''; me = blank(); guests.length = 0; closeSheet(); si = 0; renderQ(); go('welcome'); }
 }
@@ -4041,11 +4059,11 @@ backend.subscribe(ev => {
   if (ev.type === 'guest' || ev.type === 'gone' || ev.type === 'sync' || ev.type === 'kicked') { onLive(ev); return; }
   if (ev.type === 'event') { api('/event').then(x => { EVT = x; applyEvent(); }).catch(() => {}); return; }
   if (ev.type === 'typing') { if (chatActive() && ev.from === chat.id) { const t = $('typing'); if (ev.on && !t) { $('chat-msgs').insertAdjacentHTML('beforeend', '<div class="typing" id="typing"><i></i><i></i><i></i></div>'); scrollChat(); } else if (!ev.on && t) t.remove(); } return; }
-  if (ev.type === 'read') { refreshUnread(); return; }
+  if (ev.type === 'read') { if (String(ev.withId) === notifPeer) hideNotif(); refreshUnread(); return; }
   if (ev.type === 'message') {
     const m = ev.message, mine = m.from === 'me', peer = mine ? m.to : m.from;
     if (chatActive() && peer === chat.id) { appendMsg(m); if (!mine) backend.markRead(peer); return; }
-    if (!mine) { const g = guestOf(peer); toast(`${g.first}: ${(b => b.length > 38 ? b.slice(0, 38) + '…' : b)(bodyOf(m))}`, () => openChat(g, 'chats')); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }
+    if (!mine) { const g = guestOf(peer); showNotif(g, bodyOf(m)); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }
     refreshUnread(); if ($('s-inbox').classList.contains('active')) renderInbox();
   }
 });
