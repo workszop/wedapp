@@ -3084,7 +3084,7 @@ const T = {
     qrCard: '<b>Otwórz na telefonie</b><span>Zeskanuj kod aparatem. Aplikacja jest zrobiona pod telefony.</span>',
     banner: '<b>Aplikacja na pełnym ekranie</b><small>Bez paska adresu · działa offline</small>',
     how: 'Jak?', install: 'Zainstaluj', installApp: 'Zainstaluj aplikację', gotIt: 'Jasne',
-    close: 'Zamknij', back: 'Wstecz', navMain: 'Główna nawigacja', guideAria: 'Instalacja aplikacji',
+    close: 'Zamknij', newMsg: 'Nowa wiadomość', back: 'Wstecz', navMain: 'Główna nawigacja', guideAria: 'Instalacja aplikacji',
     shareOpen: 'Udostępnij aplikację', shareT: 'Udostępnij Bee Talk', shareP: 'Zeskanuj aparatem telefonu, aby otworzyć aplikację',
     shareLink: 'Udostępnij link', copyLink: 'Kopiuj link', linkCopied: 'Skopiowano link', shareText: 'Poznajmy się na brunchu ślubnym Ani i Marka',
     date: 'SOBOTA, 14 CZERWCA · VILLA RÓŻANA',
@@ -3197,7 +3197,7 @@ const T = {
     qrCard: '<b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span>',
     banner: '<b>Get the full-screen app</b><small>No address bar · works offline</small>',
     how: 'How', install: 'Install', installApp: 'Install the app', gotIt: 'Got it',
-    close: 'Close', back: 'Back', navMain: 'Main', guideAria: 'Install the app',
+    close: 'Close', newMsg: 'New message', back: 'Back', navMain: 'Main', guideAria: 'Install the app',
     shareOpen: 'Share the app', shareT: 'Share Bee Talk', shareP: 'Scan with a phone camera to open the app',
     shareLink: 'Share link', copyLink: 'Copy link', linkCopied: 'Link copied', shareText: 'Find your people at Ania & Marek’s wedding brunch',
     date: 'SATURDAY 14 JUNE · VILLA RÓŻANA',
@@ -3661,10 +3661,10 @@ function closeSheet() { $('sheet').classList.remove('open'); $('scrim').classLis
 $('p-close').innerHTML = ic('x', 22); $('p-close').onclick = closeSheet;
 function toast(t, onTap, ms = 2200) { const e = $('toast'); e.textContent = t; e.onclick = onTap || null; e.style.cursor = onTap ? 'pointer' : ''; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('show'), ms); }
 /* New-message pill. Unlike a toast it does not time out: it goes away when the guest closes it, taps it (which opens that chat),
-   opens the chats, or reads the message on another device. A newer message replaces the text. */
+   opens the chats, or reads the message on another device. It names neither the sender nor the text; a newer message makes the tap open that newer chat. */
 var notifPeer = null;   // var: go() can run before this line
-function showNotif(g, text) {
-  notifPeer = String(g.id); $('notif-t').textContent = `${g.first}: ${text}`; $('notif-t').onclick = () => openChat(g, 'chats');
+function showNotif(g) {
+  notifPeer = String(g.id); $('notif-t').textContent = tr('newMsg'); $('notif-t').onclick = () => openChat(g, 'chats');
   const x = $('notif-x'); x.innerHTML = ic('x', 16, 2.4); x.setAttribute('aria-label', tr('close')); x.onclick = hideNotif;
   $('notif').classList.add('show');
 }
@@ -4063,7 +4063,7 @@ backend.subscribe(ev => {
   if (ev.type === 'message') {
     const m = ev.message, mine = m.from === 'me', peer = mine ? m.to : m.from;
     if (chatActive() && peer === chat.id) { appendMsg(m); if (!mine) backend.markRead(peer); return; }
-    if (!mine) { const g = guestOf(peer); showNotif(g, bodyOf(m)); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }
+    if (!mine) { const g = guestOf(peer); showNotif(g); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }
     refreshUnread(); if ($('s-inbox').classList.contains('active')) renderInbox();
   }
 });
