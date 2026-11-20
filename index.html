@@ -3512,10 +3512,13 @@ function renderSummary() {
 /* ======================= graph ======================= */
 const cv = $('cv'), ctx = cv.getContext('2d');
 let W = 340, H = 400, nodes = [], links = [], t0 = 0, selected = null, filter = null, drag = null, raf = null, dpr = 1;
-/* Zoom: the picture is drawn at screen = world * Z + (PX, PY). Nodes and the layout stay in world units (the unzoomed canvas),
-   so the physics does not know about zoom. Z is 1 to 4 and the pan is clamped, so the picture always covers the canvas. */
+/* Zoom: the picture is drawn at screen = world * Z + (PX, PY). Nodes and the layout stay in world units (the unzoomed canvas).
+   Z is 1 to 4 and the pan is clamped, so the picture always covers the canvas.
+   Zooming spreads the guests apart rather than magnifying them: distances grow by Z, but circles, labels and lines only by Z^0.25
+   (nodeK). In world units that is the factor G() = nodeK / Z, which is 1 without zoom and shrinks as you zoom in. Circles that
+   still overlap on screen are pushed apart by separate() while zoomed in. */
 let Z = 1, PX = 0, PY = 0;
-const Z_MAX = 4;
+const Z_MAX = 4, G = () => Math.pow(Z, -0.75);
 function clampView() { Z = Math.max(1, Math.min(Z_MAX, Z)); PX = Math.min(0, Math.max(W - W * Z, PX)); PY = Math.min(0, Math.max(H - H * Z, PY)); }
 function zoomAt(sx, sy, z) { const wx = (sx - PX) / Z, wy = (sy - PY) / Z; Z = Math.max(1, Math.min(Z_MAX, z)); PX = sx - wx * Z; PY = sy - wy * Z; clampView(); }   // keeps the point under the finger in place
 let LR = { x0: 0, y0: 0, x1: 350, y1: 558 };   // area the layout fills: the whole canvas minus the floating header/footer (nodes may slide partly under their soft edges)
@@ -3571,6 +3574,20 @@ function step(dt) {
   const t = (performance.now() - t0) / 1000;
   nodes.forEach((n, i) => { if (n.you || n === drag) return; n.vx = (n.vx + Math.sin(t * .7 + i) * .02) * .84; n.vy = (n.vy + Math.cos(t * .6 + i * 1.3) * .02) * .84; n.x += n.vx; n.y += n.vy;
     n.x = Math.max(n.r + 4, Math.min(W - n.r - 4, n.x)); n.y = Math.max(n.r + 4, Math.min(H - n.r - 4, n.y)); });
+  separate();
+}
+/* While zoomed in, no two circles may overlap on screen: each overlapping pair is moved apart directly (not through forces, which the
+   layout springs could outweigh). The effect fades in between zoom 1 and 1.5, so the unzoomed layout is exactly what it was. */
+function separate() {
+  const w = Math.min(1, (Z - 1) / 0.5); if (w <= 0) return; const g = G();
+  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+    const a = nodes[i], b = nodes[j], min = (a.r + b.r + 14) * g;   // 14: room for the rings and halos around the circles let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+    if (d >= min) continue;
+    if (d < .01) { const an = i * 2.399 + j; dx = Math.cos(an); dy = Math.sin(an); d = 1; }   // same spot: pick a direction
+    const fa = a.you || a === drag, fb = b.you || b === drag; if (fa && fb) continue;
+    const push = (min - d) * w, ux = dx / d, uy = dy / d, sa = fa ? 0 : fb ? 1 : .5, sb = fb ? 0 : fa ? 1 : .5;   // a fixed circle (you, or the one being dragged) stays put and the other moves the whole way
+    a.x -= ux * push * sa; a.y -= uy * push * sa; b.x += ux * push * sb; b.y += uy * push * sb;
+  }
 }
 const ease = x => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
 function drawCouple(n, t, sc) {
@@ -3591,33 +3608,34 @@ function loop() {
   ctx.save(); ctx.translate(PX, PY); ctx.scale(Z, Z);
   ctx.fillStyle = 'rgba(247,168,198,.12)'; ctx.fillRect(0, 0, W / 2, H); ctx.fillStyle = 'rgba(169,205,245,.16)'; ctx.fillRect(W / 2, 0, W / 2, H);   // bride's half | groom's half
   const faded = n => filter !== null && !n.you && !n.couple && !same(n.answers[filter], me[filter]);
+  const g = G(), local = n => { ctx.save(); ctx.translate(n.x, n.y); ctx.scale(g, g); ctx.translate(-n.x, -n.y); };   // draw around a point at node size instead of full zoom
   // guest ↔ guest community links
   for (const [a, b, n] of links) { const al = Math.min(ease((t - a.born) * 1.5), ease((t - b.born) * 1.5)); if (!al) continue;
-    ctx.strokeStyle = `rgba(155,134,234,${(faded(a) || faded(b) ? .05 : .2) * al})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+    ctx.strokeStyle = `rgba(155,134,234,${(faded(a) || faded(b) ? .05 : .2) * al})`; ctx.lineWidth = g; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
   // couple ↔ guest links (dashed, soft): who is on whose side
   const bride = nodes.find(n => n.couple === 'bride'), groom = nodes.find(n => n.couple === 'groom'), you = nodes[0];
-  ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
+  ctx.setLineDash([3 * g, 4 * g]); ctx.lineWidth = g;
   for (const n of nodes) { if (n.you || n.couple) continue; const al = ease((t - n.born) * 1.5); if (!al) continue;
     for (const cp of [bride, groom]) { if (!cp) continue; const a0 = n.answers[0]; if (cp === bride ? a0 === 1 : a0 === 0) continue;
       ctx.strokeStyle = hexA(n.cat, (faded(n) ? .05 : .15) * al); ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(n.x, n.y); ctx.stroke(); } }
   ctx.setLineDash([]);
   // bride ♥ groom
-  if (bride && groom) { const dx = groom.x - bride.x, dy = groom.y - bride.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, r = bride.r + 1;
-    if (d > 2 * r + 4) { ctx.strokeStyle = 'rgba(240,179,106,.8)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(bride.x + ux * r, bride.y + uy * r); ctx.lineTo(groom.x - ux * r, groom.y - uy * r); ctx.stroke(); }
-    ctx.fillStyle = '#f0b36a'; ctx.font = '700 14px Nunito, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('♥', (bride.x + groom.x) / 2, (bride.y + groom.y) / 2 + 1); }
+  if (bride && groom) { const dx = groom.x - bride.x, dy = groom.y - bride.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, r = (bride.r + 1) * g;
+    if (d > 2 * r + 4 * g) { ctx.strokeStyle = 'rgba(240,179,106,.8)'; ctx.lineWidth = 2.5 * g; ctx.beginPath(); ctx.moveTo(bride.x + ux * r, bride.y + uy * r); ctx.lineTo(groom.x - ux * r, groom.y - uy * r); ctx.stroke(); }
+    const hx = (bride.x + groom.x) / 2, hy = (bride.y + groom.y) / 2; local({ x: hx, y: hy }); ctx.fillStyle = '#f0b36a'; ctx.font = '700 14px Nunito, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('♥', hx, hy + 1); ctx.restore(); }
   // you ↔ the spouse on your side (gold)
   for (const cp of [bride, groom]) { if (!cp || me[0] === null || (cp === bride ? me[0] === 1 : me[0] === 0)) continue;
-    ctx.strokeStyle = 'rgba(240,179,106,.55)'; ctx.lineWidth = 1.6; ctx.setLineDash([2, 5]); ctx.beginPath(); ctx.moveTo(you.x, you.y); ctx.lineTo(cp.x, cp.y); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.strokeStyle = 'rgba(240,179,106,.55)'; ctx.lineWidth = 1.6 * g; ctx.setLineDash([2 * g, 5 * g]); ctx.beginPath(); ctx.moveTo(you.x, you.y); ctx.lineTo(cp.x, cp.y); ctx.stroke(); ctx.setLineDash([]); }
   // you ↔ guest links
   for (const n of nodes) { if (n.you || n.couple || n.s < 2) continue; const al = ease((t - n.born) * 1.6); if (!al) continue;
-    const g = ctx.createLinearGradient(you.x, you.y, n.x, n.y); const c = n.cat; g.addColorStop(0, c + '00'); g.addColorStop(.35, c); g.addColorStop(1, c);
-    ctx.globalAlpha = (faded(n) ? .12 : n === selected ? 1 : .75) * al; ctx.strokeStyle = g; ctx.lineWidth = n === selected ? 3.5 : 0.9 + n.s * (n.s >= 4 ? .9 : .5); if (n.s >= 4) { ctx.shadowColor = n.cat; ctx.shadowBlur = 8; }
+    const gr = ctx.createLinearGradient(you.x, you.y, n.x, n.y); const c = n.cat; gr.addColorStop(0, c + '00'); gr.addColorStop(.35, c); gr.addColorStop(1, c);
+    ctx.globalAlpha = (faded(n) ? .12 : n === selected ? 1 : .75) * al; ctx.strokeStyle = gr; ctx.lineWidth = (n === selected ? 3.5 : 0.9 + n.s * (n.s >= 4 ? .9 : .5)) * g; if (n.s >= 4) { ctx.shadowColor = n.cat; ctx.shadowBlur = 8; }
     ctx.beginPath(); ctx.moveTo(you.x + (n.x - you.x) * (1 - al) * 0, you.y); ctx.lineTo(you.x + (n.x - you.x) * al, you.y + (n.y - you.y) * al); ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1; }
   // nodes
   for (const n of nodes) {
     const al = n.you ? 1 : ease((t - n.born) * 2.2); if (!al) continue; const sc = n.you ? 1 + Math.sin(t * 2) * .03 : .4 + .6 * al;
-    ctx.globalAlpha = (faded(n) ? .25 : (!n.you && !n.couple && n.s <= 1 ? .7 : 1)) * al;
-    if (n.couple) { drawCouple(n, t, sc); ctx.globalAlpha = 1; continue; }
+    ctx.globalAlpha = (faded(n) ? .25 : (!n.you && !n.couple && n.s <= 1 ? .7 : 1)) * al; local(n);
+    if (n.couple) { drawCouple(n, t, sc); ctx.restore(); ctx.globalAlpha = 1; continue; }
     if (!n.you && n.s >= 4) {   // strong matches: pulsing halo + coloured ring + glow
       const pu = .5 + .5 * Math.sin(t * 2.6 + n.id);
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r * sc + 6 + pu * 6, 0, 7); ctx.fillStyle = n.cat + '2e'; ctx.fill();
@@ -3631,7 +3649,7 @@ function loop() {
     if (n.you) { ctx.fillStyle = '#3a3550'; ctx.font = '700 11px Nunito, system-ui'; ctx.fillText(myName || tr('you'), n.x, n.y + n.r + 12); }
     if (!n.you && (n.s >= 3 || n === selected || (filter !== null && !faded(n)))) { ctx.fillStyle = '#3a3550'; ctx.font = (n.s >= 4 ? '800 12px' : '600 10.5px') + ' Nunito, system-ui'; ctx.fillText(n.first, n.x, n.y + n.r * sc + (n.s >= 4 ? 13 : 11));
       if (n.top) { const txt = `${n.raw}/${answeredCount()}`, y = n.y + n.r * sc + 28, w = ctx.measureText(txt).width + 12; ctx.fillStyle = n.cat; ctx.beginPath(); ctx.roundRect(n.x - w / 2, y - 8, w, 15, 7.5); ctx.fill(); ctx.fillStyle = '#3a3550'; ctx.font = '800 10px Nunito, system-ui'; ctx.fillText(txt, n.x, y); } }
-    ctx.globalAlpha = 1;
+    ctx.restore(); ctx.globalAlpha = 1;
   }
   ctx.restore();
   raf = requestAnimationFrame(loop);
@@ -3640,7 +3658,7 @@ function loop() {
    when zoomed in; a double tap on empty space zooms in or back out; the mouse wheel (or a trackpad pinch) zooms on desktop */
 function pt(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height)]; }   // screen units of the canvas
 const toWorld = (sx, sy) => [(sx - PX) / Z, (sy - PY) / Z];
-function hit(x, y) { for (let i = nodes.length - 1; i > 0; i--) { const n = nodes[i]; if (Math.hypot(n.x - x, n.y - y) < n.r + 7 / Z) return n; } return null; }
+function hit(x, y) { for (let i = nodes.length - 1; i > 0; i--) { const n = nodes[i]; if (Math.hypot(n.x - x, n.y - y) < n.r * G() + 7 / Z) return n; } return null; }
 let down = null, pinch = null, lastTap = 0;
 const ptrs = new Map();   // fingers on the canvas: pointerId -> [sx, sy]
 cv.addEventListener('pointerdown', e => {
