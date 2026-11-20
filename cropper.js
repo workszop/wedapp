@@ -2,7 +2,8 @@
    Drag to move, pinch / mouse wheel / slider to zoom. The window is always filled, so part of the photo stays out of view.
    Shared by index.html (the app) and admin.html (the couple panel). Uses the page's CSS tokens (--ink, --lav-d, --pink, --lav, --sans).
 
-   openCropper(file, { aspect = 4 / 3, outW = 1200, labels }) -> Promise<Blob | null>   (null = cancelled)
+   openCropper(file, { aspect = 4 / 3, outW = 1200, quality = 0.86, round = false, labels }) -> Promise<Blob | null>   (null = cancelled)
+   round: true shows a circular window (profile photos); the saved image is still the full square.
    The result is a JPEG of outW x outW/aspect; re-encoding also drops EXIF data such as the GPS position. */
 (function () {
   // ─── Constants ───
@@ -13,6 +14,7 @@
   .tt-crop-card h3{margin:0 0 4px;font:600 20px/1.2 var(--serif,Georgia,serif)}
   .tt-crop-card p{margin:0 0 12px;font-size:13px;line-height:1.45;color:#857f9c}
   .tt-crop-vp{position:relative;width:100%;aspect-ratio:var(--ar);border-radius:22px;overflow:hidden;background:#f1ecff;touch-action:none;cursor:grab;box-shadow:inset 0 0 0 4px #fff,0 6px 20px -10px rgba(109,88,201,.5)}
+  .tt-crop-vp.round{border-radius:50%;max-width:300px;margin:0 auto}
   .tt-crop-vp:active{cursor:grabbing}
   .tt-crop-vp canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
   .tt-crop-zoom{display:flex;align-items:center;gap:10px;margin:14px 2px 4px}
@@ -36,12 +38,12 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   // ─── Component ───
-  window.openCropper = async function (file, { aspect = 4 / 3, outW = 1200, labels = {} } = {}) {
+  window.openCropper = async function (file, { aspect = 4 / 3, outW = 1200, quality = 0.86, round = false, labels = {} } = {}) {
     const L = { title: 'Ustaw zdjęcie', hint: 'Przesuń zdjęcie palcem. Rozsuń palce albo użyj suwaka, żeby powiększyć.', zoom: 'Powiększenie', cancel: 'Anuluj', save: 'Zapisz', ...labels };
     const src = await loadSource(file);
     if (!document.getElementById('tt-crop-css')) { const st = document.createElement('style'); st.id = 'tt-crop-css'; st.textContent = CSS; document.head.appendChild(st); }
     const root = document.createElement('div'); root.className = 'tt-crop'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', L.title);
-    root.innerHTML = `<div class="tt-crop-card"><h3></h3><p></p><div class="tt-crop-vp" style="--ar:${aspect}"><canvas></canvas></div>
+    root.innerHTML = `<div class="tt-crop-card"><h3></h3><p></p><div class="tt-crop-vp${round ? ' round' : ''}" style="--ar:${aspect}"><canvas></canvas></div>
       <label class="tt-crop-zoom"><span aria-hidden="true">−</span><input type="range" min="1" max="${MAX_ZOOM}" step="0.01" value="1"><span aria-hidden="true">+</span></label>
       <div class="tt-crop-btns"><button type="button" class="no"></button><button type="button" class="ok"></button></div></div>`;
     root.querySelector('h3').textContent = L.title; root.querySelector('p').textContent = L.hint;
@@ -97,8 +99,12 @@
       root.querySelector('.ok').onclick = () => {
         fit(); const v = view(), s = scale(v), sw = v.w / s, sh = v.h / s;
         const out = document.createElement('canvas'); out.width = outW; out.height = Math.round(outW / aspect);
-        out.getContext('2d').drawImage(src, st.cx - sw / 2, st.cy - sh / 2, sw, sh, 0, 0, out.width, out.height);
-        out.toBlob(b => done(b), 'image/jpeg', 0.86);
+        // shrink in halving steps: one big jump (a 2400 px photo to a 320 px avatar) looks jagged in some browsers
+        let w = Math.max(out.width, Math.round(sw)), h = Math.max(out.height, Math.round(sh)), cur = document.createElement('canvas');
+        cur.width = w; cur.height = h; cur.getContext('2d').drawImage(src, st.cx - sw / 2, st.cy - sh / 2, sw, sh, 0, 0, w, h);
+        while (w / 2 >= out.width) { w = Math.round(w / 2); h = Math.round(h / 2); const nx = document.createElement('canvas'); nx.width = w; nx.height = h; nx.getContext('2d').drawImage(cur, 0, 0, w, h); cur = nx; }
+        const octx = out.getContext('2d'); octx.imageSmoothingQuality = 'high'; octx.drawImage(cur, 0, 0, out.width, out.height);
+        out.toBlob(b => done(b), 'image/jpeg', quality);
       };
       root.querySelector('.ok').focus();
     });

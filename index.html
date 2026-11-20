@@ -501,6 +501,23 @@
   .sugg{border:0;border-radius:18px;background:#f1ecff}
   .toggle{border:0;border-radius:20px;box-shadow:0 4px 14px -10px rgba(58,53,80,.3)}
   .toggle input:checked{background:var(--lav-d)}
+  /* profile photos: the picture covers the initials, which stay underneath as the fallback */
+  .av{position:relative;overflow:hidden}
+  .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
+  .avpick{display:flex;align-items:center;gap:6px;margin-top:16px}
+  .avp-btn{flex:1;min-width:0;display:flex;align-items:center;gap:12px;min-height:66px;text-align:left;font:inherit;color:inherit;background:rgba(255,255,255,.85);border:0;border-radius:20px;padding:10px 14px 10px 10px;box-shadow:inset 0 0 0 1.5px var(--line);cursor:pointer}
+  .avp-btn .av{width:46px;height:46px;background:#ffe1ec;color:var(--ink)}
+  .avp-btn b{display:block;font-size:14.5px}.avp-btn small{display:block;color:var(--mute);font-size:12px;line-height:1.35}
+  .avp-x{flex:none;border:0;background:none;color:var(--pink-d);font:800 13px var(--sans);min-height:44px;padding:0 8px;cursor:pointer}
+  /* multi-select question: twelve options in two compact columns, so the whole list and the buttons fit one phone screen */
+  .opts.multi{grid-template-columns:1fr 1fr;gap:8px}
+  .opts.multi .opt{min-height:54px;gap:10px;padding:6px 10px 6px 6px;font-size:14px;line-height:1.2;border-radius:18px}
+  .opts.multi .opt span{width:40px;height:40px;border-radius:13px}.opts.multi .opt span .ic{width:21px;height:21px}
+  .opts.multi .opt::after{display:none}
+  .opts.multi .opt.sel{background:#ece5ff;box-shadow:inset 0 0 0 2.5px var(--lav-d)}
+  .opts.multi .opt.sel span{background:var(--lav-d)}.opts.multi .opt.sel span .ic{color:#fff}
+  .quiz h3 small{display:block;margin-top:8px;font:600 13px/1.3 var(--sans);font-variation-settings:normal;letter-spacing:0;color:var(--mute)}
+  .edit-link{display:inline-flex;align-items:center;gap:6px;min-height:40px;margin:2px 0 -6px;padding:0;border:0;background:none;color:var(--lav-d);font:800 13px var(--sans);cursor:pointer}
   /* floating tab bar */
   .tabbar{left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);height:64px;padding:6px;border-radius:24px;border:0;background:rgba(255,255,255,.92);box-shadow:var(--soft);transform:translateY(160%)}
   .tabbar.show{transform:none}
@@ -600,6 +617,7 @@
             <figure class="cphoto" id="cphoto" hidden><img id="cphoto-img" alt="" decoding="async"><figcaption class="cp-ctl" id="cp-ctl"></figcaption></figure>
             <div class="cpask-slot" id="cpask-w"></div>
             <input type="file" id="cp-file" accept="image/*" hidden>
+            <input type="file" id="av-file" accept="image/*" hidden>
             <div class="sub" data-i18n="date">SATURDAY 14 JUNE · VILLA RÓŻANA</div>
             <svg class="mini-graph" id="mini" viewBox="0 0 320 92"></svg>
             <div class="wn" id="wn" aria-live="polite">
@@ -638,7 +656,7 @@
 
         <!-- 3 summary / names -->
         <div class="screen summary" id="s-summary">
-          <div class="ghead"><h3 id="sm-title">Your matches</h3><p id="sm-sub"></p></div>
+          <div class="ghead"><h3 id="sm-title">Your matches</h3><p id="sm-sub"></p><button type="button" class="edit-link" id="sm-edit"></button></div>
           <div class="seg" id="seg-summary"></div>
           <div class="panel on" id="pn-summary"></div>
           <div class="panel" id="pn-names"></div>
@@ -686,7 +704,7 @@
   </div>
 </div>
 
-<script src="cropper.js"></script>
+<script src="cropper.js?v=2"></script>
 <script>
 /* qrcode-generator 2.0.4 · (c) Kazuhiko Arase · MIT licence · inlined so the mockup works offline */
 //---------------------------------------------------------------------
@@ -2991,13 +3009,14 @@ var qrcode = function() {
 <script>
 /* ======================= data ======================= */
 /* Lucide icons (https://lucide.dev, ISC licence) – inlined so the mockup stays a single offline file */
-const ICONS = {"arrow-right":"<path d=\"M5 12h14\" /> <path d=\"m12 5 7 7-7 7\" />","blocks":"<path d=\"M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2\" /> <rect x=\"14\" y=\"2\" width=\"8\" height=\"8\" rx=\"1\" />","briefcase":"<path d=\"M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16\" /> <rect width=\"20\" height=\"14\" x=\"2\" y=\"6\" rx=\"2\" />","brush":"<path d=\"m11 10 3 3\" /> <path d=\"M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z\" /> <path d=\"M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031\" />","building-2":"<path d=\"M10 12h4\" /> <path d=\"M10 8h4\" /> <path d=\"M14 21v-3a2 2 0 0 0-4 0v3\" /> <path d=\"M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2\" /> <path d=\"M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16\" />","cake":"<path d=\"M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8\" /> <path d=\"M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1\" /> <path d=\"M2 21h20\" /> <path d=\"M7 8v3\" /> <path d=\"M12 8v3\" /> <path d=\"M17 8v3\" /> <path d=\"M7 4h.01\" /> <path d=\"M12 4h.01\" /> <path d=\"M17 4h.01\" />","camera":"<path d=\"M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z\" /> <circle cx=\"12\" cy=\"13\" r=\"3\" />","car":"<path d=\"M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2\" /> <circle cx=\"7\" cy=\"17\" r=\"2\" /> <path d=\"M9 17h6\" /> <circle cx=\"17\" cy=\"17\" r=\"2\" />","check":"<path d=\"M20 6 9 17l-5-5\" />","cheese":"<path d=\"M14 11a3 3 0 01-6 0 5 5 0 016 0\" /> <path d=\"M14.292 2.436a1.55 1.55 0 011.463-.088l.278.13A10.33 10.33 0 0122 11v8a2 2 0 01-2 2h-1.75a.28.28 0 01-.265-.25 2 2 0 00-3.97 0 .28.28 0 01-.265.25H4a2 2 0 01-2-2v-.75a.28.28 0 01.25-.265 2 2 0 00-.046-3.975.21.21 0 01-.204-.214v-2.678a2 2 0 01.952-1.703l6.062-3.732a.3.3 0 01.27-.002A2.5 2.5 0 0013 3.5l-.002-.104a.3.3 0 01.122-.24z\" /> <path d=\"M22 11h-8\" /> <path d=\"M8 11H2\" />","chef-hat":"<path d=\"M10 11v5\" /> <path d=\"M14 11v5\" /> <path d=\"M6 12.65c0-.457-.316-.844-.727-1.041A4 4 0 017.52 4.034a1.53 1.53 0 001.367-.547 4 4 0 016.225 0 1.53 1.53 0 001.367.547 4 4 0 012.248 7.575c-.411.197-.727.584-.727 1.04V19a2 2 0 01-2 2H8a2 2 0 01-2-2z\" /> <path d=\"M6 16h12\" />","chevron-left":"<path d=\"m15 18-6-6 6-6\" />","clapperboard":"<path d=\"m12.296 3.464 3.02 3.956\" /> <path d=\"M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z\" /> <path d=\"M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\" /> <path d=\"m6.18 5.276 3.1 3.899\" />","code":"<path d=\"m16 18 6-6-6-6\" /> <path d=\"m8 6-6 6 6 6\" />","disc-3":"<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"M6 12c0-1.7.7-3.2 1.8-4.2\" /> <circle cx=\"12\" cy=\"12\" r=\"2\" /> <path d=\"M18 12c0 1.7-.7 3.2-1.8 4.2\" />","donut":"<path d=\"M20.5 10a2.5 2.5 0 0 1-2.4-3H18a2.95 2.95 0 0 1-2.6-4.4 10 10 0 1 0 6.3 7.1c-.3.2-.8.3-1.2.3\" /> <circle cx=\"12\" cy=\"12\" r=\"3\" />","dumbbell":"<path d=\"M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z\" /> <path d=\"m2.5 21.5 1.4-1.4\" /> <path d=\"m20.1 3.9 1.4-1.4\" /> <path d=\"M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z\" /> <path d=\"m9.6 14.4 4.8-4.8\" />","flower-2":"<path d=\"M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1\" /> <circle cx=\"12\" cy=\"8\" r=\"2\" /> <path d=\"M12 10v12\" /> <path d=\"M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z\" /> <path d=\"M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z\" />","gamepad-2":"<line x1=\"6\" x2=\"10\" y1=\"11\" y2=\"11\" /> <line x1=\"8\" x2=\"8\" y1=\"9\" y2=\"13\" /> <line x1=\"15\" x2=\"15.01\" y1=\"12\" y2=\"12\" /> <line x1=\"18\" x2=\"18.01\" y1=\"10\" y2=\"10\" /> <path d=\"M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z\" />","graduation-cap":"<path d=\"M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z\" /> <path d=\"M22 10v6\" /> <path d=\"M6 12.5V16a6 3 0 0 0 12 0v-3.5\" />","guitar":"<path d=\"m11.9 12.1 4.514-4.514\" /> <path d=\"M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 17.828 7h1.344a2 2 0 0 0 1.414-.586L21.7 5.3a1 1 0 0 0 0-1.4z\" /> <path d=\"m6 16 2 2\" /> <path d=\"M8.23 9.85A3 3 0 0 1 11 8a5 5 0 0 1 5 5 3 3 0 0 1-1.85 2.77l-.92.38A2 2 0 0 0 12 18a4 4 0 0 1-4 4 6 6 0 0 1-6-6 4 4 0 0 1 4-4 2 2 0 0 0 1.85-1.23z\" />","hand":"<path d=\"M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2\" /> <path d=\"M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2\" /> <path d=\"M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8\" /> <path d=\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\" />","handshake":"<path d=\"m11 17 2 2a1 1 0 1 0 3-3\" /> <path d=\"m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4\" /> <path d=\"m21 3 1 11h-2\" /> <path d=\"M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3\" /> <path d=\"M3 4h8\" />","headphones":"<path d=\"M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3\" />","heart":"<path d=\"M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5\" />","house":"<path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\" /> <path d=\"M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\" />","laptop":"<path d=\"M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z\" /> <path d=\"M20.054 15.987H3.946\" />","layout-list":"<rect width=\"7\" height=\"7\" x=\"3\" y=\"3\" rx=\"1\" /> <rect width=\"7\" height=\"7\" x=\"3\" y=\"14\" rx=\"1\" /> <path d=\"M14 4h7\" /> <path d=\"M14 9h7\" /> <path d=\"M14 15h7\" /> <path d=\"M14 20h7\" />","martini":"<path d=\"M12 12 4.207 4.207A.707.707 0 0 1 4.707 3h14.586a.707.707 0 0 1 .5 1.207z\" /> <path d=\"M12 12v10\" /> <path d=\"M7 22h10\" />","message-circle":"<path d=\"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719\" />","message-square-quote":"<path d=\"M14 14a2 2 0 0 0 2-2V8h-2\" /> <path d=\"M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z\" /> <path d=\"M8 14a2 2 0 0 0 2-2V8H8\" />","mic":"<path d=\"M12 19v3\" /> <path d=\"M19 10v2a7 7 0 0 1-14 0v-2\" /> <rect x=\"9\" y=\"2\" width=\"6\" height=\"13\" rx=\"3\" />","mountain":"<path d=\"m8 3 4 8 5-5 5 15H2L8 3z\" />","mountain-snow":"<path d=\"m8 3 4 8 5-5 5 15H2L8 3z\" /> <path d=\"M4.14 15.08c2.62-1.57 5.24-1.43 7.86.42 2.74 1.94 5.49 2 8.23.19\" />","music":"<path d=\"M21 16V3a1 1 0 0 0-1.28-.96l-10 2.917a1 1 0 0 0-.72.96V19\" /> <circle cx=\"18\" cy=\"16\" r=\"3\" /> <circle cx=\"6\" cy=\"19\" r=\"3\" />","network":"<rect x=\"16\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\" /> <rect x=\"2\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\" /> <rect x=\"9\" y=\"2\" width=\"6\" height=\"6\" rx=\"1\" /> <path d=\"M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3\" /> <path d=\"M12 12V8\" />","palette":"<path d=\"M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z\" /> <circle cx=\"13.5\" cy=\"6.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"17.5\" cy=\"10.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"6.5\" cy=\"12.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"8.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\" />","party-popper":"<path d=\"M5.8 11.3 2 22l10.7-3.79\" /> <path d=\"M4 3h.01\" /> <path d=\"M22 8h.01\" /> <path d=\"M15 2h.01\" /> <path d=\"M22 20h.01\" /> <path d=\"m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10\" /> <path d=\"m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17\" /> <path d=\"m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7\" /> <path d=\"M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z\" />","plane":"<path d=\"M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z\" />","rocket":"<path d=\"M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5\" /> <path d=\"M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09\" /> <path d=\"M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z\" /> <path d=\"M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05\" />","scale":"<path d=\"M12 3v18\" /> <path d=\"m19 8 3 8a5 5 0 0 1-6 0zV7\" /> <path d=\"M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1\" /> <path d=\"m5 8 3 8a5 5 0 0 1-6 0zV7\" /> <path d=\"M7 21h10\" />","school":"<path d=\"M14 21v-3a2 2 0 0 0-4 0v3\" /> <path d=\"M18 4.933V21\" /> <path d=\"m4 6 7.106-3.79a2 2 0 0 1 1.788 0L20 6\" /> <path d=\"m6 11-3.52 2.147a1 1 0 0 0-.48.854V19a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a1 1 0 0 0-.48-.853L18 11\" /> <path d=\"M6 4.933V21\" /> <circle cx=\"12\" cy=\"9\" r=\"2\" />","scissors":"<circle cx=\"6\" cy=\"6\" r=\"3\" /> <path d=\"M8.12 8.12 12 12\" /> <path d=\"M20 4 8.12 15.88\" /> <circle cx=\"6\" cy=\"18\" r=\"3\" /> <path d=\"M14.8 14.8 20 20\" />","shirt":"<path d=\"M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z\" />","smile":"<path d=\"M15 10V9\" /> <path d=\"M16.472 15a6 6 0 01-8.943 0\" /> <path d=\"M9 10V9\" /> <circle cx=\"12\" cy=\"12\" r=\"10\" />","stethoscope":"<path d=\"M11 2v2\" /> <path d=\"M5 2v2\" /> <path d=\"M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1\" /> <path d=\"M8 15a6 6 0 0 0 12 0v-3\" /> <circle cx=\"20\" cy=\"10\" r=\"2\" />","trophy":"<path d=\"M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2\" /> <path d=\"M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2\" /> <path d=\"M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3\" /> <path d=\"M4 22h16\" /> <path d=\"M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z\" /> <path d=\"M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3\" />","umbrella":"<path d=\"M12 13v7a2 2 0 0 0 4 0\" /> <path d=\"M12 2v2\" /> <path d=\"M20.992 13a1 1 0 0 0 .97-1.274 10.284 10.284 0 0 0-19.923 0A1 1 0 0 0 3 13z\" />","users":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\" /> <path d=\"M16 3.128a4 4 0 0 1 0 7.744\" /> <path d=\"M22 21v-2a4 4 0 0 0-3-3.87\" /> <circle cx=\"9\" cy=\"7\" r=\"4\" />","utensils":"<path d=\"M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2\" /> <path d=\"M7 2v20\" /> <path d=\"M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7\" />","volume-x":"<path d=\"M11 4.702a.7.7 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.7.7 0 0 0 11 19.298z\" /> <path d=\"m16.5 14.5 5-5\" /> <path d=\"m16.5 9.5 5 5\" />","wine":"<path d=\"M8 22h8\" /> <path d=\"M7 10h10\" /> <path d=\"M12 15v7\" /> <path d=\"M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z\" />"};
+const ICONS = {"pencil":"<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />","arrow-right":"<path d=\"M5 12h14\" /> <path d=\"m12 5 7 7-7 7\" />","blocks":"<path d=\"M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2\" /> <rect x=\"14\" y=\"2\" width=\"8\" height=\"8\" rx=\"1\" />","briefcase":"<path d=\"M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16\" /> <rect width=\"20\" height=\"14\" x=\"2\" y=\"6\" rx=\"2\" />","brush":"<path d=\"m11 10 3 3\" /> <path d=\"M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z\" /> <path d=\"M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031\" />","building-2":"<path d=\"M10 12h4\" /> <path d=\"M10 8h4\" /> <path d=\"M14 21v-3a2 2 0 0 0-4 0v3\" /> <path d=\"M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2\" /> <path d=\"M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16\" />","cake":"<path d=\"M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8\" /> <path d=\"M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1\" /> <path d=\"M2 21h20\" /> <path d=\"M7 8v3\" /> <path d=\"M12 8v3\" /> <path d=\"M17 8v3\" /> <path d=\"M7 4h.01\" /> <path d=\"M12 4h.01\" /> <path d=\"M17 4h.01\" />","camera":"<path d=\"M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z\" /> <circle cx=\"12\" cy=\"13\" r=\"3\" />","car":"<path d=\"M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2\" /> <circle cx=\"7\" cy=\"17\" r=\"2\" /> <path d=\"M9 17h6\" /> <circle cx=\"17\" cy=\"17\" r=\"2\" />","check":"<path d=\"M20 6 9 17l-5-5\" />","cheese":"<path d=\"M14 11a3 3 0 01-6 0 5 5 0 016 0\" /> <path d=\"M14.292 2.436a1.55 1.55 0 011.463-.088l.278.13A10.33 10.33 0 0122 11v8a2 2 0 01-2 2h-1.75a.28.28 0 01-.265-.25 2 2 0 00-3.97 0 .28.28 0 01-.265.25H4a2 2 0 01-2-2v-.75a.28.28 0 01.25-.265 2 2 0 00-.046-3.975.21.21 0 01-.204-.214v-2.678a2 2 0 01.952-1.703l6.062-3.732a.3.3 0 01.27-.002A2.5 2.5 0 0013 3.5l-.002-.104a.3.3 0 01.122-.24z\" /> <path d=\"M22 11h-8\" /> <path d=\"M8 11H2\" />","chef-hat":"<path d=\"M10 11v5\" /> <path d=\"M14 11v5\" /> <path d=\"M6 12.65c0-.457-.316-.844-.727-1.041A4 4 0 017.52 4.034a1.53 1.53 0 001.367-.547 4 4 0 016.225 0 1.53 1.53 0 001.367.547 4 4 0 012.248 7.575c-.411.197-.727.584-.727 1.04V19a2 2 0 01-2 2H8a2 2 0 01-2-2z\" /> <path d=\"M6 16h12\" />","chevron-left":"<path d=\"m15 18-6-6 6-6\" />","clapperboard":"<path d=\"m12.296 3.464 3.02 3.956\" /> <path d=\"M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z\" /> <path d=\"M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\" /> <path d=\"m6.18 5.276 3.1 3.899\" />","code":"<path d=\"m16 18 6-6-6-6\" /> <path d=\"m8 6-6 6 6 6\" />","disc-3":"<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"M6 12c0-1.7.7-3.2 1.8-4.2\" /> <circle cx=\"12\" cy=\"12\" r=\"2\" /> <path d=\"M18 12c0 1.7-.7 3.2-1.8 4.2\" />","donut":"<path d=\"M20.5 10a2.5 2.5 0 0 1-2.4-3H18a2.95 2.95 0 0 1-2.6-4.4 10 10 0 1 0 6.3 7.1c-.3.2-.8.3-1.2.3\" /> <circle cx=\"12\" cy=\"12\" r=\"3\" />","dumbbell":"<path d=\"M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z\" /> <path d=\"m2.5 21.5 1.4-1.4\" /> <path d=\"m20.1 3.9 1.4-1.4\" /> <path d=\"M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z\" /> <path d=\"m9.6 14.4 4.8-4.8\" />","flower-2":"<path d=\"M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1\" /> <circle cx=\"12\" cy=\"8\" r=\"2\" /> <path d=\"M12 10v12\" /> <path d=\"M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z\" /> <path d=\"M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z\" />","gamepad-2":"<line x1=\"6\" x2=\"10\" y1=\"11\" y2=\"11\" /> <line x1=\"8\" x2=\"8\" y1=\"9\" y2=\"13\" /> <line x1=\"15\" x2=\"15.01\" y1=\"12\" y2=\"12\" /> <line x1=\"18\" x2=\"18.01\" y1=\"10\" y2=\"10\" /> <path d=\"M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z\" />","graduation-cap":"<path d=\"M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z\" /> <path d=\"M22 10v6\" /> <path d=\"M6 12.5V16a6 3 0 0 0 12 0v-3.5\" />","guitar":"<path d=\"m11.9 12.1 4.514-4.514\" /> <path d=\"M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 17.828 7h1.344a2 2 0 0 0 1.414-.586L21.7 5.3a1 1 0 0 0 0-1.4z\" /> <path d=\"m6 16 2 2\" /> <path d=\"M8.23 9.85A3 3 0 0 1 11 8a5 5 0 0 1 5 5 3 3 0 0 1-1.85 2.77l-.92.38A2 2 0 0 0 12 18a4 4 0 0 1-4 4 6 6 0 0 1-6-6 4 4 0 0 1 4-4 2 2 0 0 0 1.85-1.23z\" />","hand":"<path d=\"M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2\" /> <path d=\"M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2\" /> <path d=\"M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8\" /> <path d=\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\" />","handshake":"<path d=\"m11 17 2 2a1 1 0 1 0 3-3\" /> <path d=\"m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4\" /> <path d=\"m21 3 1 11h-2\" /> <path d=\"M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3\" /> <path d=\"M3 4h8\" />","headphones":"<path d=\"M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3\" />","heart":"<path d=\"M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5\" />","house":"<path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\" /> <path d=\"M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\" />","laptop":"<path d=\"M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z\" /> <path d=\"M20.054 15.987H3.946\" />","layout-list":"<rect width=\"7\" height=\"7\" x=\"3\" y=\"3\" rx=\"1\" /> <rect width=\"7\" height=\"7\" x=\"3\" y=\"14\" rx=\"1\" /> <path d=\"M14 4h7\" /> <path d=\"M14 9h7\" /> <path d=\"M14 15h7\" /> <path d=\"M14 20h7\" />","martini":"<path d=\"M12 12 4.207 4.207A.707.707 0 0 1 4.707 3h14.586a.707.707 0 0 1 .5 1.207z\" /> <path d=\"M12 12v10\" /> <path d=\"M7 22h10\" />","message-circle":"<path d=\"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719\" />","message-square-quote":"<path d=\"M14 14a2 2 0 0 0 2-2V8h-2\" /> <path d=\"M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z\" /> <path d=\"M8 14a2 2 0 0 0 2-2V8H8\" />","mic":"<path d=\"M12 19v3\" /> <path d=\"M19 10v2a7 7 0 0 1-14 0v-2\" /> <rect x=\"9\" y=\"2\" width=\"6\" height=\"13\" rx=\"3\" />","mountain":"<path d=\"m8 3 4 8 5-5 5 15H2L8 3z\" />","mountain-snow":"<path d=\"m8 3 4 8 5-5 5 15H2L8 3z\" /> <path d=\"M4.14 15.08c2.62-1.57 5.24-1.43 7.86.42 2.74 1.94 5.49 2 8.23.19\" />","music":"<path d=\"M21 16V3a1 1 0 0 0-1.28-.96l-10 2.917a1 1 0 0 0-.72.96V19\" /> <circle cx=\"18\" cy=\"16\" r=\"3\" /> <circle cx=\"6\" cy=\"19\" r=\"3\" />","network":"<rect x=\"16\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\" /> <rect x=\"2\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\" /> <rect x=\"9\" y=\"2\" width=\"6\" height=\"6\" rx=\"1\" /> <path d=\"M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3\" /> <path d=\"M12 12V8\" />","palette":"<path d=\"M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z\" /> <circle cx=\"13.5\" cy=\"6.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"17.5\" cy=\"10.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"6.5\" cy=\"12.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"8.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\" />","party-popper":"<path d=\"M5.8 11.3 2 22l10.7-3.79\" /> <path d=\"M4 3h.01\" /> <path d=\"M22 8h.01\" /> <path d=\"M15 2h.01\" /> <path d=\"M22 20h.01\" /> <path d=\"m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10\" /> <path d=\"m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17\" /> <path d=\"m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7\" /> <path d=\"M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z\" />","plane":"<path d=\"M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z\" />","rocket":"<path d=\"M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5\" /> <path d=\"M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09\" /> <path d=\"M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z\" /> <path d=\"M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05\" />","scale":"<path d=\"M12 3v18\" /> <path d=\"m19 8 3 8a5 5 0 0 1-6 0zV7\" /> <path d=\"M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1\" /> <path d=\"m5 8 3 8a5 5 0 0 1-6 0zV7\" /> <path d=\"M7 21h10\" />","school":"<path d=\"M14 21v-3a2 2 0 0 0-4 0v3\" /> <path d=\"M18 4.933V21\" /> <path d=\"m4 6 7.106-3.79a2 2 0 0 1 1.788 0L20 6\" /> <path d=\"m6 11-3.52 2.147a1 1 0 0 0-.48.854V19a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a1 1 0 0 0-.48-.853L18 11\" /> <path d=\"M6 4.933V21\" /> <circle cx=\"12\" cy=\"9\" r=\"2\" />","scissors":"<circle cx=\"6\" cy=\"6\" r=\"3\" /> <path d=\"M8.12 8.12 12 12\" /> <path d=\"M20 4 8.12 15.88\" /> <circle cx=\"6\" cy=\"18\" r=\"3\" /> <path d=\"M14.8 14.8 20 20\" />","shirt":"<path d=\"M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z\" />","smile":"<path d=\"M15 10V9\" /> <path d=\"M16.472 15a6 6 0 01-8.943 0\" /> <path d=\"M9 10V9\" /> <circle cx=\"12\" cy=\"12\" r=\"10\" />","stethoscope":"<path d=\"M11 2v2\" /> <path d=\"M5 2v2\" /> <path d=\"M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1\" /> <path d=\"M8 15a6 6 0 0 0 12 0v-3\" /> <circle cx=\"20\" cy=\"10\" r=\"2\" />","trophy":"<path d=\"M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2\" /> <path d=\"M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2\" /> <path d=\"M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3\" /> <path d=\"M4 22h16\" /> <path d=\"M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z\" /> <path d=\"M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3\" />","umbrella":"<path d=\"M12 13v7a2 2 0 0 0 4 0\" /> <path d=\"M12 2v2\" /> <path d=\"M20.992 13a1 1 0 0 0 .97-1.274 10.284 10.284 0 0 0-19.923 0A1 1 0 0 0 3 13z\" />","users":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\" /> <path d=\"M16 3.128a4 4 0 0 1 0 7.744\" /> <path d=\"M22 21v-2a4 4 0 0 0-3-3.87\" /> <circle cx=\"9\" cy=\"7\" r=\"4\" />","utensils":"<path d=\"M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2\" /> <path d=\"M7 2v20\" /> <path d=\"M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7\" />","volume-x":"<path d=\"M11 4.702a.7.7 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.7.7 0 0 0 11 19.298z\" /> <path d=\"m16.5 14.5 5-5\" /> <path d=\"m16.5 9.5 5 5\" />","wine":"<path d=\"M8 22h8\" /> <path d=\"M7 10h10\" /> <path d=\"M12 15v7\" /> <path d=\"M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z\" />"};
 Object.assign(ICONS, {"share-2":"<circle cx=\"18\" cy=\"5\" r=\"3\" /> <circle cx=\"6\" cy=\"12\" r=\"3\" /> <circle cx=\"18\" cy=\"19\" r=\"3\" /> <line x1=\"8.59\" x2=\"15.42\" y1=\"13.51\" y2=\"17.49\" /> <line x1=\"15.41\" x2=\"8.59\" y1=\"6.51\" y2=\"10.49\" />","copy":"<rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\" /> <path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\" />","qr-code":"<rect width=\"5\" height=\"5\" x=\"3\" y=\"3\" rx=\"1\" /> <rect width=\"5\" height=\"5\" x=\"16\" y=\"3\" rx=\"1\" /> <rect width=\"5\" height=\"5\" x=\"3\" y=\"16\" rx=\"1\" /> <path d=\"M21 16h-3a2 2 0 0 0-2 2v3\" /> <path d=\"M21 21v.01\" /> <path d=\"M12 7v3a2 2 0 0 1-2 2H7\" /> <path d=\"M3 12h.01\" /> <path d=\"M12 3h.01\" /> <path d=\"M12 16v.01\" /> <path d=\"M16 12h1\" /> <path d=\"M21 12v.01\" /> <path d=\"M12 21v-1\" />","x":"<path d=\"M18 6 6 18\" /> <path d=\"m6 6 12 12\" />"});
 Object.assign(ICONS, {"send": "<path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\" /> <path d=\"m21.854 2.147-10.94 10.939\" />"});
 Object.assign(ICONS, {"image-plus":"<path d=\"M16 5h6\" /> <path d=\"M19 2v6\" /> <path d=\"M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5\" /> <path d=\"m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21\" /> <circle cx=\"9\" cy=\"9\" r=\"2\" />","shuffle":"<path d=\"m18 14 4 4-4 4\" /> <path d=\"m18 2 4 4-4 4\" /> <path d=\"M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22\" /> <path d=\"M2 6h1.972a4 4 0 0 1 3.6 2.2\" /> <path d=\"M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45\" />","brick-wall":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"M12 9v6\" /> <path d=\"M16 15v6\" /> <path d=\"M16 3v6\" /> <path d=\"M3 15h18\" /> <path d=\"M3 9h18\" /> <path d=\"M8 15v6\" /> <path d=\"M8 3v6\" />","piano":"<path d=\"M18.5 8c-1.4 0-2.6-.8-3.2-2A6.87 6.87 0 0 0 2 9v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8.5C22 9.6 20.4 8 18.5 8\" /> <path d=\"M2 14h20\" /> <path d=\"M6 14v4\" /> <path d=\"M10 14v4\" /> <path d=\"M14 14v4\" /> <path d=\"M18 14v4\" />"});
 Object.assign(ICONS, {"download": "<path d=\"M12 15V3\" /> <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" /> <path d=\"m7 10 5 5 5-5\" />"});
 Object.assign(ICONS, {"share":"<path d=\"M12 2v13\" /> <path d=\"m16 6-4-4-4 4\" /> <path d=\"M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8\" />","square-plus":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"M8 12h8\" /> <path d=\"M12 8v8\" />","ellipsis":"<circle cx=\"12\" cy=\"12\" r=\"1\" /> <circle cx=\"19\" cy=\"12\" r=\"1\" /> <circle cx=\"5\" cy=\"12\" r=\"1\" />","compass":"<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z\" />","smartphone":"<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\" /> <path d=\"M12 18h.01\" />"});
 Object.assign(ICONS, {"ellipsis-vertical": "<circle cx=\"12\" cy=\"12\" r=\"1\" /> <circle cx=\"12\" cy=\"5\" r=\"1\" /> <circle cx=\"12\" cy=\"19\" r=\"1\" />"});
+Object.assign(ICONS, {"audio-lines":"<path d=\"M2 10v3\" /> <path d=\"M6 6v11\" /> <path d=\"M10 3v18\" /> <path d=\"M14 8v7\" /> <path d=\"M18 5v13\" /> <path d=\"M22 10v3\" />","zap":"<path d=\"M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z\" />","flame":"<path d=\"M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z\" />","radio":"<path d=\"M4.9 19.1C1 15.2 1 8.8 4.9 4.9\" /> <path d=\"M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5\" /> <circle cx=\"12\" cy=\"12\" r=\"2\" /> <path d=\"M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5\" /> <path d=\"M19.1 4.9C23 8.8 23 15.1 19.1 19\" />","music-4":"<path d=\"M9 18V5l12-2v13\" /> <path d=\"m9 9 12-2\" /> <circle cx=\"6\" cy=\"18\" r=\"3\" /> <circle cx=\"18\" cy=\"16\" r=\"3\" />"});
 const ic = (n, s = 20, w = 2) => `<svg class="ic" xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
 
 /* ======================= i18n (Polish is the default; English via the PL/EN switch) =======================
@@ -3078,7 +3097,7 @@ const T = {
     chatNote: 'Wiadomości zostają w aplikacji. Nie udostępniamy numerów telefonów.', sendFail: 'Nie udało się wysłać',
     liveFirst: 'gości oprócz Ciebie<small>Pozostali zaraz dołączą</small>',
     emptyEvent: 'Na razie jesteś tu tylko Ty. Dopasowania pojawią się, gdy dołączą kolejni goście.',
-    consent: 'Inni goście zobaczą Twoje imię i odpowiedzi. W zakładce Rozmowy możesz się ukryć albo usunąć swoje dane.',
+    consent: 'Inni goście zobaczą Twoje imię, odpowiedzi i zdjęcie, jeśli je dodasz. W zakładce Rozmowy możesz się ukryć albo usunąć swoje dane.',
     badName: 'Imię może mieć do 24 znaków: litery, cyfry, spacje, kropki i myślniki.',
     visibleMe: 'Pokazuj mnie na grafie<small>Po wyłączeniu inni goście nie widzą Twojego imienia ani odpowiedzi</small>',
     visOn: 'Widać Cię na grafie', visOff: 'Inni goście już Cię nie widzą',
@@ -3090,6 +3109,8 @@ const T = {
     err_guest_gone: 'Tego gościa nie ma już w wydarzeniu', err_event_full: 'Lista gości jest już pełna', err_bad_code: 'Kod pary młodej jest nieprawidłowy',
     cropT: 'Ustaw zdjęcie', cropHint: 'Przesuń zdjęcie palcem, żeby wybrać kadr. Rozsuń palce albo użyj suwaka, żeby powiększyć.', cropZoom: 'Powiększenie', cropCancel: 'Anuluj', cropSave: 'Zapisz',
     photoAskT: 'Wasze zdjęcie pod imionami', photoAskP: 'Goście zobaczą je na ekranie powitalnym, pod waszymi imionami. Możecie też zrezygnować.',
+    multiHint: 'Możesz wybrać kilka.',
+    avAdd: 'Dodaj swoje zdjęcie', avSub: 'Opcjonalne. Inni goście łatwiej Cię rozpoznają.', avRemove: 'Usuń', avSaved: 'Zdjęcie zapisane', avRemoved: 'Zdjęcie usunięte', editAnswers: 'Zmień odpowiedzi lub zdjęcie',
     photoAdd: 'Dodaj zdjęcie', photoNo: 'Bez zdjęcia', photoChange: 'Zmień zdjęcie', photoRemove: 'Usuń zdjęcie',
     photoBusy: 'Wysyłam zdjęcie…', photoSaved: 'Zdjęcie dodane', photoRemoved: 'Bez zdjęcia – możecie je dodać później w panelu pary', photoAlt: n => `Zdjęcie: ${n}`,
     err_not_an_image: 'To nie jest zdjęcie (JPG, PNG albo WebP)', err_photo_too_big: 'Zdjęcie jest za duże', err_couple_only: 'Zdjęcie może dodać tylko para młoda', photoReadFail: 'Nie udało się odczytać tego zdjęcia',
@@ -3113,7 +3134,7 @@ const T = {
       { label: 'Znajomi czy rodzina', q: 'Znajomi czy rodzina?', opts: ['Znajomi', 'Rodzina'], starter: 'od jak dawna znacie parę młodą' },
       { label: 'Skąd się znamy', q: 'Skąd znasz parę młodą?', opts: ['Ze studiów', 'Z pracy', 'Z dzieciństwa', 'Przez znajomych', 'Z internetu / inaczej'], starter: 'jak poznaliście parę młodą' },
       { label: 'Parkiet', q: 'Jaki masz styl na parkiecie?', opts: ['Od pierwszej piosenki', 'Tylko wolne tańce', 'Bujam się przy barze', 'Wiecznie przy ścianie'], starter: 'popisowy ruch na parkiecie' },
-      { label: 'Muzyka', q: 'Jakiego gatunku muzyki słuchasz?', opts: ['Pop', 'Rock', 'Polskie klasyki', 'Hip-hop', 'Jazz', 'Wszystkiego po trochu'], starter: 'najlepszy koncert, na jakim byli' },
+      { label: 'Muzyka', q: 'Jakich gatunków muzyki słuchasz?', opts: ['Pop', 'Rock', 'Polskie klasyki', 'Hip-hop', 'Jazz', 'Elektroniczna', 'Disco polo', 'Klasyczna', 'Metal', 'R&B i soul', 'Latino', 'Indie i alternatywa'], starter: 'najlepszy koncert, na jakim byli' },
       { label: 'Wymarzona podróż', q: 'Twoja wymarzona podróż?', opts: ['Plaża', 'City break', 'Góry', 'Podróż autem'], starter: 'najlepsza podróż w życiu' },
       { label: 'Deser', q: 'Co wybierasz ze słodkiego stołu?', opts: ['Tort weselny', 'Pączki', 'Deska serów', 'Wino deserowe'], starter: 'deser, po który warto wrócić' },
       { label: 'Tematy', q: 'O czym lubisz rozmawiać?', opts: ['Podróże', 'Jedzenie i wino', 'Muzyka', 'Sport', 'Technologie i gadżety', 'Książki i filmy'], starter: a => `${a.toLowerCase()}, bezpieczny temat na cały wieczór` },
@@ -3188,7 +3209,7 @@ const T = {
     chatNote: 'Messages stay in the app – no phone numbers are shared.', sendFail: 'Could not send',
     liveFirst: 'other guests so far<small>The rest will join soon</small>',
     emptyEvent: 'You’re the first one here. Matches appear as other guests join.',
-    consent: 'Other guests will see your name and answers. You can hide yourself or delete your data in the Chats tab.',
+    consent: 'Other guests will see your name, your answers and your photo if you add one. You can hide yourself or delete your data in the Chats tab.',
     badName: 'A name can have up to 24 characters: letters, digits, spaces, dots and hyphens.',
     visibleMe: 'Show me on the graph<small>When off, other guests can’t see your name or answers</small>',
     visOn: 'You’re visible on the graph', visOff: 'Other guests can’t see you now',
@@ -3200,6 +3221,8 @@ const T = {
     err_guest_gone: 'This guest is no longer in the event', err_event_full: 'The guest list is full', err_bad_code: 'The couple’s code is not valid',
     cropT: 'Frame your photo', cropHint: 'Drag the photo to choose what shows. Pinch or use the slider to zoom.', cropZoom: 'Zoom', cropCancel: 'Cancel', cropSave: 'Save',
     photoAskT: 'Your photo under your names', photoAskP: 'Guests will see it on the welcome screen, under your names. You can also skip it.',
+    multiHint: 'You can pick more than one.',
+    avAdd: 'Add your photo', avSub: 'Optional. Helps other guests recognise you.', avRemove: 'Remove', avSaved: 'Photo saved', avRemoved: 'Photo removed', editAnswers: 'Edit answers or photo',
     photoAdd: 'Add a photo', photoNo: 'No photo', photoChange: 'Change photo', photoRemove: 'Remove photo',
     photoBusy: 'Uploading the photo…', photoSaved: 'Photo added', photoRemoved: 'No photo – you can add one later in the couple panel', photoAlt: n => `Photo: ${n}`,
     err_not_an_image: 'That is not a photo (JPG, PNG or WebP)', err_photo_too_big: 'The photo is too big', err_couple_only: 'Only the couple can add the photo', photoReadFail: 'Could not read this photo',
@@ -3223,7 +3246,7 @@ const T = {
       { label: 'Friend or family', q: 'Friend or family?', opts: ['Friend', 'Family'], starter: 'how long they have known the couple' },
       { label: 'Where we met', q: 'Where did you meet the couple?', opts: ['College days', 'Work', 'Childhood', 'Through friends', 'Online / other'], starter: 'the story of how they met the couple' },
       { label: 'Dance floor', q: 'What’s your dance-floor style?', opts: ['First on the floor', 'Slow dances only', 'Bar-side swayer', 'Wallflower'], starter: 'their signature dance move' },
-      { label: 'Music', q: 'What kind of music do you listen to?', opts: ['Pop', 'Rock', 'Polish classics', 'Hip-hop', 'Jazz', 'A bit of everything'], starter: 'the best concert they have been to' },
+      { label: 'Music', q: 'What kind of music do you listen to?', opts: ['Pop', 'Rock', 'Polish classics', 'Hip-hop', 'Jazz', 'Electronic', 'Disco polo', 'Classical', 'Metal', 'R&B & soul', 'Latin', 'Indie & alternative'], starter: 'the best concert they have been to' },
       { label: 'Dream trip', q: 'Your dream trip?', opts: ['Beach', 'City break', 'Mountains', 'Road trip'], starter: 'the best trip they have ever taken' },
       { label: 'Dessert', q: 'Dessert table verdict?', opts: ['Wedding cake', 'Donuts', 'Cheese board', 'Dessert wine'], starter: 'the dessert they are going back for' },
       { label: 'Talk about', q: 'What do you love talking about?', opts: ['Travel', 'Food & wine', 'Music', 'Sports', 'Tech & gadgets', 'Books & films'], starter: a => `${a.toLowerCase()} – a safe topic for the whole evening` },
@@ -3235,22 +3258,30 @@ const T = {
 const tr = (key, ...a) => { const v = key in T[LANG] ? T[LANG][key] : T.en[key]; return typeof v === 'function' ? v(...a) : v; };
 
 /* questions: icons are language-independent, the texts come from T[LANG].q (getters, so a language switch needs no rebuild) */
-const Q_ICONS = [['flower-2', 'shirt', 'handshake'], ['smile', 'house'], ['graduation-cap', 'briefcase', 'blocks', 'party-popper', 'message-circle'], ['disc-3', 'heart', 'martini', 'brick-wall'], ['mic', 'guitar', 'music', 'headphones', 'piano', 'shuffle'], ['umbrella', 'building-2', 'mountain', 'car'], ['cake', 'donut', 'cheese', 'wine'], ['plane', 'utensils', 'music', 'trophy', 'laptop', 'clapperboard'], ['code', 'stethoscope', 'palette', 'scale', 'school', 'rocket'], ['dumbbell', 'brush', 'gamepad-2', 'chef-hat', 'mountain-snow', 'scissors']];
+const Q_ICONS = [['flower-2', 'shirt', 'handshake'], ['smile', 'house'], ['graduation-cap', 'briefcase', 'blocks', 'party-popper', 'message-circle'], ['disc-3', 'heart', 'martini', 'brick-wall'], ['mic', 'guitar', 'music', 'headphones', 'piano', 'audio-lines', 'disc-3', 'music-4', 'zap', 'heart', 'flame', 'radio'], ['umbrella', 'building-2', 'mountain', 'car'], ['cake', 'donut', 'cheese', 'wine'], ['plane', 'utensils', 'music', 'trophy', 'laptop', 'clapperboard'], ['code', 'stethoscope', 'palette', 'scale', 'school', 'rocket'], ['dumbbell', 'brush', 'gamepad-2', 'chef-hat', 'mountain-snow', 'scissors']];
 const Q = Q_ICONS.map((icons, i) => ({
   get label() { return T[LANG].q[i].label; }, get q() { return T[LANG].q[i].q; }, get starter() { return T[LANG].q[i].starter; },
   get opts() { return icons.map((n, j) => [n, T[LANG].q[i].opts[j]]); },
 }));
 const N = Q.length;
+/* multi-select questions (music): the answer is a sorted list of options or null; every other answer is one option or null.
+   The Worker keeps the same list in MULTI_Q. Two answers match when they share at least one option. */
+const MULTI = new Set([4]);
+Q.forEach((q, i) => { q.multi = MULTI.has(i); });
+const picks = a => a === null || a === undefined ? [] : [].concat(a);          // options chosen in an answer
+const has = (a, o) => picks(a).includes(o);
+const common = (a, b) => { const y = picks(b); return picks(a).filter(x => y.includes(x)); };
+const same = (a, b) => common(a, b).length > 0;
 const NAMES = ['Zosia W.', 'Piotr K.', 'Kasia M.', 'Tomek B.', 'Magda L.', 'Bartek N.', 'Ewa R.', 'Jakub S.', 'Natalia P.', 'Michał D.', 'Agnieszka T.', 'Paweł G.', 'Ida F.', 'Kuba Z.', 'Marta C.', 'Szymon H.', 'Julia O.', 'Adam V.', 'Karolina J.', 'Filip A.', 'Basia E.', 'Olek Y.'];
 // the couple use the app too: Ania & Marek answer like any other guest (side = their own side, relation = family)
 const COUPLE = [
-  { couple: 'bride', name: 'Ania W.', first: 'Ania', answers: [0, 1, 3, 0, 0, 0, 0, 0, 4, 3] },
-  { couple: 'groom', name: 'Marek W.', first: 'Marek', answers: [1, 1, 3, 0, 2, 2, 1, 4, 0, 4] },
+  { couple: 'bride', name: 'Ania W.', first: 'Ania', answers: [0, 1, 3, 0, [0, 9], 0, 0, 0, 4, 3] },
+  { couple: 'groom', name: 'Marek W.', first: 'Marek', answers: [1, 1, 3, 0, [1, 2], 2, 1, 4, 0, 4] },
 ];
 const ARCH = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [2, 0, 2, 2, 2, 3, 2, 2, 2, 2], [0, 1, 3, 3, 3, 2, 3, 3, 3, 3], [1, 0, 4, 0, 0, 1, 0, 4, 4, 4]];
 const rnd = (s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; })(14);
 const guests = NAMES.map((name, i) => ({ id: i, name, first: name.split(' ')[0], msg: i % 7 !== 5,   // msg:false = this guest has turned messages off
-  answers: Q.map((q, qi) => rnd() < 0.7 ? ARCH[i % 5][qi] % q.opts.length : Math.floor(rnd() * q.opts.length)) }));
+  answers: Q.map((q, qi) => { const v = rnd() < 0.7 ? ARCH[i % 5][qi] % q.opts.length : Math.floor(rnd() * q.opts.length); return q.multi ? [...new Set([v, ...(i % 2 ? [(v + 2 + i) % q.opts.length] : [])])].sort((a, b) => a - b) : v; }) }));
 guests.push(...COUPLE.map((c, i) => ({ ...c, id: guests.length + i })));
 if (REAL) guests.length = 0;   // real event: the list comes from the API (loadGraph) and from WebSocket pushes
 const guestById = id => guests.find(g => String(g.id) === String(id));
@@ -3289,13 +3320,14 @@ document.querySelectorAll('#steps button').forEach(b => b.onclick = () => {
   if (t === 'graph') { ensureAnswers(); go('graph'); }
   if (t === 'profile') { ensureAnswers(); showView('graph'); setTimeout(() => select(rank()[0]), 900); }
 });
-function ensureAnswers() { if (!myName) myName = 'Alex'; me = me.map(a => a === null ? 0 : a); }
+function ensureAnswers() { if (!myName) myName = 'Alex'; me = me.map((a, i) => a === null ? (Q[i].multi ? [0] : 0) : a); }
 $('start').onclick = () => { if (mandatoryDone()) { showView('summary'); return; } me = blank(); si = 0; renderQ(); go('quiz'); };
-$('sample').onclick = () => { if (mandatoryDone()) { myName = ''; me = blank(); si = 0; renderQ(); go('quiz'); return; } myName = 'Alex'; me = Q.map(() => 0); flushWelcomeReply(); go('loading'); setTimeout(() => showView('summary'), 1500); };
+$('sample').onclick = () => { if (mandatoryDone()) { myName = ''; me = blank(); si = 0; renderQ(); go('quiz'); return; } myName = 'Alex'; me = Q.map(q => q.multi ? [0] : 0); flushWelcomeReply(); go('loading'); setTimeout(() => showView('summary'), 1500); };
 
 /* ======================= quiz =======================
    Required: name, bride-or-groom, friend-or-family. Everything else is optional (skip, or tap a chosen card again to clear it). */
 let myName = '';
+let myAvatar = '', youImg = null, editName = '';   // my profile photo (address to show) + its decoded copy for the graph; editName: set while a guest edits earlier answers
 const REQUIRED_Q = 2;                                   // first two questions are mandatory
 const steps = [{ type: 'name' }, ...Q.map((q, i) => ({ type: 'q', i }))];
 let si = 0;
@@ -3306,7 +3338,7 @@ const mandatoryDone = () => myName.trim() && me[0] !== null && me[1] !== null;
 function liveStats() {
   const done = me.map((a, i) => a === null ? -1 : i).filter(i => i >= 0);
   if (!done.length) return { done: 0, top: 0, k: 0, count: guests.length };
-  const sc = guests.map(g => done.filter(i => g.answers[i] === me[i]).length), top = Math.max(0, ...sc), k = Math.max(1, top - 1);
+  const sc = guests.map(g => done.filter(i => same(g.answers[i], me[i])).length), top = Math.max(0, ...sc), k = Math.max(1, top - 1);
   return { done: done.length, top, k, count: sc.filter(v => v >= k).length };
 }
 let lastCount = null;
@@ -3323,7 +3355,7 @@ function renderLive() {
   lastCount = st.count;
 }
 function finishQuiz() {   // real event: wait until the answers are saved before showing the results
-  flushWelcomeReply(); go('loading'); const t = Date.now();
+  editName = ''; flushWelcomeReply(); go('loading'); const t = Date.now();
   (REAL ? flushMe() : Promise.resolve()).then(() => setTimeout(() => showView('summary'), Math.max(0, 1900 - (Date.now() - t))));
 }
 function nextStep() { syncMe(); if (si < steps.length - 1) { si++; renderQ(); } else finishQuiz(); }
@@ -3333,8 +3365,9 @@ function renderQ() {
   $('live').style.display = st.type === 'name' ? 'none' : 'flex';
   if (st.type === 'name') {
     $('qn').innerHTML = `${tr('welcome')} <span class="req r">${tr('required')}</span>`; $('qt').textContent = tr('nameQ');
-    $('opts').style.display = 'block';
-    $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="${tr('namePh')}" autocomplete="off" value="${esc(myName)}"><div class="name-hint">${tr(REAL ? 'consent' : 'nameHint')}</div>`;
+    $('opts').style.display = 'block'; $('opts').classList.remove('multi');
+    $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="${tr('namePh')}" autocomplete="off" value="${esc(myName)}"><div class="name-hint">${tr(REAL ? 'consent' : 'nameHint')}</div><div class="avpick" id="avpick"></div>`;
+    renderAvPick();
     const inp = $('name-in'), upd = () => { myName = inp.value.trim(); $('name-next').disabled = !nameOk(); };
     act.innerHTML = `<span></span><button class="btn" id="name-next">${tr('continue')}</button>`; $('name-next').disabled = !nameOk(); $('name-next').onclick = nextStep;
     inp.oninput = upd; inp.onkeydown = e => { if (e.key === 'Enter' && nameOk()) nextStep(); };
@@ -3342,23 +3375,30 @@ function renderQ() {
   }
   renderLive();
   const qi = st.i, q = Q[qi], req = qi < REQUIRED_Q;
-  $('qn').innerHTML = `${tr('qOf', qi + 1, Q.length)} <span class="req ${req ? 'r' : 'o'}">${tr(req ? 'required' : 'optional')}</span>`; $('qt').textContent = q.q;
-  $('opts').style.display = '';
-  $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${me[qi] === i ? 'sel' : ''}" data-i="${i}"><span>${ic(o[0], 30, 1.75)}</span>${o[1]}</button>`).join('');
-  act.innerHTML = req ? `<span class="name-hint" style="margin:0">${tr('reqHint')}</span>`
-    : `<button class="btn ghost" id="skip">${tr(me[qi] === null ? 'skip' : 'next')}</button>` + (mandatoryDone() ? `<button class="btn alt" id="done-now">${tr('graphNow')} ${ic('arrow-right', 18)}</button>` : '');
-  if (!req) { $('skip').onclick = nextStep; const dn = $('done-now'); if (dn) dn.onclick = finishQuiz; }
+  $('qn').innerHTML = `${tr('qOf', qi + 1, Q.length)} <span class="req ${req ? 'r' : 'o'}">${tr(req ? 'required' : 'optional')}</span>`; $('qt').textContent = q.q; if (q.multi) $('qt').insertAdjacentHTML('beforeend', `<small>${tr('multiHint')}</small>`);
+  $('opts').style.display = ''; $('opts').classList.toggle('multi', !!q.multi);
+  $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${has(me[qi], i) ? 'sel' : ''}" data-i="${i}"><span>${ic(o[0], 30, 1.75)}</span>${o[1]}</button>`).join('');
+  const canMove = !req || me[qi] !== null;   // a required question can be passed once it has an answer (editing earlier answers)
+  act.innerHTML = !canMove ? `<span class="name-hint" style="margin:0">${tr('reqHint')}</span>`
+    : `<button class="btn${q.multi && me[qi] !== null ? '' : ' ghost'}" id="skip">${tr(me[qi] === null ? 'skip' : 'next')}</button>` + (mandatoryDone() ? `<button class="btn alt" id="done-now">${tr('graphNow')} ${ic('arrow-right', 18)}</button>` : '');
+  if (canMove) { $('skip').onclick = nextStep; const dn = $('done-now'); if (dn) dn.onclick = finishQuiz; }
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => {
     const i = +b.dataset.i;
+    if (q.multi) { const cur = picks(me[qi]), nx = cur.includes(i) ? cur.filter(x => x !== i) : [...cur, i].sort((a, b) => a - b); me[qi] = nx.length ? nx : null; syncMe(); renderQ(); return; }   // several can be chosen: stay here, "Next" moves on
     if (me[qi] === i && !req) { me[qi] = null; syncMe(); renderQ(); return; }          // optional: tap again to clear
     me[qi] = i; syncMe(); renderQ(); setTimeout(nextStep, 260);
   });
 }
 $('qback').innerHTML = ic('chevron-left', 28, 2);
-$('qback').onclick = () => { if (si > 0) { si--; renderQ(); } else go('welcome'); };
+$('qback').onclick = () => {
+  if (si > 0) { si--; renderQ(); return; }
+  if (editName) { if (!nameOk()) myName = editName; finishQuiz(); return; }   // editing: back from the first step returns to the matches, never with an empty name
+  go('welcome');
+};
+function editAnswers() { editName = myName; si = 0; renderQ(); go('quiz'); }   // walk through the same steps with the current answers filled in
 
 /* ======================= scoring ======================= */
-const shared = g => Q.map((_, i) => me[i] !== null && g.answers[i] === me[i] ? i : -1).filter(i => i >= 0);   // two skipped answers are not a match
+const shared = g => Q.map((_, i) => same(me[i], g.answers[i]) ? i : -1).filter(i => i >= 0);   // two skipped answers are not a match
 const score = g => shared(g).length;
 const rank = () => [...guests].sort((a, b) => score(b) - score(a) || a.id - b.id);
 
@@ -3391,12 +3431,13 @@ function syncTabbar() {
   $('tabbar').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === active));
 }
 function mountSeg(id, active) { const el = $(id); el.innerHTML = segHTML(active); el.querySelectorAll('button').forEach(b => b.onclick = () => showView(b.dataset.v)); if (typeof refreshUnread === 'function') refreshUnread(); }
-function personChip(g) { return `<button class="person" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${esc(initials(g.name))}</span>${esc(g.first)}</button>`; }
+function personChip(g) { return `<button class="person" data-id="${g.id}">${avHTML(g)}${esc(g.first)}</button>`; }
 function renderSummary() {
   const done = answeredCount(), sc = guests.map(g => ({ g, s: score(g) })), top = Math.max(0, ...sc.map(x => x.s)), k = Math.max(1, top - 1);
   const close = sc.filter(x => x.s >= k && x.s > 0).length, any = sc.filter(x => x.s > 0).length;
   mountSeg('seg-summary', view === 'names' ? 'names' : 'summary');
   $('sm-title').textContent = myName ? tr('smTitleName', myName) : tr('smTitle');
+  $('sm-edit').innerHTML = ic('pencil', 14, 2.2) + tr('editAnswers'); $('sm-edit').onclick = editAnswers;
   $('sm-sub').textContent = tr('smSub', done, guests.length + (REAL ? 1 : 0));
   // grouped: how many answers in common -> how many people
   const byCount = {}; sc.forEach(x => { if (x.s > 0) (byCount[x.s] ||= []).push(x.g); });
@@ -3409,7 +3450,7 @@ function renderSummary() {
       <button class="grp-h"><b>${tr('inCommonN', c, done)}</b><span>${byCount[c].length}</span><small>${tr('peopleTap', byCount[c].length)}</small><div class="bar"><i style="width:${byCount[c].length / maxPeople * 100}%;--c:${COL[lvl(c)]}"></i></div></button>
       <div class="grp-b">${byCount[c].map(personChip).join('')}</div></div>`).join('') : `<div class="grp"><div class="grp-h"><b>${tr('noOverlap')}</b><small>${tr('noOverlapP')}</small></div></div>`}
     <div class="cta"><button class="btn alt" id="cta-names">${ic('users', 18)}${tr('showNames')}</button><button class="btn" id="cta-graph">${ic('network', 18)}${tr('seeGraph')}</button></div>`;
-  $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}"><span class="av" style="background:${avatarColor(g)}">${esc(initials(g.name))}</span><div>${esc(g.name)}<small>${tr('tier')[lvl(score(g))]}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
+  $('pn-names').innerHTML = `<div class="plist">${rank().filter(g => score(g) > 0).map(g => `<button class="prow" data-id="${g.id}">${avHTML(g)}<div>${esc(g.name)}<small>${tr('tier')[lvl(score(g))]}</small></div><em>${score(g)}/${done}</em></button>`).join('')}</div>`
     + `<div class="cta"><button class="btn" id="cta-graph2">${ic('network', 18)}${tr('seeGraph')}</button></div>`;
   if (REAL) renderPhoto();
   $('pn-summary').classList.toggle('on', view !== 'names'); $('pn-names').classList.toggle('on', view === 'names'); syncTabbar();
@@ -3436,7 +3477,7 @@ function startGraph() {
   nodes = [you, ...guests.map((g, i) => { const s = lvl(score(g)), a = i * 2.399 + .3, R = targetR(s); return { ...g, s, x: W / 2 + Math.cos(a) * R * .6, y: H / 2 + Math.sin(a) * R * .6, vx: 0, vy: 0, r: g.couple ? Math.max(19, 9 + s * 2.3) : 9 + s * 2.3, raw: score(g), cat: catColor(g), born: (5 - s) * .35 + i * .035 }; })];
   links = [];
   for (let i = 1; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
-    const n = Q.reduce((c, _, k) => c + (nodes[i].answers[k] !== null && nodes[i].answers[k] === nodes[j].answers[k] ? 1 : 0), 0);
+    const n = Q.reduce((c, _, k) => c + (same(nodes[i].answers[k], nodes[j].answers[k]) ? 1 : 0), 0);
     if (n >= 5 && nodes[i].s >= 1 && nodes[j].s >= 1) links.push([nodes[i], nodes[j], n]);
   }
   // radius by RANK (not by raw score): best match innermost, weakest outermost, so the whole canvas is used whatever the answers are
@@ -3492,7 +3533,7 @@ function loop() {
   step(); const t = (performance.now() - t0) / 1000;
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = 'rgba(247,168,198,.12)'; ctx.fillRect(0, 0, W / 2, H); ctx.fillStyle = 'rgba(169,205,245,.16)'; ctx.fillRect(W / 2, 0, W / 2, H);   // bride's half | groom's half
-  const faded = n => filter !== null && !n.you && !n.couple && n.answers[filter] !== me[filter];
+  const faded = n => filter !== null && !n.you && !n.couple && !same(n.answers[filter], me[filter]);
   // guest ↔ guest community links
   for (const [a, b, n] of links) { const al = Math.min(ease((t - a.born) * 1.5), ease((t - b.born) * 1.5)); if (!al) continue;
     ctx.strokeStyle = `rgba(155,134,234,${(faded(a) || faded(b) ? .05 : .2) * al})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
@@ -3526,8 +3567,10 @@ function loop() {
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r * sc + 3.5, 0, 7); ctx.lineWidth = 2; ctx.strokeStyle = n.cat; ctx.stroke(); ctx.shadowColor = n.cat; ctx.shadowBlur = 12; }
     if (n.you || n === selected) { ctx.beginPath(); ctx.arc(n.x, n.y, n.r * sc + 7 + Math.sin(t * 2.2) * 2, 0, 7); ctx.fillStyle = n.you ? 'rgba(155,134,234,.18)' : n.cat + '33'; ctx.fill(); }
     ctx.beginPath(); ctx.arc(n.x, n.y, n.r * sc, 0, 7); ctx.fillStyle = n.you ? '#3a3550' : n.cat; ctx.fill(); ctx.shadowBlur = 0; ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+    const pic = n.you ? youPic() : null;
+    if (pic) { const pr = n.r * sc - 1; ctx.save(); ctx.beginPath(); ctx.arc(n.x, n.y, pr, 0, 7); ctx.clip(); ctx.drawImage(pic, n.x - pr, n.y - pr, pr * 2, pr * 2); ctx.restore(); }
     ctx.fillStyle = n.you ? '#fff' : '#3a3550'; ctx.font = `700 ${n.you ? 13 : Math.max(9, n.r * .75)}px Nunito, system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(n.you ? (myName || tr('you')).slice(0, 1).toUpperCase() : initials(n.name), n.x, n.y + .5);
+    if (!pic) ctx.fillText(n.you ? (myName || tr('you')).slice(0, 1).toUpperCase() : initials(n.name), n.x, n.y + .5);
     if (n.you) { ctx.fillStyle = '#3a3550'; ctx.font = '700 11px Nunito, system-ui'; ctx.fillText(myName || tr('you'), n.x, n.y + n.r + 12); }
     if (!n.you && (n.s >= 3 || n === selected || (filter !== null && !faded(n)))) { ctx.fillStyle = '#3a3550'; ctx.font = (n.s >= 4 ? '800 12px' : '600 10.5px') + ' Nunito, system-ui'; ctx.fillText(n.first, n.x, n.y + n.r * sc + (n.s >= 4 ? 13 : 11));
       if (n.top) { const txt = `${n.raw}/${answeredCount()}`, y = n.y + n.r * sc + 28, w = ctx.measureText(txt).width + 12; ctx.fillStyle = n.cat; ctx.beginPath(); ctx.roundRect(n.x - w / 2, y - 8, w, 15, 7.5); ctx.fill(); ctx.fillStyle = '#3a3550'; ctx.font = '800 10px Nunito, system-ui'; ctx.fillText(txt, n.x, y); } }
@@ -3550,15 +3593,16 @@ function select(g) {
   sheetGuest = g;
   const n = nodes.find(x => x.id === g.id); selected = n || null;
   const s = score(g), L = lvl(s), sh = shared(g), c = COL[L];
-  const av = $('p-av'); av.textContent = initials(g.name); av.style.background = avatarColor(g);
+  const av = $('p-av'); setAv(av, g);
   $('p-name').textContent = g.name; $('p-meta').textContent = g.couple ? tr('role_' + g.couple) : tr('sideRel', g.answers[0], g.answers[1]);
   $('p-score').textContent = `${s}/${answeredCount()}`; $('p-score').style.color = c === '#e3dcec' ? '#857f9c' : c; $('p-tier').textContent = tr('tier')[L];
   $('p-meter').style.setProperty('--c', c); $('p-meter').innerHTML = Array.from({ length: Math.max(1, answeredCount()) }, (_, i) => `<i class="${i < s ? 'f' : ''}"></i>`).join('');
   const diff = Q.map((q, i) => i).filter(i => me[i] !== null && g.answers[i] !== null && !sh.includes(i)), skipped = Q.map((q, i) => i).filter(i => me[i] === null);
-  $('p-shared').innerHTML = (sh.length ? `<div class="lbl">${tr('youBoth')}</div><div class="pills">${sh.map(i => `<span class="pill" title="${Q[i].label}">${ic(Q[i].opts[g.answers[i]][0], 16)}${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : `<div class="lbl">${tr('nothingCommon')}</div>`)
-    + (diff.length ? `<div class="lbl">${tr('different')}</div><div class="pills dim">${diff.map(i => `<span class="pill" title="${Q[i].label}">${ic(Q[i].opts[g.answers[i]][0], 16)}${Q[i].opts[g.answers[i]][1]}</span>`).join('')}</div>` : '')
+  const pill = (i, o) => `<span class="pill" title="${Q[i].label}">${ic(Q[i].opts[o][0], 16)}${Q[i].opts[o][1]}</span>`;
+  $('p-shared').innerHTML = (sh.length ? `<div class="lbl">${tr('youBoth')}</div><div class="pills">${sh.flatMap(i => common(me[i], g.answers[i]).map(o => pill(i, o))).join('')}</div>` : `<div class="lbl">${tr('nothingCommon')}</div>`)
+    + (diff.length ? `<div class="lbl">${tr('different')}</div><div class="pills dim">${diff.flatMap(i => picks(g.answers[i]).map(o => pill(i, o))).join('')}</div>` : '')
     + (skipped.length ? `<div class="lbl">${tr('youSkipped')}</div><div class="skipnote">${skipped.map(i => Q[i].label).join(' · ')}</div>` : '');
-  const st = sh.length ? (typeof Q[sh[0]].starter === 'function' ? Q[sh[0]].starter(Q[sh[0]].opts[g.answers[sh[0]]][1]) : Q[sh[0]].starter) : null;
+  const st = sh.length ? (typeof Q[sh[0]].starter === 'function' ? Q[sh[0]].starter(Q[sh[0]].opts[common(me[sh[0]], g.answers[sh[0]])[0]][1]) : Q[sh[0]].starter) : null;
   $('p-start').innerHTML = ic('message-square-quote', 18) + '<span>' + (st ? tr('ask', esc(g.first), st) : tr('askNone', esc(g.first))) + '</span>';
   const mb = $('p-msg'), canMsg = g.msg !== false; mb.innerHTML = ic('message-circle', 18) + tr(canMsg ? 'message' : 'messagesOff'); mb.disabled = !canMsg; mb.onclick = () => openChat(g, view);
   const w = $('p-wave'); w.innerHTML = ic('hand', 18) + tr('wave'); w.classList.remove('done'); w.onclick = async () => {   // real event: a wave is a 👋 message, so it reaches the other phone
@@ -3678,7 +3722,47 @@ const TOKEN_KEY = 'tt_token_' + EVENT, ROLE_KEY = 'tt_role_' + EVENT, JOIN_KEY =
 const randomToken = () => { const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; return [...crypto.getRandomValues(new Uint8Array(43))].map(b => abc[b % 64]).join(''); };   // login tokens are made on the phone
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
 let myRole = null, restorePending = '', joinToken = '', token = '', EVT = null, mySettings = { allowMessages: true, visible: true }, lastSaved = '', saveTimer = null, saving = Promise.resolve();
-const norm = c => ({ id: +c.id, name: c.name, first: c.name.split(' ')[0], answers: c.answers, msg: c.msg, ...(c.role ? { couple: c.role } : {}) });
+const norm = c => ({ id: +c.id, name: c.name, first: c.name.split(' ')[0], answers: c.answers, msg: c.msg, photo: c.photo || 0, ...(c.role ? { couple: c.role } : {}) });
+/* ─── profile photos (optional). Guests: the address carries the photo version, so a changed photo is a new address.
+   Mine: saved on the server once I have joined; before that it waits in pendingAvatar; in the demo it stays on this phone. ─── */
+const AV_DEMO_KEY = 'tt_demo_avatar', AV_SIZE = 320, AV_QUALITY = 0.8;   // 320 px square JPEG, about 15-30 KB: sharp at avatar sizes on any phone, light on mobile data
+let myId = null, pendingAvatar = null;
+const avatarUrl = g => REAL && g && g.photo ? `${API}/api/e/${EVENT}/avatar/${g.id}?v=${g.photo}` : '';
+const avIn = g => esc(initials(g.name)) + (avatarUrl(g) ? `<img src="${esc(avatarUrl(g))}" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : '');
+const avHTML = g => `<span class="av" style="background:${avatarColor(g)}">${avIn(g)}</span>`;
+function setAv(el, g) { el.innerHTML = avIn(g); el.style.background = avatarColor(g); }
+function adoptPhoto(m) { myId = +m.id; myAvatar = avatarUrl({ id: myId, photo: m.photo || 0 }); youImg = null; }
+function youPic() {   // my photo for the middle of the graph, once it has loaded
+  if (!myAvatar) return null;
+  if (!youImg || youImg.dataset.src !== myAvatar) { youImg = new Image(); youImg.dataset.src = myAvatar; youImg.src = myAvatar; }
+  return youImg.complete && youImg.naturalWidth ? youImg : null;
+}
+function renderAvPick() {
+  const el = document.getElementById('avpick'); if (!el) return;
+  el.innerHTML = `<button type="button" class="avp-btn" id="av-add"><span class="av">${myAvatar ? `<img src="${esc(myAvatar)}" alt="">` : ic('camera', 22)}</span><span><b>${tr(myAvatar ? 'photoChange' : 'avAdd')}</b><small>${tr('avSub')}</small></span></button>`
+    + (myAvatar ? `<button type="button" class="avp-x" id="av-del">${tr('avRemove')}</button>` : '');
+  $('av-add').onclick = () => $('av-file').click();
+  const del = $('av-del'); if (del) del.onclick = () => setAvatar(null).then(() => toast(tr('avRemoved')), x => toast(errText(x), null, 4000));
+}
+async function sendAvatar(method, blob) {
+  const r = await fetch(`${API}/api/e/${EVENT}/me/avatar`, { method, headers: { Authorization: 'Bearer ' + token, ...(blob ? { 'Content-Type': blob.type } : {}) }, body: blob || undefined });
+  const j = await r.json().catch(() => null);
+  if (!r.ok) { const e = new Error('avatar'); e.status = r.status; e.code = (j && j.error) || 'http'; throw e; }
+  return j;
+}
+async function setAvatar(blob) {   // null = remove
+  if (!REAL) { myAvatar = blob ? await new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = no; fr.readAsDataURL(blob); }) : ''; store.set(AV_DEMO_KEY, myAvatar || null); youImg = null; }
+  else if (!token) { pendingAvatar = blob; myAvatar = blob ? URL.createObjectURL(blob) : ''; youImg = null; }   // not joined yet: sent right after the join
+  else adoptPhoto(await sendAvatar(blob ? 'PUT' : 'DELETE', blob));
+  renderAvPick();
+}
+$('av-file').onchange = async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+  let blob; try { blob = await openCropper(f, { aspect: 1, outW: AV_SIZE, quality: AV_QUALITY, round: true, labels: { title: tr('cropT'), hint: tr('cropHint'), zoom: tr('cropZoom'), cancel: tr('cropCancel'), save: tr('cropSave') } }); } catch (x) { toast(tr('photoReadFail'), null, 4000); return; }
+  if (!blob) return;   // cancelled
+  try { await setAvatar(blob); toast(tr('avSaved')); } catch (x) { toast(errText(x), null, 4000); }
+};
+if (!REAL) myAvatar = store.get(AV_DEMO_KEY) || '';
 async function api(path, { method = 'GET', body } = {}) {
   const r = await fetch(`${API}/api/e/${EVENT}${path}`, { method, headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => null);
@@ -3695,7 +3779,7 @@ if (REAL) (function readUrl() {   // #r=<restore code> (installed app), #role=br
   token = store.get(TOKEN_KEY) || '';
 })();
 const pendingRole = () => { try { return JSON.parse(sessionStorage.getItem(ROLE_KEY)); } catch (e) { return null; } };
-function adoptMe(m) { myRole = m.role || null; myName = m.name; me = m.answers.slice(); mySettings = { allowMessages: m.allowMessages, visible: m.visible }; lastSaved = JSON.stringify({ name: m.name, answers: m.answers }); }
+function adoptMe(m) { adoptPhoto(m); myRole = m.role || null; myName = m.name; me = m.answers.slice(); mySettings = { allowMessages: m.allowMessages, visible: m.visible }; lastSaved = JSON.stringify({ name: m.name, answers: m.answers }); }
 /* The installed app has its own storage (iOS), so its start_url carries a restore code: reusable for a day, traded for a login
    of its own on first launch. The login token itself never appears in a URL. */
 const restoreCode = () => { try { const r = JSON.parse(store.get(RESTORE_KEY)); return r && r.exp - Date.now() > 12 * 3600e3 ? r.code : ''; } catch (e) { return ''; } };
@@ -3761,7 +3845,8 @@ async function pushMe() {   // join on the first save, update afterwards; always
       let jt = store.get(JOIN_KEY) || joinToken; if (!jt) { jt = joinToken = randomToken(); store.set(JOIN_KEY, jt); }   // kept until the join is confirmed: repeating it cannot create a second guest
       const r = await api('/join', { method: 'POST', body: { ...body, token: jt, ...(p || {}) } });
       token = r.token; store.set(TOKEN_KEY, token); store.set(JOIN_KEY, null); joinToken = ''; try { sessionStorage.removeItem(ROLE_KEY); } catch (e) {}
-      mySettings = { allowMessages: r.me.allowMessages, visible: r.me.visible }; myRole = r.me.role || null; lastSaved = sig; updateManifest(); backend.connect(); ensureRestore(); renderPhoto();   // connect -> 'sync' -> loadGraph
+      mySettings = { allowMessages: r.me.allowMessages, visible: r.me.visible }; myRole = r.me.role || null; myId = +r.me.id; lastSaved = sig; updateManifest(); backend.connect(); ensureRestore(); renderPhoto();
+      if (pendingAvatar) { const b = pendingAvatar; pendingAvatar = null; sendAvatar('PUT', b).then(adoptPhoto, x => { myAvatar = ''; youImg = null; renderAvPick(); toast(errText(x), null, 4000); }); }   // the photo chosen before joining   // connect -> 'sync' -> loadGraph
     } else { await api('/me', { method: 'PUT', body }); lastSaved = sig; if (pendingRole()) await claimRole(); }
     saveRetry = 0;
   } catch (e) {
@@ -3803,7 +3888,7 @@ function onLive(ev) {   // pushes from the WebSocket
 function forgetMe(reset) {   // drop the token; with reset also the local answers (after "delete my data" or removal by the couple)
   token = ''; joinToken = ''; store.set(TOKEN_KEY, null); store.set(JOIN_KEY, null); store.set(RESTORE_KEY, null); lastSaved = ''; backend.close(); updateManifest();
   myRole = null; renderPhoto();
-  if (reset) { myName = ''; me = blank(); guests.length = 0; closeSheet(); si = 0; renderQ(); go('welcome'); }
+  if (reset) { myId = null; pendingAvatar = null; myAvatar = ''; youImg = null; myName = ''; me = blank(); guests.length = 0; closeSheet(); si = 0; renderQ(); go('welcome'); }
 }
 async function bootReal() {
   updateManifest();
@@ -3836,7 +3921,7 @@ async function renderInbox() {
   const [th, st] = await Promise.all([backend.getThreads(), backend.getSettings()]);
   $('pn-inbox').innerHTML = `<label class="toggle"><input type="checkbox" id="allow-msg" ${st.allowMessages ? 'checked' : ''}><span>${tr('allowMsg')}</span></label>`
     + (REAL ? `<label class="toggle"><input type="checkbox" id="vis-me" ${st.visible ? 'checked' : ''}><span>${tr('visibleMe')}</span></label>` : '')
-    + (th.length ? `<div class="plist">${th.filter(t => guestOf(t.withId)).map(t => { const g = guestOf(t.withId); return `<button class="prow ${t.unread ? 'unread' : ''}" data-id="${t.withId}"><span class="av" style="background:${avatarColor(g)}">${esc(initials(g.name))}</span><div>${esc(g.name)}<small class="pv">${t.last.from === 'me' ? tr('youPrefix') : ''}${esc(bodyOf(t.last))}</small></div><span class="meta">${agoOf(t.last.at)}${t.unread ? '<i class="dot"></i>' : ''}</span></button>`; }).join('')}</div>`
+    + (th.length ? `<div class="plist">${th.filter(t => guestOf(t.withId)).map(t => { const g = guestOf(t.withId); return `<button class="prow ${t.unread ? 'unread' : ''}" data-id="${t.withId}">${avHTML(g)}<div>${esc(g.name)}<small class="pv">${t.last.from === 'me' ? tr('youPrefix') : ''}${esc(bodyOf(t.last))}</small></div><span class="meta">${agoOf(t.last.at)}${t.unread ? '<i class="dot"></i>' : ''}</span></button>`; }).join('')}</div>`
       : `<div class="empty">${tr('inboxEmpty')}<br><button class="btn" id="ib-graph">${ic('network', 18)}${tr('seeGraph')}</button></div>`)
     + (REAL ? `<button class="btn ghost danger" id="del-me">${tr('deleteMe')}</button>` : '');
   $('allow-msg').onchange = e => backend.setSettings({ allowMessages: e.target.checked }).then(() => toast(tr(e.target.checked ? 'canMsgOn' : 'canMsgOff')));
@@ -3853,11 +3938,11 @@ function scrollChat() { const b = $('chat-msgs'); b.scrollTop = b.scrollHeight; 
 function appendMsg(m) { if (shown.has(m.id)) return; shown.add(m.id); const t = $('typing'); if (t) t.remove(); $('chat-msgs').insertAdjacentHTML('beforeend', bubble(m)); $('chat-sugg').innerHTML = ''; scrollChat(); }
 function suggestionsFor(g) {
   const sh = shared(g).filter(i => i >= 2).slice(0, 2);
-  return [...sh.map(i => tr('suggShared', g.first, Q[i].opts[g.answers[i]][1], Q[i].label)), tr('suggHi', g.first, myName)];
+  return [...sh.map(i => tr('suggShared', g.first, Q[i].opts[common(me[i], g.answers[i])[0]][1], Q[i].label)), tr('suggHi', g.first, myName)];
 }
 async function openChat(g, from) {
   chat = { id: String(g.id), from: from || 'chats' }; shown = new Set();
-  const av = $('chat-av'); av.textContent = initials(g.name); av.style.background = avatarColor(g);
+  const av = $('chat-av'); setAv(av, g);
   $('chat-name').textContent = g.name; $('chat-sub').textContent = g.couple ? tr('role_' + g.couple) : tr('nInCommon', score(g), answeredCount());
   const list = await backend.getMessages(chat.id);
   $('chat-msgs').innerHTML = `<div class="chat-note">${tr('chatNote')}</div>` + list.map(m => { shown.add(m.id); return bubble(m); }).join('');

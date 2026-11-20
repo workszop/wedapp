@@ -9,11 +9,13 @@
 //   GET    /photo               the couple's photo (no auth; guests see it on the welcome screen)
 //   PUT    /me/photo  DELETE /me/photo   bride or groom only: raw image body / remove (= no photo)
 //   GET    /manifest            web app manifest whose start_url keeps the event (and, with ?r=, a restore code)
-//   POST   /join                {name, answers[10], token?, role?, code?} -> {token, me}   (same token again = same guest)
+//   POST   /join                {name, answers[10] (music: a list of options), token?, role?, code?} -> {token, me}   (same token again = same guest)
 //   GET    /me   PUT /me   DELETE /me      own profile, answers and settings; delete = erase my data
+//   PUT    /me/avatar  DELETE /me/avatar  own profile photo: raw image body (the app sends a small square JPEG) / remove
+//   GET    /avatar/:id?v=N     a guest's profile photo (no auth, but only with the current version N, which only the guest list reveals)
 //   POST   /me/role {role, code}           take the bride/groom role on an existing guest
 //   POST   /me/restore -> {code}   POST /restore {code, token}     log the installed app in as the same guest
-//   GET    /graph               every visible guest except me: id, name, role, answers, msg
+//   GET    /graph               every visible guest except me: id, name, role, answers, msg, photo (version, 0 = none)
 //   GET    /inbox   GET /messages?with=ID   POST /messages {to, body}   POST /messages/read {with}
 //   GET    /ws                  WebSocket (token in Sec-WebSocket-Protocol: "tt, <token>")
 //   GET    /admin   PUT /admin   DELETE /admin   DELETE /admin/guests/:id   PUT|DELETE /admin/photo     couple only (Bearer admin code)
@@ -21,7 +23,8 @@
 //   POST   /api/admin/events    {names, dateLine, adminCode?} with Bearer MASTER_KEY -> {slug, adminCode}   (adminCode lets the operator reuse a couple's code)
 import { DurableObject } from 'cloudflare:workers';
 
-const OPT_COUNTS = [3, 2, 5, 4, 6, 4, 4, 6, 6, 6];   // number of options per question, same order as Q in index.html
+const OPT_COUNTS = [3, 2, 5, 4, 12, 4, 4, 6, 6, 6];   // number of options per question, same order as Q in index.html
+const MULTI_Q = new Set([4]);   // questions where a guest may pick several options (music): the answer is a sorted array of options, or null
 const SLUG_RE = /^[a-z0-9]{12,40}$/;
 const NAME_RE = /^[\p{L}\p{M}\d .'’-]{1,24}$/u;
 const MAX_GUESTS = 200, MAX_BODY = 500, KEEP_DAYS = 60;
@@ -29,6 +32,8 @@ const JOIN_LIMIT = [300, 10 * 60e3];  // joins per IP per window – above the g
 const SEND_LIMIT = [20, 60e3];        // messages per guest per window
 const ADMIN_FAILS = [8, 10 * 60e3];   // wrong couple codes per IP per window before further wrong ones get 429
 const PHOTO_MAX = 1500 * 1024;   // the app shrinks photos to ~200 KB before upload; this is only a safety cap
+const AVATAR_MAX = 150 * 1024;   // profile photos arrive as ~320 px JPEGs of 15-30 KB; this is only a safety cap
+const AVATAR_LIMIT = [12, 10 * 60e3];   // profile photo changes per guest per window
 const imageType = b => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? 'image/jpeg' : b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 ? 'image/png' : b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50 ? 'image/webp' : null;
 const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/, RESTORE_RE = /^[A-Za-z0-9_-]{32}$/, RESTORE_TTL = 24 * 3600e3;
 
@@ -49,17 +54,31 @@ function rateOk(map, key, [limit, windowMs]) {
   if (list.length >= limit) { map.set(key, list); return false; }
   list.push(t); map.set(key, list); return true;
 }
-function validAnswers(a) {
-  if (!Array.isArray(a) || a.length !== OPT_COUNTS.length) return false;
-  if (!a.every((v, i) => v === null || (Number.isInteger(v) && v >= 0 && v < OPT_COUNTS[i]))) return false;
-  return a[0] !== null && a[1] !== null;   // bride-or-groom and friend-or-family are required
+/** Answers as sent or as stored -> the current shape, or null when they are not valid.
+    Music used to be one number, where option 5 meant "a bit of everything" (removed): old values become a one-item list, old 5 becomes "not answered". */
+function normAnswers(a) {
+  if (!Array.isArray(a) || a.length !== OPT_COUNTS.length) return null;
+  const out = [];
+  for (let i = 0; i < a.length; i++) {
+    let v = a[i]; const ok = x => Number.isInteger(x) && x >= 0 && x < OPT_COUNTS[i];
+    if (MULTI_Q.has(i)) {
+      if (Number.isInteger(v)) v = v === 5 ? null : [v];
+      if (v !== null) {
+        if (!Array.isArray(v) || v.length > OPT_COUNTS[i] || !v.every(ok)) return null;
+        v = [...new Set(v)].sort((x, y) => x - y); if (!v.length) v = null;
+      }
+    } else if (v !== null && !ok(v)) return null;
+    out.push(v);
+  }
+  return out[0] !== null && out[1] !== null ? out : null;   // bride-or-groom and friend-or-family are required
 }
+const answersOf = g => { const a = JSON.parse(g.answers); return normAnswers(a) || a; };   // stored answers of events created before multi-select
 
 export class EventRoom extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
-    this.joins = new Map(); this.sends = new Map(); this.adminFails = new Map();
+    this.joins = new Map(); this.sends = new Map(); this.adminFails = new Map(); this.avatarPuts = new Map();
     this.isReady = null;
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));   // keep-alive without waking the object
   }
@@ -76,7 +95,10 @@ export class EventRoom extends DurableObject {
   extraTables() {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, guest_id INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS restores (hash TEXT PRIMARY KEY, guest_id INTEGER NOT NULL, exp INTEGER NOT NULL);
-      CREATE TABLE IF NOT EXISTS photo (k INTEGER PRIMARY KEY CHECK (k = 1), mime TEXT NOT NULL, data BLOB NOT NULL);`);
+      CREATE TABLE IF NOT EXISTS photo (k INTEGER PRIMARY KEY CHECK (k = 1), mime TEXT NOT NULL, data BLOB NOT NULL);
+      CREATE TABLE IF NOT EXISTS avatars (guest_id INTEGER PRIMARY KEY, mime TEXT NOT NULL, data BLOB NOT NULL);`);
+    // guests.photo = version of the guest's profile photo (0 = none); added here so events created earlier get it too
+    if (!this.sql.exec('PRAGMA table_info(guests)').toArray().some(c => c.name === 'photo')) this.sql.exec('ALTER TABLE guests ADD COLUMN photo INTEGER NOT NULL DEFAULT 0');
   }
   meta(k) { const r = this.sql.exec('SELECT v FROM meta WHERE k = ?', k).toArray()[0]; return r ? r.v : null; }
   setMeta(k, v) { this.sql.exec('INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, String(v)); }
@@ -110,8 +132,8 @@ export class EventRoom extends DurableObject {
   }
 
   // ---------- views ----------
-  me(g) { return { id: String(g.id), name: g.name, answers: JSON.parse(g.answers), role: g.role, allowMessages: !!g.allow_messages, visible: !!g.visible }; }
-  card(g) { return { id: String(g.id), name: g.name, answers: JSON.parse(g.answers), role: g.role, msg: !!g.allow_messages }; }
+  me(g) { return { id: String(g.id), name: g.name, answers: answersOf(g), role: g.role, photo: g.photo || 0, allowMessages: !!g.allow_messages, visible: !!g.visible }; }
+  card(g) { return { id: String(g.id), name: g.name, answers: answersOf(g), role: g.role, photo: g.photo || 0, msg: !!g.allow_messages }; }
   msg(m, meId) { const who = id => id === meId ? 'me' : String(id); return { id: String(m.id), from: who(m.from_id), to: who(m.to_id), body: m.body, at: m.at, readAt: m.read_at }; }
   eventInfo() {
     const ps = this.meta('photoState') || '';   // '' = not decided yet, 'set', 'declined'
@@ -140,6 +162,33 @@ export class EventRoom extends DurableObject {
     const r = this.one('SELECT mime, data FROM photo WHERE k = 1');
     if (!r || this.meta('photoState') !== 'set') return err(404, 'no_photo');
     return new Response(r.data, { headers: { 'Content-Type': r.mime, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' } });
+  }
+
+  // ---------- guests' profile photos (optional; shown next to their name) ----------
+  async putAvatar(g, request) {
+    if (+(request.headers.get('Content-Length') || 0) > AVATAR_MAX) return err(413, 'photo_too_big');
+    if (!rateOk(this.avatarPuts, g.id, AVATAR_LIMIT)) return err(429, 'slow_down');
+    const buf = await request.arrayBuffer();
+    if (!buf.byteLength || buf.byteLength > AVATAR_MAX) return err(buf.byteLength ? 413 : 400, buf.byteLength ? 'photo_too_big' : 'bad_request');
+    const mime = imageType(new Uint8Array(buf, 0, Math.min(12, buf.byteLength)));
+    if (!mime) return err(415, 'not_an_image');
+    this.sql.exec('INSERT INTO avatars (guest_id, mime, data) VALUES (?, ?, ?) ON CONFLICT(guest_id) DO UPDATE SET mime = excluded.mime, data = excluded.data', g.id, mime, buf);
+    const v = Math.max(Math.floor(Date.now() / 1000), (g.photo || 0) + 1);   // a new version = a new address, so phones never show a stale cached photo
+    const u = this.one('UPDATE guests SET photo = ?, updated_at = ? WHERE id = ? RETURNING *', v, now(), g.id);
+    this.announce(u);
+    return json(this.me(u));
+  }
+  dropAvatar(g) {
+    this.sql.exec('DELETE FROM avatars WHERE guest_id = ?', g.id);
+    const u = this.one('UPDATE guests SET photo = 0, updated_at = ? WHERE id = ? RETURNING *', now(), g.id);
+    this.announce(u);
+    return json(this.me(u));
+  }
+  getAvatar(id, v) {
+    const g = this.one('SELECT photo FROM guests WHERE id = ?', id);
+    const r = g && g.photo && String(g.photo) === v ? this.one('SELECT mime, data FROM avatars WHERE guest_id = ?', id) : null;
+    if (!r) return err(404, 'no_photo');
+    return new Response(r.data, { headers: { 'Content-Type': r.mime, 'Cache-Control': 'private, max-age=604800, immutable', 'X-Content-Type-Options': 'nosniff' } });
   }
 
   // ---------- realtime ----------
@@ -180,6 +229,8 @@ export class EventRoom extends DurableObject {
 
     if (path === '/event' && method === 'GET') return json(this.eventInfo());
     if (path === '/photo' && method === 'GET') return this.getPhoto();
+    const av = path.match(/^\/avatar\/(\d+)$/);
+    if (av && method === 'GET') return this.getAvatar(parseInt(av[1], 10), url.searchParams.get('v') || '');
     if (path === '/manifest' && method === 'GET') return this.manifest(url, request.headers.get('X-App-Url'));
     if (path === '/join' && method === 'POST') return this.join(request);
     if (path === '/restore' && method === 'POST') return this.restore(request);
@@ -206,7 +257,7 @@ export class EventRoom extends DurableObject {
       if (ok === null) return err(429, 'slow_down');
       if (!ok) return err(403, 'bad_code');
       this.takeRole(b.role, g.id);
-      const a = JSON.parse(g.answers); a[0] = b.role === 'bride' ? 0 : 1;
+      const a = answersOf(g); a[0] = b.role === 'bride' ? 0 : 1;
       const u = this.one('UPDATE guests SET role = ?, answers = ?, updated_at = ? WHERE id = ? RETURNING *', b.role, JSON.stringify(a), now(), g.id);
       this.announce(u);
       return json(this.me(u));
@@ -215,6 +266,10 @@ export class EventRoom extends DurableObject {
       if (!g.role) return err(403, 'couple_only');
       if (method === 'PUT') return this.putPhoto(request);
       if (method === 'DELETE') return this.dropPhoto();
+    }
+    if (path === '/me/avatar') {
+      if (method === 'PUT') return this.putAvatar(g, request);
+      if (method === 'DELETE') return this.dropAvatar(g);
     }
     if (path === '/me/restore' && method === 'POST') {   // code for the manifest of the installed app; reusable for a day, so the login token never travels in a URL
       const code = randomString(32, TOKEN_ABC), exp = Date.now() + RESTORE_TTL;
@@ -284,12 +339,13 @@ export class EventRoom extends DurableObject {
     if (!b) return err(400, 'bad_request');
     const name = cleanText(b.name, 40);
     if (!NAME_RE.test(name)) return err(400, 'bad_name');
-    if (!validAnswers(b.answers)) return err(400, 'bad_request');
+    const answers = normAnswers(b.answers);
+    if (!answers) return err(400, 'bad_request');
     // The app sends a token it generated itself, so a join whose reply was lost can be repeated without creating a second guest.
     const token = TOKEN_RE.test(b.token || '') ? b.token : randomString(43, TOKEN_ABC), hash = await sha256(token);
     const again = this.one('SELECT * FROM guests WHERE token_hash = ?', hash);
     if (again) {
-      const res = this.updateMe(again, { name, answers: b.answers });
+      const res = this.updateMe(again, { name, answers });
       return res.status === 200 ? json({ token, me: this.me(this.one('SELECT * FROM guests WHERE id = ?', again.id)) }) : res;
     }
     if (this.one('SELECT COUNT(*) AS n FROM guests').n >= MAX_GUESTS) return err(403, 'event_full');
@@ -303,7 +359,7 @@ export class EventRoom extends DurableObject {
       role = b.role;
     }
     const t = now();
-    const g = this.one('INSERT INTO guests (token_hash, name, answers, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING *', hash, name, JSON.stringify(b.answers), role, t, t);
+    const g = this.one('INSERT INTO guests (token_hash, name, answers, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING *', hash, name, JSON.stringify(answers), role, t, t);
     this.announce(g);
     return json({ token, me: this.me(g) }, 201);
   }
@@ -324,7 +380,7 @@ export class EventRoom extends DurableObject {
     if (!b) return err(400, 'bad_request');
     const next = { name: g.name, answers: g.answers, allow_messages: g.allow_messages, visible: g.visible };
     if ('name' in b) { const n = cleanText(b.name, 40); if (!NAME_RE.test(n)) return err(400, 'bad_name'); next.name = n; }
-    if ('answers' in b) { if (!validAnswers(b.answers)) return err(400, 'bad_request'); next.answers = JSON.stringify(b.answers); }
+    if ('answers' in b) { const a = normAnswers(b.answers); if (!a) return err(400, 'bad_request'); next.answers = JSON.stringify(a); }
     if ('allowMessages' in b) next.allow_messages = b.allowMessages ? 1 : 0;
     if ('visible' in b) next.visible = b.visible ? 1 : 0;
     const changed = Object.keys(next).some(k => next[k] !== g[k]);
@@ -337,6 +393,7 @@ export class EventRoom extends DurableObject {
   removeGuest(id) {
     this.sql.exec('DELETE FROM messages WHERE from_id = ? OR to_id = ?', id, id);
     this.sql.exec('DELETE FROM sessions WHERE guest_id = ?', id); this.sql.exec('DELETE FROM restores WHERE guest_id = ?', id);
+    this.sql.exec('DELETE FROM avatars WHERE guest_id = ?', id);
     this.sql.exec('DELETE FROM guests WHERE id = ?', id);
     this.broadcast({ type: 'gone', id: String(id) }, id);
     for (const ws of this.ctx.getWebSockets('g:' + id)) { try { ws.close(4002, 'guest deleted'); } catch (e) {} }
@@ -352,7 +409,7 @@ export class EventRoom extends DurableObject {
         event: { ...this.eventInfo(), createdAt: this.meta('createdAt'), purgeAt: this.meta('purgeAt') },
         online: new Set(this.ctx.getWebSockets().map(ws => (ws.deserializeAttachment() || {}).gid)).size,
         messages: this.one('SELECT COUNT(*) AS n FROM messages').n,
-        guests: this.all('SELECT * FROM guests ORDER BY id').map(g => ({ ...this.card(g), visible: !!g.visible, answered: JSON.parse(g.answers).filter(a => a !== null).length, createdAt: g.created_at })),
+        guests: this.all('SELECT * FROM guests ORDER BY id').map(g => ({ ...this.card(g), visible: !!g.visible, answered: answersOf(g).filter(a => a !== null).length, createdAt: g.created_at })),
       });
     }
     if (path === '/admin' && method === 'PUT') {
