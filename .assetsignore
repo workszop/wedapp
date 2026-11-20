@@ -8,3 +8,15 @@ wrangler.jsonc
 worker
 *.secret
 .dev.vars
+# working folders and drafts that git ignores too: a local "wrangler deploy" must not publish them
+mockups
+plans
+superpowers
+scratch
+ux-audit
+bee-icon-concepts
+progress.md
+review*.md
+*.plan.md
+*.draft.*
+img/newlyweds-*
