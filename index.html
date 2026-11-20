@@ -404,6 +404,8 @@
   .btn.ghost.danger{color:var(--pink-d)}
   .share-open{color:var(--lav-d)}
   .btn.alt.share-open{margin-top:10px;color:var(--ink)}
+  .inst-mini{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:6px;padding:6px;min-height:32px;border:0;background:none;cursor:pointer;font:700 12.5px var(--sans);color:var(--lav-d)}
+  .inst-mini[hidden]{display:none}
   #sample{min-height:40px;margin-top:4px;padding:8px;font:700 12.5px var(--sans);color:var(--mute)}
   .welcome>div:first-child{padding-top:46px}
   @media (min-width:900px) and (min-height:600px){.welcome>div:first-child{padding-top:18px}}
@@ -509,6 +511,9 @@
   /* profile photos: the picture covers the initials, which stay underneath as the fallback */
   .av{position:relative;overflow:hidden}
   .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
+  #pn-names .prow{padding:10px 14px 10px 10px;gap:14px}
+  #pn-names .prow .av{width:54px;height:54px;font-size:18px}
+  #pn-names .prow div{font-size:15px}
   .avpick{display:flex;align-items:center;gap:6px;margin-top:16px}
   .avp-btn{flex:1;min-width:0;display:flex;align-items:center;gap:12px;min-height:66px;text-align:left;font:inherit;color:inherit;background:rgba(255,255,255,.85);border:0;border-radius:20px;padding:10px 14px 10px 10px;box-shadow:inset 0 0 0 1.5px var(--line);cursor:pointer}
   .avp-btn .av{width:46px;height:46px;background:#ffe1ec;color:var(--ink)}
@@ -557,6 +562,17 @@
   @media (max-height:720px){
     .opt{min-height:52px;padding:6px 12px 6px 6px}.opt span{width:38px;height:38px;border-radius:13px}.opt span .ic{width:20px;height:20px}
     .opts{gap:8px}.hero .big{width:84px;height:84px;font-size:36px}
+  }
+  /* ===== print: the desktop view on one A4 landscape sheet (the on-screen phone scale comes from the window height, so it is fixed here) ===== */
+  @page{size:A4 landscape;margin:8mm}
+  @media print{
+    html,body{min-height:0!important;height:auto!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .stage{min-height:0!important;height:auto!important;padding:0 16px!important;align-items:center;break-inside:avoid}
+    .phone{transform:none!important;zoom:.8;box-shadow:0 0 0 2px #36343d inset!important}   /* zoom, not transform: a transformed box is still paginated at its full size */
+    .phone-wrap{width:312px!important;height:656px!important;break-inside:avoid}
+    .intro,.qr-card{break-inside:avoid}
+    .qr-card .qr.sm{width:200px!important}html.real .qr-card .qr.sm{width:260px!important}
+    #ibanner,.toast{display:none!important}
   }
 </style>
 </head>
@@ -634,6 +650,7 @@
           <div>
             <button class="btn" id="start">Find my people</button>
             <button class="btn alt share-open" id="share-open"></button>
+            <button class="inst-mini" id="inst-mini" hidden></button>
             <button class="btn ghost" id="sample">Preview</button>
           </div>
         </div>
@@ -3049,7 +3066,7 @@ const T = {
     st6: 'Wiadomości<small>Napisz do gościa, którego chcesz poznać</small>',
     qrCard: '<b>Otwórz na telefonie</b><span>Zeskanuj kod aparatem. Aplikacja jest zrobiona pod telefony.</span>',
     banner: '<b>Aplikacja na pełnym ekranie</b><small>Bez paska adresu · działa offline</small>',
-    how: 'Jak?', install: 'Zainstaluj', gotIt: 'Jasne',
+    how: 'Jak?', install: 'Zainstaluj', installApp: 'Zainstaluj aplikację', gotIt: 'Jasne',
     close: 'Zamknij', back: 'Wstecz', navMain: 'Główna nawigacja', guideAria: 'Instalacja aplikacji',
     shareOpen: 'Udostępnij aplikację', shareT: 'Udostępnij Bee Talk', shareP: 'Zeskanuj aparatem telefonu, aby otworzyć aplikację',
     shareLink: 'Udostępnij link', copyLink: 'Kopiuj link', linkCopied: 'Skopiowano link', shareText: 'Poznajmy się na brunchu ślubnym Ani i Marka',
@@ -3161,7 +3178,7 @@ const T = {
     st6: 'Messages<small>Write to a guest you’d like to meet</small>',
     qrCard: '<b>Open it on your phone</b><span>Scan the code with your camera – the app is built for phones.</span>',
     banner: '<b>Get the full-screen app</b><small>No address bar · works offline</small>',
-    how: 'How', install: 'Install', gotIt: 'Got it',
+    how: 'How', install: 'Install', installApp: 'Install the app', gotIt: 'Got it',
     close: 'Close', back: 'Back', navMain: 'Main', guideAria: 'Install the app',
     shareOpen: 'Share the app', shareT: 'Share Bee Talk', shareP: 'Scan with a phone camera to open the app',
     shareLink: 'Share link', copyLink: 'Copy link', linkCopied: 'Link copied', shareText: 'Find your people at Ania & Marek’s wedding brunch',
@@ -4064,8 +4081,7 @@ document.addEventListener('click', e => { if (e.target.closest('button, .opt, .p
 const inApp = /FBAN|FBAV|Instagram|Line\/|WhatsApp|Snapchat|Twitter|MicroMessenger|LinkedInApp|GSA\//i.test(navigator.userAgent);
 const isAndroid = /android/i.test(navigator.userAgent);
 const droid = /SamsungBrowser/i.test(navigator.userAgent) ? 'samsung' : /Firefox|FxiOS/i.test(navigator.userAgent) ? 'firefox' : /EdgA/i.test(navigator.userAgent) ? 'edge' : 'chrome';
-const dismissedKey = 'tt_install_dismissed';
-const getDismissed = () => { try { return localStorage.getItem(dismissedKey) === '1'; } catch (e) { return false; } };
+let ibClosed = false;   // the install pop-up comes back on every launch; closing it hides it for this visit only and leaves a small link on the welcome screen
 const GUIDE_ICONS = { inAndroid: ['ellipsis-vertical', 'compass', 'download'], inIOS: ['ellipsis', 'compass', 'share'], ios: ['share', 'square-plus', 'smartphone', 'check'], chrome: ['ellipsis-vertical', 'download', 'smartphone'], samsung: ['ellipsis', 'square-plus', 'smartphone'], firefox: ['ellipsis-vertical', 'download', 'smartphone'], edge: ['ellipsis', 'square-plus', 'smartphone'], generic: ['ellipsis-vertical', 'download'] };
 function guideSteps() {   // texts live in T[LANG].guide, icons in GUIDE_ICONS
   const G = tr('guide'), step = (i, icon, [tx, sm]) => `<li><span class="n">${i}</span><span class="ic">${ic(icon, 22)}</span><span>${tx}${sm ? `<small>${sm}</small>` : ''}</span></li>`;
@@ -4084,16 +4100,17 @@ const closeGuide = () => { $('guide').classList.remove('open'); $('guide').setAt
 $('guide-x').innerHTML = ic('x', 22); $('ib-ic').innerHTML = ic('smartphone', 20); $('ib-x').innerHTML = ic('x', 18);
 $('guide-bd').onclick = closeGuide; $('guide-x').onclick = closeGuide; $('guide-ok').onclick = closeGuide; $('guide-copy').onclick = () => { copyLink(); };
 sheetDrag(document.querySelector('#guide .share-card'), closeGuide);
-$('ib-go').onclick = () => { if (deferredPrompt && !inApp) runInstall(); else openGuide(); }; $('ib-x').onclick = () => { try { localStorage.setItem(dismissedKey, '1'); } catch (e) {} syncBanner(); };
-function bannerCopy() { $('ib-go').textContent = tr(deferredPrompt && !inApp ? 'install' : 'how'); }
-function syncBanner() { bannerCopy(); const ok = (isIOS || isAndroid || inApp) && !standalone() && !framed() && !getDismissed() && $('s-welcome').classList.contains('active'); $('ibanner').classList.toggle('show', ok); document.documentElement.classList.toggle('ib-on', ok); }
+const installGo = () => { if (deferredPrompt && !inApp) runInstall(); else openGuide(); };
+$('ib-go').onclick = installGo; $('inst-mini').onclick = installGo; $('ib-x').onclick = () => { ibClosed = true; syncBanner(); };
+function bannerCopy() { $('ib-go').textContent = tr(deferredPrompt && !inApp ? 'install' : 'how'); $('inst-mini').innerHTML = ic('download', 14, 2.2) + tr('installApp'); }
+function syncBanner() { bannerCopy(); const can = (isIOS || isAndroid || inApp) && !standalone() && !framed(), ok = can && !ibClosed && $('s-welcome').classList.contains('active'); $('inst-mini').hidden = !(can && ibClosed); $('ibanner').classList.toggle('show', ok); document.documentElement.classList.toggle('ib-on', ok); }
 setTimeout(syncBanner, 1400);
 // installable app: Android shows the real prompt, iOS gets instructions
 let deferredPrompt = null;
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (typeof syncBanner === 'function') syncBanner(); });
-addEventListener('appinstalled', () => { deferredPrompt = null; syncBanner(); });
+addEventListener('appinstalled', () => { deferredPrompt = null; ibClosed = true; syncBanner(); $('inst-mini').hidden = true; });
 async function runInstall() { if (!deferredPrompt) return openGuide(); deferredPrompt.prompt(); const r = await deferredPrompt.userChoice.catch(() => ({})); deferredPrompt = null; if (r.outcome === 'dismissed') openGuide(); }
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
