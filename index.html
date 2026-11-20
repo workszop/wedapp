@@ -520,6 +520,8 @@
   .avp-btn b{display:block;font-size:14.5px}.avp-btn small{display:block;color:var(--mute);font-size:12px;line-height:1.35}
   .avp-x{flex:none;border:0;background:none;color:var(--pink-d);font:800 13px var(--sans);min-height:44px;padding:0 8px;cursor:pointer}
   /* multi-select question: twelve options in two compact columns, so the whole list and the buttons fit one phone screen */
+  .opt.off{opacity:.45}
+  .qact #qprev{gap:2px;padding-left:0}
   .opts.multi{grid-template-columns:1fr 1fr;gap:8px}
   .opts.multi .opt{min-height:54px;gap:10px;padding:6px 10px 6px 6px;font-size:14px;line-height:1.2;border-radius:18px}
   .opts.multi .opt span{width:40px;height:40px;border-radius:13px}.opts.multi .opt span .ic{width:21px;height:21px}
@@ -3091,7 +3093,7 @@ const T = {
     welcome: 'Witaj', required: 'WYMAGANE', optional: 'OPCJONALNE',
     nameQ: 'Jak masz na imię?', namePh: 'Imię', nameHint: 'Widoczne dla innych gości na grafie.', continue: 'Dalej',
     qOf: (i, n) => `Pytanie ${i} z ${n}`, reqHint: 'Potrzebne, żeby pokazać Cię na grafie.',
-    skip: 'Pomiń', next: 'Dalej', graphNow: 'Pokaż mój graf',
+    next: 'Dalej', backBtn: 'Cofnij',
     tab_home: 'Start', tab_summary: 'Podsumowanie', tab_names: 'Osoby', tab_graph: 'Graf', tab_chats: 'Rozmowy',
     smTitle: 'Twoje dopasowania', smTitleName: n => `${n}, oto Twoje dopasowania`,
     smSub: (d, n) => `Na podstawie ${d} odpowiedzi · ${n} ${plForm(n, 'gość', 'goście', 'gości')} na brunchu`,
@@ -3134,7 +3136,7 @@ const T = {
     err_guest_gone: 'Tego gościa nie ma już w wydarzeniu', err_event_full: 'Lista gości jest już pełna', err_bad_code: 'Kod pary młodej jest nieprawidłowy',
     cropT: 'Ustaw zdjęcie', cropHint: 'Przesuń zdjęcie palcem, żeby wybrać kadr. Rozsuń palce albo użyj suwaka, żeby powiększyć.', cropZoom: 'Powiększenie', cropCancel: 'Anuluj', cropSave: 'Zapisz',
     photoAskT: 'Wasze zdjęcie pod imionami', photoAskP: 'Goście zobaczą je na ekranie powitalnym, pod waszymi imionami. Możecie też zrezygnować.',
-    multiHint: 'Możesz wybrać kilka.',
+    multiHint: 'Możesz wybrać kilka.', pickTwo: 'Możesz wybrać dwie odpowiedzi.',
     avAdd: 'Dodaj swoje zdjęcie', avSub: 'Opcjonalne. Inni goście łatwiej Cię rozpoznają.', avRemove: 'Usuń', avSaved: 'Zdjęcie zapisane', avRemoved: 'Zdjęcie usunięte', editAnswers: 'Zmień odpowiedzi lub zdjęcie',
     photoAdd: 'Dodaj zdjęcie', photoNo: 'Bez zdjęcia', photoChange: 'Zmień zdjęcie', photoRemove: 'Usuń zdjęcie',
     photoBusy: 'Wysyłam zdjęcie…', photoSaved: 'Zdjęcie dodane', photoRemoved: 'Bez zdjęcia – możecie je dodać później w panelu pary', photoAlt: n => `Zdjęcie: ${n}`,
@@ -3203,7 +3205,7 @@ const T = {
     welcome: 'Welcome', required: 'REQUIRED', optional: 'OPTIONAL',
     nameQ: 'What’s your name?', namePh: 'First name', nameHint: 'Shown to other guests on the graph.', continue: 'Continue',
     qOf: (i, n) => `Question ${i} of ${n}`, reqHint: 'Needed to place you on the graph.',
-    skip: 'Skip', next: 'Next', graphNow: 'See my graph now',
+    next: 'Next', backBtn: 'Back',
     tab_home: 'Home', tab_summary: 'Summary', tab_names: 'Names', tab_graph: 'Graph', tab_chats: 'Chats',
     smTitle: 'Your matches', smTitleName: n => `${n}, here are your matches`,
     smSub: (d, n) => `Based on ${d} answer${d === 1 ? '' : 's'} · ${n} guests tonight`,
@@ -3246,7 +3248,7 @@ const T = {
     err_guest_gone: 'This guest is no longer in the event', err_event_full: 'The guest list is full', err_bad_code: 'The couple’s code is not valid',
     cropT: 'Frame your photo', cropHint: 'Drag the photo to choose what shows. Pinch or use the slider to zoom.', cropZoom: 'Zoom', cropCancel: 'Cancel', cropSave: 'Save',
     photoAskT: 'Your photo under your names', photoAskP: 'Guests will see it on the welcome screen, under your names. You can also skip it.',
-    multiHint: 'You can pick more than one.',
+    multiHint: 'You can pick more than one.', pickTwo: 'You can pick up to two.',
     avAdd: 'Add your photo', avSub: 'Optional. Helps other guests recognise you.', avRemove: 'Remove', avSaved: 'Photo saved', avRemoved: 'Photo removed', editAnswers: 'Edit answers or photo',
     photoAdd: 'Add a photo', photoNo: 'No photo', photoChange: 'Change photo', photoRemove: 'Remove photo',
     photoBusy: 'Uploading the photo…', photoSaved: 'Photo added', photoRemoved: 'No photo – you can add one later in the couple panel', photoAlt: n => `Photo: ${n}`,
@@ -3289,10 +3291,10 @@ const Q = Q_ICONS.map((icons, i) => ({
   get opts() { return icons.map((n, j) => [n, T[LANG].q[i].opts[j]]); },
 }));
 const N = Q.length;
-/* multi-select questions (music): the answer is a sorted list of options or null; every other answer is one option or null.
-   The Worker keeps the same list in MULTI_Q. Two answers match when they share at least one option. */
-const MULTI = new Set([4]);
-Q.forEach((q, i) => { q.multi = MULTI.has(i); });
+/* multi-select questions: music (any number), talk about and hobby (up to two). The answer is a sorted list of options or null;
+   every other answer is one option or null. The Worker keeps the same limits in MULTI_Q. Two answers match when they share at least one option. */
+const MULTI = new Map([[4, 12], [7, 2], [9, 2]]);   // question -> how many options may be picked
+Q.forEach((q, i) => { q.multi = MULTI.has(i); q.max = MULTI.get(i) || 1; });
 const picks = a => a === null || a === undefined ? [] : [].concat(a);          // options chosen in an answer
 const has = (a, o) => picks(a).includes(o);
 const common = (a, b) => { const y = picks(b); return picks(a).filter(x => y.includes(x)); };
@@ -3394,32 +3396,34 @@ function renderQ() {
     $('opts').innerHTML = `<input class="name-in" id="name-in" maxlength="24" placeholder="${tr('namePh')}" autocomplete="off" value="${esc(myName)}"><div class="name-hint">${tr(REAL ? 'consent' : 'nameHint')}</div><div class="avpick" id="avpick"></div>`;
     renderAvPick();
     const inp = $('name-in'), upd = () => { myName = inp.value.trim(); $('name-next').disabled = !nameOk(); };
-    act.innerHTML = `<span></span><button class="btn" id="name-next">${tr('continue')}</button>`; $('name-next').disabled = !nameOk(); $('name-next').onclick = nextStep;
+    act.innerHTML = `<button class="btn ghost" id="qprev">${ic('chevron-left', 18, 2.2)}${tr('backBtn')}</button><button class="btn" id="name-next">${tr('continue')}</button>`; $('qprev').onclick = stepBack; $('name-next').disabled = !nameOk(); $('name-next').onclick = nextStep;
     inp.oninput = upd; inp.onkeydown = e => { if (e.key === 'Enter' && nameOk()) nextStep(); };
     return;
   }
   renderLive();
   const qi = st.i, q = Q[qi], req = qi < REQUIRED_Q;
-  $('qn').innerHTML = `${tr('qOf', qi + 1, Q.length)} <span class="req ${req ? 'r' : 'o'}">${tr(req ? 'required' : 'optional')}</span>`; $('qt').textContent = q.q; if (q.multi) $('qt').insertAdjacentHTML('beforeend', `<small>${tr('multiHint')}</small>`);
-  $('opts').style.display = ''; $('opts').classList.toggle('multi', !!q.multi);
-  $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${has(me[qi], i) ? 'sel' : ''}" data-i="${i}"><span>${ic(o[0], 30, 1.75)}</span>${o[1]}</button>`).join('');
+  $('qn').innerHTML = `${tr('qOf', qi + 1, Q.length)} <span class="req ${req ? 'r' : 'o'}">${tr(req ? 'required' : 'optional')}</span>`; $('qt').textContent = q.q; if (q.multi) $('qt').insertAdjacentHTML('beforeend', `<small>${tr(q.max === 2 ? 'pickTwo' : 'multiHint')}</small>`);
+  $('opts').style.display = ''; $('opts').classList.toggle('multi', q.multi && q.opts.length > 6);   // the long music list uses the compact two-column grid
+  const full = q.multi && picks(me[qi]).length >= q.max;   // limit reached: the other options are dimmed until one is unticked
+  $('opts').innerHTML = q.opts.map((o, i) => `<button class="opt ${has(me[qi], i) ? 'sel' : full ? 'off' : ''}" data-i="${i}"><span>${ic(o[0], 30, 1.75)}</span>${o[1]}</button>`).join('');
   const canMove = !req || me[qi] !== null;   // a required question can be passed once it has an answer (editing earlier answers)
-  act.innerHTML = !canMove ? `<span class="name-hint" style="margin:0">${tr('reqHint')}</span>`
-    : `<button class="btn${q.multi && me[qi] !== null ? '' : ' ghost'}" id="skip">${tr(me[qi] === null ? 'skip' : 'next')}</button>` + (mandatoryDone() ? `<button class="btn alt" id="done-now">${tr('graphNow')} ${ic('arrow-right', 18)}</button>` : '');
-  if (canMove) { $('skip').onclick = nextStep; const dn = $('done-now'); if (dn) dn.onclick = finishQuiz; }
+  act.innerHTML = `<button class="btn ghost" id="qprev">${ic('chevron-left', 18, 2.2)}${tr('backBtn')}</button>`
+    + (canMove ? `<button class="btn" id="skip">${tr('next')}</button>` : `<span class="name-hint" style="margin:0;text-align:right">${tr('reqHint')}</span>`);
+  $('qprev').onclick = stepBack; if (canMove) $('skip').onclick = nextStep;
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => {
     const i = +b.dataset.i;
-    if (q.multi) { const cur = picks(me[qi]), nx = cur.includes(i) ? cur.filter(x => x !== i) : [...cur, i].sort((a, b) => a - b); me[qi] = nx.length ? nx : null; syncMe(); renderQ(); return; }   // several can be chosen: stay here, "Next" moves on
+    if (q.multi) { const cur = picks(me[qi]); if (!cur.includes(i) && cur.length >= q.max) return; const nx = cur.includes(i) ? cur.filter(x => x !== i) : [...cur, i].sort((a, b) => a - b); me[qi] = nx.length ? nx : null; syncMe(); renderQ(); return; }   // several can be chosen: stay here, "Next" moves on
     if (me[qi] === i && !req) { me[qi] = null; syncMe(); renderQ(); return; }          // optional: tap again to clear
     me[qi] = i; syncMe(); renderQ(); setTimeout(nextStep, 260);
   });
 }
 $('qback').innerHTML = ic('chevron-left', 28, 2);
-$('qback').onclick = () => {
+$('qback').onclick = stepBack;
+function stepBack() {
   if (si > 0) { si--; renderQ(); return; }
   if (editName) { if (!nameOk()) myName = editName; finishQuiz(); return; }   // editing: back from the first step returns to the matches, never with an empty name
   go('welcome');
-};
+}
 function editAnswers() { editName = myName; si = 0; renderQ(); go('quiz'); }   // walk through the same steps with the current answers filled in
 
 /* ======================= scoring ======================= */

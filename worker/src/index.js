@@ -24,7 +24,7 @@
 import { DurableObject } from 'cloudflare:workers';
 
 const OPT_COUNTS = [3, 2, 5, 4, 12, 4, 4, 6, 6, 6];   // number of options per question, same order as Q in index.html
-const MULTI_Q = new Set([4]);   // questions where a guest may pick several options (music): the answer is a sorted array of options, or null
+const MULTI_Q = new Map([[4, 12], [7, 2], [9, 2]]);   // questions where a guest may pick several options -> how many (music: any, talk about and hobby: two); the answer is a sorted array of options, or null
 const SLUG_RE = /^[a-z0-9]{12,40}$/;
 const NAME_RE = /^[\p{L}\p{M}\d .'’-]{1,24}$/u;
 const MAX_GUESTS = 200, MAX_BODY = 500, KEEP_DAYS = 60;
@@ -62,10 +62,10 @@ function normAnswers(a) {
   for (let i = 0; i < a.length; i++) {
     let v = a[i]; const ok = x => Number.isInteger(x) && x >= 0 && x < OPT_COUNTS[i];
     if (MULTI_Q.has(i)) {
-      if (Number.isInteger(v)) v = v === 5 ? null : [v];
+      if (Number.isInteger(v)) v = i === 4 && v === 5 ? null : [v];   // answers stored before multi-select
       if (v !== null) {
-        if (!Array.isArray(v) || v.length > OPT_COUNTS[i] || !v.every(ok)) return null;
-        v = [...new Set(v)].sort((x, y) => x - y); if (!v.length) v = null;
+        if (!Array.isArray(v) || !v.every(ok)) return null;
+        v = [...new Set(v)].sort((x, y) => x - y); if (v.length > MULTI_Q.get(i)) return null; if (!v.length) v = null;
       }
     } else if (v !== null && !ok(v)) return null;
     out.push(v);
