@@ -3714,6 +3714,7 @@ cv.addEventListener('wheel', e => { e.preventDefault(); const [sx, sy] = pt(e); 
 
 /* ======================= profile sheet ======================= */
 let sheetGuest = null;   // guest shown in the profile sheet (re-rendered on a language switch)
+let sheetAt = 0;   // when the profile sheet was last opened
 function select(g) {
   sheetGuest = g;
   const n = nodes.find(x => x.id === g.id); selected = n || null;
@@ -3734,7 +3735,7 @@ function select(g) {
     if (REAL) { try { await backend.sendMessage(String(g.id), '👋'); } catch (e) { toast(errText(e)); return; } }
     w.innerHTML = ic('check', 18) + tr('waveSent'); w.classList.add('done'); toast(tr('waveToast', g));
   };
-  $('sheet').classList.add('open'); $('scrim').classList.add('on');
+  $('sheet').classList.add('open'); $('scrim').classList.add('on'); sheetAt = performance.now();
 }
 function closeSheet() { $('sheet').classList.remove('open'); $('scrim').classList.remove('on'); selected = null; sheetGuest = null; }
 $('p-close').innerHTML = ic('x', 22); $('p-close').onclick = closeSheet;
@@ -4270,7 +4271,7 @@ async function flushWelcomeReply() {   // called when the guest finishes the qui
 
 /* ======================= native touches ======================= */
 mountTabbar();
-$('scrim').onclick = closeSheet;
+$('scrim').onclick = () => { if (performance.now() - sheetAt > 400) closeSheet(); };   // a finger tap opens the card on pointerup, and its click then lands on the scrim that just appeared: ignore that one
 function sheetDrag(el, close) {   // swipe a sheet down to dismiss it
   let y0 = null, dy = 0;
   el.addEventListener('pointerdown', e => { if (!e.target.closest('.grab,.sh-top,h4')) return; y0 = e.clientY; dy = 0; el.style.transition = 'none'; el.setPointerCapture(e.pointerId); });
