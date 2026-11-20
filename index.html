@@ -3581,8 +3581,8 @@ function step(dt) {
 function separate() {
   const w = Math.min(1, (Z - 1) / 0.5); if (w <= 0) return; const g = G();
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
-    const a = nodes[i], b = nodes[j], min = (a.r + b.r + 14) * g;   // 14: room for the rings and halos around the circles let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
-    if (d >= min) continue;
+    const a = nodes[i], b = nodes[j], min = (a.r + b.r + 14) * g; let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+    if (d >= min) continue;   // the 14 in min leaves room for the rings and halos around the circles
     if (d < .01) { const an = i * 2.399 + j; dx = Math.cos(an); dy = Math.sin(an); d = 1; }   // same spot: pick a direction
     const fa = a.you || a === drag, fb = b.you || b === drag; if (fa && fb) continue;
     const push = (min - d) * w, ux = dx / d, uy = dy / d, sa = fa ? 0 : fb ? 1 : .5, sb = fb ? 0 : fa ? 1 : .5;   // a fixed circle (you, or the one being dragged) stays put and the other moves the whole way
