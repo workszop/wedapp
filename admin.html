@@ -112,8 +112,8 @@
 
   <section class="card" id="guests-card" hidden>
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Goście</h2><button type="button" class="alt" id="b-refresh">Odśwież</button></div>
+    <div class="msg" id="m-guests" role="status" style="margin:0 0 8px"></div>
     <div class="scroll"><table><thead><tr><th>Imię</th><th>Odpowiedzi</th><th>Widoczność</th><th>Dołączył(a)</th><th></th></tr></thead><tbody id="guests"></tbody></table></div>
-    <div class="msg" id="m-guests" role="status"></div>
   </section>
 
   <section class="card" id="wipe-card" hidden>
@@ -273,7 +273,11 @@ $('photo-file').onchange = async e => {
 $('b-photo-x').onclick = async () => {
   try { await photoCall('DELETE'); await load(); say('m-photo', 'Bez zdjęcia. Możecie je dodać w każdej chwili.', 'ok'); } catch (x) { say('m-photo', errText(x), 'err'); }
 };
-$('b-refresh').onclick = () => load().then(() => say('m-guests', 'Odświeżono.', 'ok'), x => say('m-guests', errText(x), 'err'));
+$('b-refresh').onclick = async () => {   // the list often comes back unchanged, so the button itself and the time show that it was reloaded
+  const b = $('b-refresh'); b.disabled = true; b.textContent = 'Odświeżam…';
+  try { await load(); say('m-guests', `Odświeżono o ${new Date().toLocaleTimeString('pl-PL')}. Gości: ${state.data ? state.data.guests.length : 0}.`, 'ok'); } catch (x) { say('m-guests', errText(x), 'err'); }
+  b.disabled = false; b.textContent = 'Odśwież';
+};
 $('b-bride').onclick = () => window.open(DEMO ? `${APP}#demo=bride` : `${guestUrl()}#role=bride&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
 $('b-groom').onclick = () => window.open(DEMO ? `${APP}#demo=groom` : `${guestUrl()}#role=groom&code=${encodeURIComponent(state.code)}`, '_blank', 'noopener');
 twoTap($('b-wipe'), 'Dotknij jeszcze raz, żeby usunąć wszystko', async () => {
